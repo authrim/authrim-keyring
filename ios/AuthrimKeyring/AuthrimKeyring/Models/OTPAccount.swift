@@ -1,6 +1,6 @@
 import Foundation
 
-enum OTPAlgorithm: String, Codable, CaseIterable, Identifiable, Sendable {
+nonisolated enum OTPAlgorithm: String, Codable, CaseIterable, Identifiable, Sendable {
     case sha1 = "SHA1"
     case sha256 = "SHA256"
     case sha512 = "SHA512"
@@ -12,7 +12,7 @@ enum OTPAlgorithm: String, Codable, CaseIterable, Identifiable, Sendable {
 ///
 /// TOTP accounts are deliberately independent of tenant memberships: importing a
 /// QR code never implies that the user belongs to an organization.
-struct OTPAccount: Codable, Identifiable, Hashable, Sendable {
+nonisolated struct OTPAccount: Codable, Identifiable, Hashable, Sendable {
     static let supportedDigits = [6, 7, 8]
     static let supportedPeriods = [30, 60]
 
@@ -61,5 +61,20 @@ struct OTPAccount: Codable, Identifiable, Hashable, Sendable {
 
     var displaySubtitle: String? {
         issuer.isEmpty || accountName.isEmpty ? nil : accountName
+    }
+
+    /// True when both accounts produce the same codes.
+    func generatesSameCodes(as other: OTPAccount) -> Bool {
+        secret == other.secret
+            && algorithm == other.algorithm
+            && digits == other.digits
+            && period == other.period
+    }
+
+    /// Whether the parameters are ones this app can generate codes for.
+    var isSupported: Bool {
+        !secret.isEmpty
+            && Self.supportedDigits.contains(digits)
+            && Self.supportedPeriods.contains(period)
     }
 }

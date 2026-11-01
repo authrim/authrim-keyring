@@ -42,7 +42,7 @@ struct TOTPCodePanel: View {
             .sensoryFeedback(.success, trigger: isCopied) { _, new in new }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(accessibilityText(code: code.value, remaining: remaining))
-            .accessibilityValue(isCopied ? Text("Copied") : Text(""))
+            .accessibilityValue(isCopied ? Text("Copied") : Text(verbatim: ""))
             .accessibilityHint("Double-tap to copy the code.")
             .accessibilityAddTraits(.isButton)
         }

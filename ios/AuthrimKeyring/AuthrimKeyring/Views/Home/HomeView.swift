@@ -20,6 +20,10 @@ struct HomeView: View {
     @State private var copiedAccountID: UUID?
     @State private var copyFeedbackTask: Task<Void, Never>?
     @State private var searchText = ""
+    @AppStorage("hasSeenTutorial") private var hasSeenTutorial = false
+    /// Index of the tutorial step on screen, nil when the tutorial is not running.
+    @State private var tutorialIndex: Int?
+    @State private var tutorialAnchors = TutorialAnchors()
 
     private var filteredAccounts: [OTPAccount] {
         let query = searchText.trimmingCharacters(in: .whitespaces)
@@ -33,6 +37,7 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             content
+                .tutorialHost(tutorialAnchors)
                 .navigationTitle("Keyring")
                 .toolbar { toolbar }
                 .sheet(isPresented: $isAdding) { AddAccountView() }
@@ -63,6 +68,34 @@ struct HomeView: View {
                     }
                 }
         }
+        .overlay {
+            if let tutorialIndex {
+                TutorialOverlay(
+                    steps: TutorialStep.all,
+                    // An empty list has no card to point at, so the callout is centered.
+                    frame: { target in
+                        target == .cards && store.accounts.isEmpty ? nil : tutorialAnchors.frame(of: target)
+                    },
+                    index: Binding(get: { tutorialIndex }, set: { self.tutorialIndex = $0 }),
+                    onFinish: finishTutorial
+                )
+                .transition(.opacity)
+            }
+        }
+        .task(id: hasSeenTutorial) {
+            guard !hasSeenTutorial else { return }
+            // Where the toolbar below puts these buttons.
+            tutorialAnchors.setBarEdge(.trailing, for: .add)
+            tutorialAnchors.setBarEdge(.leading, for: .settings)
+            // Lets a closing sheet finish and the screen settle before measuring it.
+            try? await Task.sleep(for: .seconds(0.6))
+            withAnimation(.easeOut(duration: 0.25)) { tutorialIndex = 0 }
+        }
+    }
+
+    private func finishTutorial() {
+        withAnimation(.easeIn(duration: 0.2)) { tutorialIndex = nil }
+        hasSeenTutorial = true
     }
 
     @ViewBuilder
@@ -71,16 +104,31 @@ struct HomeView: View {
             ContentUnavailableView {
                 Label("No Accounts", systemImage: "key.horizontal")
             } description: {
-                Text("Scan the QR code shown when you turn on two-factor authentication for a service.")
+                if store.iCloudAccountCount > 0 {
+                    Text("Accounts were found in iCloud Keychain. Turn on sync to use them on this device.")
+                } else {
+                    Text("Scan the QR code shown when you turn on two-factor authentication for a service.")
+                }
             } actions: {
-                Button("Add Account") { isAdding = true }
-                    .buttonStyle(.borderedProminent)
+                if store.iCloudAccountCount > 0 {
+                    Button("Turn On iCloud Sync") { store.setSyncEnabled(true) }
+                        .buttonStyle(.borderedProminent)
+                    Button("Add Account") { isAdding = true }
+                } else {
+                    Button("Add Account") { isAdding = true }
+                        .buttonStyle(.borderedProminent)
+                }
             }
         } else {
             ScrollView {
                 LazyVStack(spacing: 12) {
                     ForEach(filteredAccounts) { account in
                         card(for: account)
+                            .background {
+                                if account.id == filteredAccounts.first?.id {
+                                    Color.clear.tutorialTarget(.cards, anchors: tutorialAnchors)
+                                }
+                            }
                     }
                 }
                 .padding(.horizontal)

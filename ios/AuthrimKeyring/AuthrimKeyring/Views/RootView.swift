@@ -4,8 +4,15 @@ import UIKit
 /// Hosts the account list and covers every presented screen while the app is
 /// locked or shown in the app switcher.
 struct RootView: View {
+    @Environment(AccountStore.self) private var store
     @Environment(AppLock.self) private var appLock
     @Environment(\.scenePhase) private var scenePhase
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+
+    /// Offered once, and only when there is a lock to turn on.
+    private var needsUnlockSetup: Bool {
+        !hasCompletedOnboarding && !appLock.isEnabled && appLock.canUseDeviceAuthentication
+    }
 
     var body: some View {
         Group {
@@ -13,8 +20,17 @@ struct RootView: View {
             // and keeps codes out of reach of VoiceOver.
             if appLock.isLocked {
                 Color(.systemBackground).ignoresSafeArea()
+            } else if needsUnlockSetup {
+                UnlockSetupView { hasCompletedOnboarding = true }
             } else {
                 HomeView()
+            }
+        }
+        .task {
+            // Nothing to offer when the lock is already on or cannot be used, and
+            // remembering that keeps the screen from appearing later on.
+            if !hasCompletedOnboarding, appLock.isEnabled || !appLock.canUseDeviceAuthentication {
+                hasCompletedOnboarding = true
             }
         }
         .background(CoverWindowInstaller(isCovered: appLock.isLocked || scenePhase != .active))
@@ -23,6 +39,8 @@ struct RootView: View {
             case .background:
                 appLock.lock()
             case .active:
+                // Picks up accounts that iCloud Keychain synced while the app was away.
+                store.load()
                 Task { await appLock.unlockOnActivation() }
             default:
                 break

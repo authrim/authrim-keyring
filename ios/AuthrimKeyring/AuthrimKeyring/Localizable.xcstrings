@@ -1,1086 +1,1686 @@
 {
-  "sourceLanguage": "en",
-  "strings": {
-    "%@-digit codes are not supported.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@桁のコードには対応していません。"
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@-digit codes are not supported." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@桁のコードには対応していません。"
           }
         }
       }
     },
-    "%lld": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld"
+    "%lld" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld"
           }
         }
       }
     },
-    "%lld seconds": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld秒"
+    "%lld of %lld" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld / %2$lld"
           }
         }
       }
     },
-    "2FA": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "2段階認証"
+    "%lld seconds" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld秒"
           }
         }
       }
     },
-    "30, 60 seconds": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "30秒、60秒"
+    "2FA" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2段階認証"
           }
         }
       }
     },
-    "A camera is not available on this device.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "このデバイスではカメラを使用できません。"
+    "30, 60 seconds" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30秒、60秒"
           }
         }
       }
     },
-    "A period of %@ seconds is not supported.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@秒の更新間隔には対応していません。"
+    "A backup can hold up to %lld accounts." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バックアップに入れられるアカウントは%lld件までです。"
           }
         }
       }
     },
-    "About": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "このアプリについて"
+    "A backup file is protected by a password you choose and can be restored on any device, even without iCloud." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バックアップファイルは自分で決めたパスワードで保護され、iCloudがなくてもどのデバイスにでも復元できます。"
           }
         }
       }
     },
-    "Account": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "アカウント"
+    "A camera is not available on this device." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このデバイスではカメラを使用できません。"
           }
         }
       }
     },
-    "Account (e.g. name@example.com)": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "アカウント（例: name@example.com）"
+    "A period of %@ seconds is not supported." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@秒の更新間隔には対応していません。"
           }
         }
       }
     },
-    "Add": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "追加"
+    "About" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このアプリについて"
           }
         }
       }
     },
-    "Add Account": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "アカウントを追加"
+    "Account" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウント"
           }
         }
       }
     },
-    "Advanced": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "詳細設定"
+    "Account (e.g. name@example.com)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウント（例: name@example.com）"
           }
         }
       }
     },
-    "Algorithm": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "アルゴリズム"
+    "Accounts added: %lld" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "追加したアカウント: %lld"
           }
         }
       }
     },
-    "Allow camera access in Settings to scan QR codes.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "QRコードを読み取るには、設定でカメラへのアクセスを許可してください。"
+    "Accounts in Backup" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バックアップ内のアカウント"
           }
         }
       }
     },
-    "Ask for %@ or your passcode each time the app is opened.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "アプリを開くたびに%@またはパスコードを要求します。"
+    "Accounts that are already in Keyring are skipped." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keyringにすでにあるアカウントは追加しません。"
           }
         }
       }
     },
-    "Authrim Keyring is locked": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Authrim Keyringはロックされています"
+    "Accounts were found in iCloud Keychain. Turn on sync to use them on this device." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloudキーチェーンにアカウントが見つかりました。このデバイスで使うには同期をオンにしてください。"
           }
         }
       }
     },
-    "Automatic": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "自動"
+    "Add" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "追加"
           }
         }
       }
     },
-    "Black": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ブラック"
+    "Add Account" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウントを追加"
           }
         }
       }
     },
-    "Brass": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ブラス"
+    "Add Accounts" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウントを追加"
           }
         }
       }
     },
-    "Cancel": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "キャンセル"
+    "Add an Account" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウントを追加"
           }
         }
       }
     },
-    "Cannot Add Account": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "アカウントを追加できません"
+    "Advanced" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "詳細設定"
           }
         }
       }
     },
-    "Card Color": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "カードの色"
+    "Algorithm" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アルゴリズム"
           }
         }
       }
     },
-    "Changing the name does not affect the codes.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "名前を変更してもコードは変わりません。"
+    "Allow camera access in Settings to scan QR codes." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "QRコードを読み取るには、設定でカメラへのアクセスを許可してください。"
           }
         }
       }
     },
-    "Check that the service matches the site where you are turning on two-factor authentication.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "2段階認証を設定しているサイトと、サービス名が一致しているか確認してください。"
+    "Already Added" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "追加済み"
           }
         }
       }
     },
-    "Choose QR Code from Photos": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "写真からQRコードを選ぶ"
+    "Ask for %@ or your passcode each time the app is opened." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリを開くたびに%@またはパスコードを要求します。"
           }
         }
       }
     },
-    "Code %@, %lld seconds left": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "コード %1$@、残り%2$lld秒"
+    "Authrim Keyring is locked" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authrim Keyringはロックされています"
           }
         }
       }
     },
-    "Code Settings": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "コードの設定"
+    "Automatic" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動"
           }
         }
       }
     },
-    "Confirm Account": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "アカウントの確認"
+    "Backup" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バックアップ"
           }
         }
       }
     },
-    "Copied": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "コピーしました"
+    "Backup Password" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バックアップのパスワード"
           }
         }
       }
     },
-    "Copy Code": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "コードをコピー"
+    "Black" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブラック"
           }
         }
       }
     },
-    "Crimson": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "クリムゾン"
+    "Brass" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブラス"
           }
         }
       }
     },
-    "Custom Color": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "カスタムカラー"
+    "Cancel" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャンセル"
           }
         }
       }
     },
-    "Data": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "データ"
+    "Cannot Add Account" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウントを追加できません"
           }
         }
       }
     },
-    "Delete": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "削除"
+    "Cannot Export Backup" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バックアップを書き出せません"
           }
         }
       }
     },
-    "Delete All Accounts": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "すべてのアカウントを削除"
+    "Cannot Import Backup" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バックアップを読み込めません"
           }
         }
       }
     },
-    "Delete all accounts?": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "すべてのアカウントを削除しますか？"
+    "Card Color" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カードの色"
           }
         }
       }
     },
-    "Delete “%@”?": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "「%@」を削除しますか？"
+    "Changing the name does not affect the codes." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名前を変更してもコードは変わりません。"
           }
         }
       }
     },
-    "Digits": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "桁数"
+    "Check that the service matches the site where you are turning on two-factor authentication." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2段階認証を設定しているサイトと、サービス名が一致しているか確認してください。"
           }
         }
       }
     },
-    "Done": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "完了"
+    "Choose How to Unlock" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ロック解除の方法を選択"
           }
         }
       }
     },
-    "Double-tap to copy the code.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ダブルタップでコードをコピーします。"
+    "Choose QR Code from Photos" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真からQRコードを選ぶ"
           }
         }
       }
     },
-    "Double-tap to hide the details.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ダブルタップで詳細を隠します。"
+    "Code %@, %lld seconds left" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コード %1$@、残り%2$lld秒"
           }
         }
       }
     },
-    "Double-tap to show the details.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ダブルタップで詳細を表示します。"
+    "Code Settings" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コードの設定"
           }
         }
       }
     },
-    "Edit": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "編集"
+    "Confirm Account" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウントの確認"
           }
         }
       }
     },
-    "Edit Card": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "カードを編集"
+    "Confirm Password" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "パスワード（確認）"
           }
         }
       }
     },
-    "Enter Setup Key": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "セットアップキーを入力"
+    "Copied" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コピーしました"
           }
         }
       }
     },
-    "Enter the key shown under the QR code. Spaces are ignored.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "QRコードの下に表示されるキーを入力してください。空白は無視されます。"
+    "Copy Code" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コードをコピー"
           }
         }
       }
     },
-    "Face ID": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Face ID"
+    "Crimson" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クリムゾン"
           }
         }
       }
     },
-    "Graphite": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "グラファイト"
+    "Custom Color" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カスタムカラー"
           }
         }
       }
     },
-    "Hide Setup Key": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "セットアップキーを隠す"
+    "Customize a Card" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カードをカスタマイズ"
           }
         }
       }
     },
-    "Indigo": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "インディゴ"
+    "Data" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "データ"
           }
         }
       }
     },
-    "Keychain error: %@": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "キーチェーンのエラー: %@"
+    "Delete" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "削除"
           }
         }
       }
     },
-    "Keyring": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Keyring"
+    "Delete All Accounts" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべてのアカウントを削除"
           }
         }
       }
     },
-    "Make sure two-factor authentication is turned off for this account or that you have another way to sign in. This cannot be undone.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "このアカウントの2段階認証を解除済みか、別のサインイン手段があることを確認してください。この操作は取り消せません。"
+    "Delete all accounts?" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべてのアカウントを削除しますか？"
           }
         }
       }
     },
-    "Mint": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ミント"
+    "Delete “%@”?" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」を削除しますか？"
           }
         }
       }
     },
-    "Moss": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "モス"
+    "Digits" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "桁数"
           }
         }
       }
     },
-    "Most services use SHA1, 6 digits and 30 seconds. Change these only if the service tells you to.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ほとんどのサービスはSHA1・6桁・30秒です。サービスから指示があった場合だけ変更してください。"
+    "Done" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完了"
           }
         }
       }
     },
-    "Name": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "名前"
+    "Double-tap to copy the code." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダブルタップでコードをコピーします。"
           }
         }
       }
     },
-    "No Accounts": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "アカウントがありません"
+    "Double-tap to hide the details." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダブルタップで詳細を隠します。"
           }
         }
       }
     },
-    "No QR code was found in the photo.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "写真にQRコードが見つかりませんでした。"
+    "Double-tap to show the details." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダブルタップで詳細を表示します。"
           }
         }
       }
     },
-    "OK": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "OK"
+    "Each account appears as a card. Tap a card to show its current code, then tap the code to copy it." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウントはカードとして表示されます。カードをタップすると現在のコードが表示され、コードをタップするとコピーできます。"
           }
         }
       }
     },
-    "Open Settings": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "設定を開く"
+    "Edit" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "編集"
           }
         }
       }
     },
-    "Optic ID": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Optic ID"
+    "Edit Card" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カードを編集"
           }
         }
       }
     },
-    "Passcode": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "パスコード"
+    "Enter Setup Key" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "セットアップキーを入力"
           }
         }
       }
     },
-    "Period": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "更新間隔"
+    "Enter the key shown under the QR code. Spaces are ignored." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "QRコードの下に表示されるキーを入力してください。空白は無視されます。"
           }
         }
       }
     },
-    "Pink": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ピンク"
+    "Enter the password that was set when the backup was exported." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バックアップを書き出したときに設定したパスワードを入力してください。"
           }
         }
       }
     },
-    "Plum": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "プラム"
+    "Export" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "書き出す"
           }
         }
       }
     },
-    "Point the camera at the QR code shown by the service you are setting up.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "設定中のサービスに表示されたQRコードにカメラを向けてください。"
+    "Export Backup" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "書き出し"
           }
         }
       }
     },
-    "Privacy Policy": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "プライバシーポリシー"
+    "Export Encrypted Backup" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暗号化バックアップを書き出す"
           }
         }
       }
     },
-    "Reorder": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "並べ替え"
+    "Export a backup of your accounts." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウントのバックアップを書き出します。"
           }
         }
       }
     },
-    "Require %@": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@を要求"
+    "Face ID" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Face ID"
           }
         }
       }
     },
-    "Save": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "保存"
+    "Graphite" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "グラファイト"
           }
         }
       }
     },
-    "Scan the QR code shown when you turn on two-factor authentication for a service.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "サービスで2段階認証を有効にするときに表示されるQRコードを読み取ってください。"
+    "Hide Setup Key" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "セットアップキーを隠す"
           }
         }
       }
     },
-    "Search accounts": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "アカウントを検索"
+    "Import" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み込み"
           }
         }
       }
     },
-    "Secret keys are stored only in this device’s Keychain. They are never sent to a server or synced with iCloud, and they do not move to a new device. If you change or lose this device, you will need to set up two-factor authentication again for each service, so keep the backup codes each service provides.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "秘密鍵はこのデバイスのキーチェーンにのみ保存されます。サーバーへの送信やiCloudとの同期は行わず、新しいデバイスにも移行されません。機種変更や紛失の際は各サービスで2段階認証を設定し直す必要があるため、各サービスが発行するバックアップコードを保管してください。"
+    "Import Backup" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バックアップを読み込む"
           }
         }
       }
     },
-    "Security": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "セキュリティ"
+    "Import Complete" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み込みが完了しました"
           }
         }
       }
     },
-    "Service": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "サービス"
+    "In Settings you can turn on the app lock, sync with iCloud Keychain, and export an encrypted backup." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「設定」では、アプリのロック、iCloudキーチェーンでの同期、暗号化バックアップの書き出しができます。"
           }
         }
       }
     },
-    "Service (e.g. Example Inc.)": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "サービス（例: Example株式会社）"
+    "Indigo" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "インディゴ"
           }
         }
       }
     },
-    "Set a device passcode to use the app lock.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "アプリのロックを使うには、デバイスのパスコードを設定してください。"
+    "Keep Copies in iCloud" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloudのコピーを残す"
           }
         }
       }
     },
-    "Settings": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "設定"
+    "Keychain error: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キーチェーンのエラー: %@"
           }
         }
       }
     },
-    "Setup Key": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "セットアップキー"
+    "Keyring" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keyring"
           }
         }
       }
     },
-    "Show Setup Key": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "セットアップキーを表示"
+    "Lock, Sync and Back Up" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ロック・同期・バックアップ"
           }
         }
       }
     },
-    "Sky": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "スカイ"
+    "Make sure two-factor authentication is turned off for this account or that you have another way to sign in. This cannot be undone." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このアカウントの2段階認証を解除済みか、別のサインイン手段があることを確認してください。この操作は取り消せません。"
           }
         }
       }
     },
-    "Slate Blue": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "スレートブルー"
+    "Mint" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ミント"
           }
         }
       }
     },
-    "Something went wrong": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "エラーが発生しました"
+    "Moss" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モス"
           }
         }
       }
     },
-    "Support": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "サポート"
+    "Most services use SHA1, 6 digits and 30 seconds. Change these only if the service tells you to." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ほとんどのサービスはSHA1・6桁・30秒です。サービスから指示があった場合だけ変更してください。"
           }
         }
       }
     },
-    "Supported Codes": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "対応するコード"
+    "Name" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名前"
           }
         }
       }
     },
-    "Tap the code to copy": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "コードをタップしてコピー"
+    "New" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新規"
           }
         }
       }
     },
-    "Teal": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ティール"
+    "Next" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次へ"
           }
         }
       }
     },
-    "Text on the card switches between black and white to stay readable.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "カードの文字は、読みやすいように黒と白が自動で切り替わります。"
+    "No Accounts" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウントがありません"
           }
         }
       }
     },
-    "The algorithm “%@” is not supported.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "アルゴリズム「%@」には対応していません。"
+    "No QR code was found in the photo." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真にQRコードが見つかりませんでした。"
           }
         }
       }
     },
-    "The photo could not be loaded.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "写真を読み込めませんでした。"
+    "Not Now" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "あとで"
           }
         }
       }
     },
-    "The secret key is not valid Base32.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "秘密鍵が正しいBase32形式ではありません。"
+    "OK" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
           }
         }
       }
     },
-    "The setup code does not contain a secret key.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "セットアップコードに秘密鍵が含まれていません。"
+    "Open Settings" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定を開く"
           }
         }
       }
     },
-    "The setup key can contain only the letters A–Z and the digits 2–7.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "セットアップキーに使えるのは、英字A〜Zと数字2〜7だけです。"
+    "Optic ID" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optic ID"
           }
         }
       }
     },
-    "This QR code is not a two-factor authentication setup code.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "このQRコードは2段階認証のセットアップコードではありません。"
+    "Passcode" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "パスコード"
           }
         }
       }
     },
-    "This account has already been added.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "このアカウントはすでに追加されています。"
+    "Password" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "パスワード"
           }
         }
       }
     },
-    "Touch ID": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Touch ID"
+    "Period" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新間隔"
           }
         }
       }
     },
-    "Turn off the app lock.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "アプリのロックをオフにします。"
+    "Pink" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ピンク"
           }
         }
       }
     },
-    "Turn on the app lock.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "アプリのロックをオンにします。"
+    "Plum" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プラム"
           }
         }
       }
     },
-    "Type": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "種類"
+    "Point the camera at the QR code shown by the service you are setting up." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定中のサービスに表示されたQRコードにカメラを向けてください。"
           }
         }
       }
     },
-    "Unlock Authrim Keyring to view your codes.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "コードを表示するにはAuthrim Keyringのロックを解除してください。"
+    "Previous" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "戻る"
           }
         }
       }
     },
-    "Unlock with %@": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@でロック解除"
+    "Privacy Policy" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プライバシーポリシー"
           }
         }
       }
     },
-    "Version": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "バージョン"
+    "Remove from iCloud" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloudから削除"
           }
         }
       }
     },
-    "White": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ホワイト"
+    "Reorder" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "並べ替え"
           }
         }
       }
     },
-    "Yellow": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "イエロー"
+    "Require %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@を要求"
           }
         }
       }
     },
-    "You will no longer be able to generate codes for these services. Make sure you have another way to sign in. This cannot be undone.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "これらのサービスのコードを生成できなくなります。別のサインイン手段があることを確認してください。この操作は取り消せません。"
+    "Require %@ or your passcode each time Keyring opens, so no one else can see your codes." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keyringを開くたびに%@またはパスコードを要求して、ほかの人にコードを見られないようにします。"
           }
         }
       }
     },
-    "“%@” codes are not supported. Only time-based (TOTP) codes can be added.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "「%@」コードには対応していません。追加できるのは時間ベース（TOTP）のコードだけです。"
+    "Save" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存"
+          }
+        }
+      }
+    },
+    "Scan the QR code a service shows when you turn on two-factor authentication. You can also choose a screenshot or enter the setup key." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サービスで2段階認証をオンにしたときに表示されるQRコードを読み取ります。スクリーンショットを選んだり、セットアップキーを入力したりすることもできます。"
+          }
+        }
+      }
+    },
+    "Scan the QR code shown when you turn on two-factor authentication for a service." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サービスで2段階認証を有効にするときに表示されるQRコードを読み取ってください。"
+          }
+        }
+      }
+    },
+    "Search accounts" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウントを検索"
+          }
+        }
+      }
+    },
+    "Secret keys are stored in iCloud Keychain and are never sent to any other server. Also keep the backup codes each service provides." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "秘密鍵はiCloudキーチェーンに保存され、それ以外のサーバーに送られることはありません。各サービスが発行するバックアップコードも保管しておいてください。"
+          }
+        }
+      }
+    },
+    "Secret keys are stored only in this device’s Keychain and are never sent to a server. They do not move to a new device on their own, so turn on iCloud sync or keep an encrypted backup. Also keep the backup codes each service provides." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "秘密鍵はこのデバイスのキーチェーンにだけ保存され、サーバーに送られることはありません。新しいデバイスには自動では移らないため、iCloud同期をオンにするか、暗号化バックアップを保管しておいてください。各サービスが発行するバックアップコードも保管しておいてください。"
+          }
+        }
+      }
+    },
+    "Security" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "セキュリティ"
+          }
+        }
+      }
+    },
+    "Service" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サービス"
+          }
+        }
+      }
+    },
+    "Service (e.g. Example Inc.)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サービス（例: Example株式会社）"
+          }
+        }
+      }
+    },
+    "Set a device passcode to use the app lock." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリのロックを使うには、デバイスのパスコードを設定してください。"
+          }
+        }
+      }
+    },
+    "Settings" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定"
+          }
+        }
+      }
+    },
+    "Setup Key" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "セットアップキー"
+          }
+        }
+      }
+    },
+    "Show Setup Key" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "セットアップキーを表示"
+          }
+        }
+      }
+    },
+    "Show Tutorial" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "チュートリアルを表示"
+          }
+        }
+      }
+    },
+    "Show a Code" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コードを表示"
+          }
+        }
+      }
+    },
+    "Skip" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スキップ"
+          }
+        }
+      }
+    },
+    "Sky" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スカイ"
+          }
+        }
+      }
+    },
+    "Slate Blue" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スレートブルー"
+          }
+        }
+      }
+    },
+    "Something went wrong" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エラーが発生しました"
+          }
+        }
+      }
+    },
+    "Support" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サポート"
+          }
+        }
+      }
+    },
+    "Supported Codes" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "対応するコード"
+          }
+        }
+      }
+    },
+    "Sync" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同期"
+          }
+        }
+      }
+    },
+    "Tap the code to copy" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コードをタップしてコピー"
+          }
+        }
+      }
+    },
+    "Teal" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ティール"
+          }
+        }
+      }
+    },
+    "Text on the card switches between black and white to stay readable." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カードの文字は、読みやすいように黒と白が自動で切り替わります。"
+          }
+        }
+      }
+    },
+    "The algorithm “%@” is not supported." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アルゴリズム「%@」には対応していません。"
+          }
+        }
+      }
+    },
+    "The backup file contains the secret keys of all your accounts, encrypted with the password you set here. Keep the file and the password in separate places." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バックアップファイルには、すべてのアカウントの秘密鍵が、ここで設定するパスワードで暗号化されて入ります。ファイルとパスワードは別々の場所に保管してください。"
+          }
+        }
+      }
+    },
+    "The backup file is damaged." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バックアップファイルが壊れています。"
+          }
+        }
+      }
+    },
+    "The file is too large to be a Keyring backup." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keyringのバックアップとしてはファイルが大きすぎます。"
+          }
+        }
+      }
+    },
+    "The password is incorrect, or the file is damaged." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "パスワードが正しくないか、ファイルが壊れています。"
+          }
+        }
+      }
+    },
+    "The passwords do not match." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "パスワードが一致しません。"
+          }
+        }
+      }
+    },
+    "The photo could not be loaded." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真を読み込めませんでした。"
+          }
+        }
+      }
+    },
+    "The secret key is not valid Base32." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "秘密鍵が正しいBase32形式ではありません。"
+          }
+        }
+      }
+    },
+    "The setup code does not contain a secret key." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "セットアップコードに秘密鍵が含まれていません。"
+          }
+        }
+      }
+    },
+    "The setup key can contain only the letters A–Z and the digits 2–7." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "セットアップキーに使えるのは、英字A〜Zと数字2〜7だけです。"
+          }
+        }
+      }
+    },
+    "They are also removed from iCloud Keychain and from your other devices that use sync. You will no longer be able to generate codes for these services. Make sure you have another way to sign in. This cannot be undone." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloudキーチェーンと、同期を使っているほかのデバイスからも削除されます。これらのサービスのコードを生成できなくなります。別のサインイン手段があることを確認してください。この操作は取り消せません。"
+          }
+        }
+      }
+    },
+    "This QR code is not a two-factor authentication setup code." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このQRコードは2段階認証のセットアップコードではありません。"
+          }
+        }
+      }
+    },
+    "This account has already been added." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このアカウントはすでに追加されています。"
+          }
+        }
+      }
+    },
+    "This backup was made by a newer version of Keyring. Update the app and try again." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このバックアップは新しいバージョンのKeyringで作成されています。アプリをアップデートしてからもう一度お試しください。"
+          }
+        }
+      }
+    },
+    "This file is not a Keyring backup." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このファイルはKeyringのバックアップではありません。"
+          }
+        }
+      }
+    },
+    "Touch ID" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Touch ID"
+          }
+        }
+      }
+    },
+    "Touch and hold a card to rename it, change its color, or delete it." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カードを長押しすると、名前や色を変えたり、削除したりできます。"
+          }
+        }
+      }
+    },
+    "Turn On iCloud Sync" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud同期をオンにする"
+          }
+        }
+      }
+    },
+    "Turn off iCloud sync?" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud同期をオフにしますか？"
+          }
+        }
+      }
+    },
+    "Turn off the app lock." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリのロックをオフにします。"
+          }
+        }
+      }
+    },
+    "Turn on the app lock." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリのロックをオンにします。"
+          }
+        }
+      }
+    },
+    "Type" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "種類"
+          }
+        }
+      }
+    },
+    "Unlock" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開く"
+          }
+        }
+      }
+    },
+    "Unlock Authrim Keyring to view your codes." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コードを表示するにはAuthrim Keyringのロックを解除してください。"
+          }
+        }
+      }
+    },
+    "Unlock with %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@でロック解除"
+          }
+        }
+      }
+    },
+    "Use %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@を使用"
+          }
+        }
+      }
+    },
+    "Use at least %lld characters. The password cannot be recovered, and the backup cannot be restored without it." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld文字以上にしてください。パスワードは再発行できず、パスワードがないとバックアップを復元できません。"
+          }
+        }
+      }
+    },
+    "Version" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バージョン"
+          }
+        }
+      }
+    },
+    "When on, secret keys are kept in iCloud Keychain, which is end-to-end encrypted, and appear on your other devices where Keyring sync is on. iCloud Keychain must be turned on in the Settings app. Card order is not synced." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オンにすると、秘密鍵はエンドツーエンドで暗号化されるiCloudキーチェーンに保存され、Keyringの同期をオンにしているほかのデバイスにも表示されます。「設定」アプリでiCloudキーチェーンをオンにしておく必要があります。カードの並び順は同期されません。"
+          }
+        }
+      }
+    },
+    "White" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ホワイト"
+          }
+        }
+      }
+    },
+    "Yellow" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "イエロー"
+          }
+        }
+      }
+    },
+    "You can change this at any time in Settings." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この設定は、あとから「設定」でいつでも変更できます。"
+          }
+        }
+      }
+    },
+    "You will no longer be able to generate codes for these services. Make sure you have another way to sign in. This cannot be undone." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "これらのサービスのコードを生成できなくなります。別のサインイン手段があることを確認してください。この操作は取り消せません。"
+          }
+        }
+      }
+    },
+    "Your accounts stay on this device. Removing them from iCloud also removes them from your other devices that use sync." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウントはこのデバイスに残ります。iCloudから削除すると、同期を使っているほかのデバイスからも削除されます。"
+          }
+        }
+      }
+    },
+    "iCloud Keychain Sync" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloudキーチェーンで同期"
+          }
+        }
+      }
+    },
+    "“%@” codes are not supported. Only time-based (TOTP) codes can be added." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」コードには対応していません。追加できるのは時間ベース（TOTP）のコードだけです。"
           }
         }
       }
     }
   },
-  "version": "1.0"
+  "version" : "1.0"
 }

@@ -35,6 +35,18 @@ final class AppLock {
         }
     }
 
+    /// SF Symbol for the biometry the device offers, or a lock without one.
+    var biometrySymbol: String {
+        let context = LAContext()
+        _ = context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil)
+        return switch context.biometryType {
+        case .faceID: "faceid"
+        case .touchID: "touchid"
+        case .opticID: "opticid"
+        default: "lock"
+        }
+    }
+
     var canUseDeviceAuthentication: Bool {
         LAContext().canEvaluatePolicy(.deviceOwnerAuthentication, error: nil)
     }
@@ -70,6 +82,13 @@ final class AppLock {
         isEnabled = enabled
         isUnlocked = true
         UserDefaults.standard.set(enabled, forKey: Self.enabledKey)
+    }
+
+    /// Asks for the device owner before a sensitive action. Passes on a device
+    /// without a passcode, since there is nothing to ask for.
+    func confirmDeviceOwner(reason: String) async -> Bool {
+        guard canUseDeviceAuthentication else { return true }
+        return await authenticate(reason: reason)
     }
 
     private func authenticate(reason: String) async -> Bool {

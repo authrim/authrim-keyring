@@ -1,7 +1,7 @@
 import Foundation
 
 /// An opaque sRGB color chosen for a card face, stored with the account.
-struct CardColor: Codable, Hashable, Sendable {
+nonisolated struct CardColor: Codable, Hashable, Sendable {
     var red: Double
     var green: Double
     var blue: Double

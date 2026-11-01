@@ -1,0 +1,39 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "CFBundleDisplayName": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keyring"
+          }
+        }
+      },
+      "shouldTranslate": true
+    },
+    "NSCameraUsageDescription": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2段階認証のQRコードを読み取るためにカメラを使用します。"
+          }
+        }
+      },
+      "shouldTranslate": true
+    },
+    "NSFaceIDUsageDescription": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アプリのロックがオンのとき、Authrim Keyringのロック解除にFace IDを使用します。"
+          }
+        }
+      },
+      "shouldTranslate": true
+    }
+  },
+  "version": "1.0"
+}

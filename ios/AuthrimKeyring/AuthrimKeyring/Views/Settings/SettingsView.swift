@@ -60,7 +60,7 @@ struct SettingsView: View {
                     Button("Delete All Accounts", role: .destructive) {
                         isConfirmingDeleteAll = true
                     }
-                    .disabled(store.accounts.isEmpty)
+                    .disabled(store.accounts.isEmpty && !hasKeptICloudCopies)
                 } header: {
                     Text("Data")
                 } footer: {
@@ -108,8 +108,15 @@ struct SettingsView: View {
                 titleVisibility: .visible
             ) {
                 Button("Delete All Accounts", role: .destructive) { store.deleteAll() }
+                if hasKeptICloudCopies {
+                    Button("Also Delete from iCloud", role: .destructive) {
+                        store.deleteAll(includingICloud: true)
+                    }
+                }
             } message: {
-                if store.isSyncEnabled {
+                if hasKeptICloudCopies {
+                    Text("Copies kept in iCloud Keychain are not deleted unless you also delete them from iCloud, which removes them from your other devices that use sync. You will no longer be able to generate codes for these services. Make sure you have another way to sign in. This cannot be undone.")
+                } else if store.isSyncEnabled {
                     Text("They are also removed from iCloud Keychain and from your other devices that use sync. You will no longer be able to generate codes for these services. Make sure you have another way to sign in. This cannot be undone.")
                 } else {
                     Text("You will no longer be able to generate codes for these services. Make sure you have another way to sign in. This cannot be undone.")
@@ -160,7 +167,7 @@ struct SettingsView: View {
             get: { store.isSyncEnabled },
             set: { newValue in
                 if newValue {
-                    store.setSyncEnabled(true)
+                    Task { await store.enableSync(confirmingWith: appLock) }
                 } else {
                     isConfirmingSyncOff = true
                 }
@@ -170,6 +177,11 @@ struct SettingsView: View {
 
     private var hasStoreError: Binding<Bool> {
         Binding(get: { store.lastError != nil }, set: { if !$0 { store.lastError = nil } })
+    }
+
+    /// Copies left in iCloud Keychain when sync was turned off on this device.
+    private var hasKeptICloudCopies: Bool {
+        !store.isSyncEnabled && store.iCloudAccountCount > 0
     }
 
     private var hasPickerError: Binding<Bool> {
@@ -188,6 +200,17 @@ struct SettingsView: View {
         let version = info?["CFBundleShortVersionString"] as? String ?? "-"
         let build = info?["CFBundleVersion"] as? String ?? "-"
         return "\(version) (\(build))"
+    }
+}
+
+extension AccountStore {
+    /// Turns sync on after the device owner confirms, since it copies every
+    /// secret to iCloud Keychain and the user's other devices.
+    func enableSync(confirmingWith appLock: AppLock) async {
+        guard await appLock.confirmDeviceOwner(reason: String(localized: "Turn on iCloud Keychain sync.")) else {
+            return
+        }
+        setSyncEnabled(true)
     }
 }
 

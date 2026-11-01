@@ -251,6 +251,16 @@
         }
       }
     },
+    "Also Delete from iCloud" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloudからも削除"
+          }
+        }
+      }
+    },
     "Ask for %@ or your passcode each time the app is opened." : {
       "localizations" : {
         "ja" : {
@@ -457,6 +467,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "コピーしました"
+          }
+        }
+      }
+    },
+    "Copies kept in iCloud Keychain are not deleted unless you also delete them from iCloud, which removes them from your other devices that use sync. You will no longer be able to generate codes for these services. Make sure you have another way to sign in. This cannot be undone." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloudキーチェーンに残したコピーは、「iCloudからも削除」を選ばない限り削除されません。iCloudからも削除すると、同期を使っているほかのデバイスからも削除されます。これらのサービスのコードを生成できなくなります。別のサインイン手段があることを確認してください。この操作は取り消せません。"
           }
         }
       }
@@ -1517,6 +1537,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "アプリのロックをオフにします。"
+          }
+        }
+      }
+    },
+    "Turn on iCloud Keychain sync." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloudキーチェーンでの同期をオンにします。"
           }
         }
       }

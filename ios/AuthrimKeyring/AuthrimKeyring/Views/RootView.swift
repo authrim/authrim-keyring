@@ -98,21 +98,33 @@ private struct CoverView: View {
     var body: some View {
         ZStack {
             Rectangle().fill(.background).ignoresSafeArea()
-            VStack(spacing: 24) {
-                BrandMark(size: 72)
+            // The middle stays empty: the system Face ID indicator appears there.
+            VStack(spacing: 0) {
+                VStack(spacing: 20) {
+                    BrandMark(size: 72)
+                    if appLock.isLocked {
+                        Text("Authrim Keyring is locked")
+                            .font(.headline)
+                            .multilineTextAlignment(.center)
+                    }
+                }
+                .padding(.top, 72)
+                Spacer(minLength: 24)
                 if appLock.isLocked {
-                    Text("Authrim Keyring is locked")
-                        .font(.headline)
                     Button {
                         Task { await appLock.unlock() }
                     } label: {
                         Label("Unlock with \(appLock.biometryName)", systemImage: "lock.open")
+                            .frame(maxWidth: .infinity, minHeight: 32)
                     }
                     .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
                     .disabled(appLock.isAuthenticating)
+                    .padding(.bottom, 24)
                 }
             }
-            .padding()
+            .padding(.horizontal, 32)
+            .frame(maxWidth: 520)
         }
     }
 }

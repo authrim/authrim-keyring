@@ -91,14 +91,19 @@ final class AccountStore {
         saveOrder()
     }
 
-    func deleteAll() {
+    /// Deletes every account here. With sync off, `includingICloud` also deletes
+    /// the copies kept in iCloud Keychain, which removes them from other devices.
+    func deleteAll(includingICloud: Bool = false) {
         do {
             try keychain.deleteAll(from: location)
-            accounts = []
+            if includingICloud, !isSyncEnabled {
+                try keychain.deleteAll(from: .iCloud)
+            }
             defaults.removeObject(forKey: Self.orderKey)
         } catch {
             lastError = error.localizedDescription
         }
+        load()
     }
 
     struct ImportResult {
@@ -109,6 +114,9 @@ final class AccountStore {
 
     /// Adds accounts restored from a backup, skipping ones that are already here.
     func importAccounts(_ incoming: [OTPAccount]) -> ImportResult {
+        // Checks against the Keychain, not a list that iCloud may have changed since,
+        // so an imported account never overwrites an existing item in place.
+        load()
         var added = 0
         for var account in incoming where !containsDuplicate(of: account) {
             if accounts.contains(where: { $0.id == account.id }) {

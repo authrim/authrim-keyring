@@ -3,6 +3,7 @@ import SwiftUI
 /// Home screen: one slim card per registered item. Tapping a card reveals its details.
 struct HomeView: View {
     @Environment(AccountStore.self) private var store
+    @Environment(AppLock.self) private var appLock
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -111,7 +112,7 @@ struct HomeView: View {
                 }
             } actions: {
                 if store.iCloudAccountCount > 0 {
-                    Button("Turn On iCloud Sync") { store.setSyncEnabled(true) }
+                    Button("Turn On iCloud Sync") { Task { await store.enableSync(confirmingWith: appLock) } }
                         .buttonStyle(.borderedProminent)
                     Button("Add Account") { isAdding = true }
                 } else {

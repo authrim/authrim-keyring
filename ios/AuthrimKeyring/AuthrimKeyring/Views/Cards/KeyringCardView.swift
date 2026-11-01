@@ -83,17 +83,16 @@ struct KeyringCardView<Detail: View>: View {
         }
         .foregroundStyle(appearance.foreground)
         .environment(\.cardAppearance, appearance)
-        .background(
-            LinearGradient(colors: [appearance.top, appearance.bottom], startPoint: .topLeading, endPoint: .bottomTrailing),
-            in: .rect(cornerRadius: cornerRadius)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: cornerRadius)
-                .strokeBorder(appearance.foreground.opacity(0.15))
-        }
         .clipShape(.rect(cornerRadius: cornerRadius))
+        .background {
+            // The shadow is cast by the card shape alone, not by the text on it, so it
+            // stays cheap to redraw while the card resizes.
+            RoundedRectangle(cornerRadius: cornerRadius)
+                .fill(LinearGradient(colors: [appearance.top, appearance.bottom], startPoint: .topLeading, endPoint: .bottomTrailing))
+                .strokeBorder(appearance.foreground.opacity(0.15))
+                .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
+        }
         .contentShape(.contextMenuPreview, .rect(cornerRadius: cornerRadius))
-        .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
     }
 
     private var header: some View {

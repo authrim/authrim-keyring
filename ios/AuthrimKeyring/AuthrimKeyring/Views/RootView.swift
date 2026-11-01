@@ -14,7 +14,7 @@ struct RootView: View {
             if appLock.isLocked {
                 Color(.systemBackground).ignoresSafeArea()
             } else {
-                AccountListView()
+                HomeView()
             }
         }
         .background(CoverWindowInstaller(isCovered: appLock.isLocked || scenePhase != .active))

@@ -1,16 +1,6 @@
 {
   "sourceLanguage": "en",
   "strings": {
-    "%@, code %@, %lld seconds left": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@、コード %2$@、残り%3$lld秒"
-          }
-        }
-      }
-    },
     "%@-digit codes are not supported.": {
       "localizations": {
         "ja": {
@@ -37,6 +27,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld秒"
+          }
+        }
+      }
+    },
+    "2FA": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2段階認証"
           }
         }
       }
@@ -221,6 +221,16 @@
         }
       }
     },
+    "Code %@, %lld seconds left": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コード %1$@、残り%2$lld秒"
+          }
+        }
+      }
+    },
     "Code Settings": {
       "localizations": {
         "ja": {
@@ -337,6 +347,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "ダブルタップでコードをコピーします。"
+          }
+        }
+      }
+    },
+    "Double-tap to hide the details.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ダブルタップで詳細を隠します。"
+          }
+        }
+      }
+    },
+    "Double-tap to show the details.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ダブルタップで詳細を表示します。"
           }
         }
       }
@@ -541,6 +571,16 @@
         }
       }
     },
+    "Reorder": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "並べ替え"
+          }
+        }
+      }
+    },
     "Require %@": {
       "localizations": {
         "ja": {
@@ -687,6 +727,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "対応するコード"
+          }
+        }
+      }
+    },
+    "Tap the code to copy": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コードをタップしてコピー"
           }
         }
       }

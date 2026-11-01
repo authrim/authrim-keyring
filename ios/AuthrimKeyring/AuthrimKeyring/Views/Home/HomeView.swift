@@ -1,13 +1,19 @@
 import SwiftUI
 
-struct AccountListView: View {
+/// Home screen: one slim card per registered item. Tapping a card reveals its details.
+struct HomeView: View {
     @Environment(AccountStore.self) private var store
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var isAdding = false
     @State private var isShowingSettings = false
+    @State private var isReordering = false
     @State private var editing: OTPAccount?
     @State private var pendingDeletion: OTPAccount?
+    @State private var expandedID: UUID?
     @State private var copiedAccountID: UUID?
+    @State private var copyFeedbackTask: Task<Void, Never>?
     @State private var searchText = ""
 
     private var filteredAccounts: [OTPAccount] {
@@ -26,6 +32,7 @@ struct AccountListView: View {
                 .toolbar { toolbar }
                 .sheet(isPresented: $isAdding) { AddAccountView() }
                 .sheet(isPresented: $isShowingSettings) { SettingsView() }
+                .sheet(isPresented: $isReordering) { ReorderAccountsView() }
                 .sheet(item: $editing) { EditAccountView(account: $0) }
                 .confirmationDialog(
                     deletionTitle,
@@ -42,6 +49,10 @@ struct AccountListView: View {
                 } message: {
                     Text(store.lastError ?? "")
                 }
+                .onChange(of: scenePhase) { _, phase in
+                    // Don't leave a code on screen for the next time the app is opened.
+                    if phase == .background { expandedID = nil }
+                }
         }
     }
 
@@ -57,32 +68,37 @@ struct AccountListView: View {
                     .buttonStyle(.borderedProminent)
             }
         } else {
-            TimelineView(.periodic(from: .now, by: 1)) { timeline in
-                List {
+            ScrollView {
+                LazyVStack(spacing: 12) {
                     ForEach(filteredAccounts) { account in
-                        AccountRowView(
-                            account: account,
-                            now: timeline.date,
-                            isCopied: copiedAccountID == account.id,
-                            onCopy: { copy(account) }
-                        )
-                        .swipeActions {
-                            Button("Delete", systemImage: "trash", role: .destructive) {
-                                pendingDeletion = account
-                            }
-                            Button("Edit", systemImage: "pencil") { editing = account }
-                        }
-                        .contextMenu {
-                            Button("Copy Code", systemImage: "doc.on.doc") { copy(account) }
-                            Button("Edit", systemImage: "pencil") { editing = account }
-                            Button("Delete", systemImage: "trash", role: .destructive) { pendingDeletion = account }
-                        }
+                        card(for: account)
                     }
-                    .onMove(perform: moveAction)
                 }
-                .listStyle(.insetGrouped)
+                .padding(.horizontal)
+                .padding(.vertical, 8)
             }
+            .background(Color(.systemGroupedBackground))
             .searchable(text: $searchText, prompt: "Search accounts")
+        }
+    }
+
+    private func card(for account: OTPAccount) -> some View {
+        KeyringCardView(
+            appearance: .forName(account.displayTitle),
+            title: account.displayTitle,
+            subtitle: account.displaySubtitle,
+            kind: "2FA",
+            isExpanded: expandedID == account.id,
+            onToggle: { toggle(account) }
+        ) {
+            TOTPCodePanel(account: account, isCopied: copiedAccountID == account.id) {
+                copy(account)
+            }
+        }
+        .contextMenu {
+            Button("Copy Code", systemImage: "doc.on.doc") { copy(account) }
+            Button("Edit", systemImage: "pencil") { editing = account }
+            Button("Delete", systemImage: "trash", role: .destructive) { pendingDeletion = account }
         }
     }
 
@@ -91,18 +107,14 @@ struct AccountListView: View {
         ToolbarItem(placement: .topBarLeading) {
             Button("Settings", systemImage: "gearshape") { isShowingSettings = true }
         }
-        if !store.accounts.isEmpty {
-            ToolbarItem(placement: .topBarTrailing) { EditButton() }
+        if store.accounts.count > 1 {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Reorder", systemImage: "arrow.up.arrow.down") { isReordering = true }
+            }
         }
         ToolbarItem(placement: .topBarTrailing) {
             Button("Add Account", systemImage: "plus") { isAdding = true }
         }
-    }
-
-    /// Reordering is only meaningful on the unfiltered list.
-    private var moveAction: ((IndexSet, Int) -> Void)? {
-        guard searchText.isEmpty else { return nil }
-        return { source, destination in store.move(fromOffsets: source, toOffset: destination) }
     }
 
     private var deletionTitle: String {
@@ -118,14 +130,23 @@ struct AccountListView: View {
         Binding(get: { store.lastError != nil }, set: { if !$0 { store.lastError = nil } })
     }
 
+    private func toggle(_ account: OTPAccount) {
+        withAnimation(reduceMotion ? .easeInOut(duration: 0.15) : .snappy) {
+            expandedID = expandedID == account.id ? nil : account.id
+        }
+    }
+
     private func copy(_ account: OTPAccount) {
-        // Use the current time rather than the timeline tick so a code is never copied stale.
         let code = TOTPGenerator.code(for: account, at: .now)
         Pasteboard.copySensitive(code.value, expiresAfter: 60)
         copiedAccountID = account.id
-        Task {
-            try? await Task.sleep(for: .seconds(1.5))
-            if copiedAccountID == account.id { copiedAccountID = nil }
+        // A newer copy restarts the feedback instead of being cut short by the older timer.
+        copyFeedbackTask?.cancel()
+        copyFeedbackTask = Task {
+            do {
+                try await Task.sleep(for: .seconds(1.5))
+                copiedAccountID = nil
+            } catch {}
         }
     }
 }

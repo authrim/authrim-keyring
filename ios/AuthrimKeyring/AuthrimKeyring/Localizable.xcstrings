@@ -171,6 +171,36 @@
         }
       }
     },
+    "Automatic": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自動"
+          }
+        }
+      }
+    },
+    "Black": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブラック"
+          }
+        }
+      }
+    },
+    "Brass": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブラス"
+          }
+        }
+      }
+    },
     "Cancel": {
       "localizations": {
         "ja": {
@@ -187,6 +217,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "アカウントを追加できません"
+          }
+        }
+      }
+    },
+    "Card Color": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カードの色"
           }
         }
       }
@@ -267,6 +307,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "コードをコピー"
+          }
+        }
+      }
+    },
+    "Crimson": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "クリムゾン"
+          }
+        }
+      }
+    },
+    "Custom Color": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カスタムカラー"
           }
         }
       }
@@ -381,12 +441,12 @@
         }
       }
     },
-    "Edit Account": {
+    "Edit Card": {
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "アカウントを編集"
+            "value": "カードを編集"
           }
         }
       }
@@ -421,12 +481,32 @@
         }
       }
     },
+    "Graphite": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "グラファイト"
+          }
+        }
+      }
+    },
     "Hide Setup Key": {
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
             "value": "セットアップキーを隠す"
+          }
+        }
+      }
+    },
+    "Indigo": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インディゴ"
           }
         }
       }
@@ -457,6 +537,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "このアカウントの2段階認証を解除済みか、別のサインイン手段があることを確認してください。この操作は取り消せません。"
+          }
+        }
+      }
+    },
+    "Mint": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ミント"
+          }
+        }
+      }
+    },
+    "Moss": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "モス"
           }
         }
       }
@@ -547,6 +647,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "更新間隔"
+          }
+        }
+      }
+    },
+    "Pink": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ピンク"
+          }
+        }
+      }
+    },
+    "Plum": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プラム"
           }
         }
       }
@@ -701,6 +821,26 @@
         }
       }
     },
+    "Sky": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スカイ"
+          }
+        }
+      }
+    },
+    "Slate Blue": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スレートブルー"
+          }
+        }
+      }
+    },
     "Something went wrong": {
       "localizations": {
         "ja": {
@@ -737,6 +877,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "コードをタップしてコピー"
+          }
+        }
+      }
+    },
+    "Teal": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ティール"
+          }
+        }
+      }
+    },
+    "Text on the card switches between black and white to stay readable.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カードの文字は、読みやすいように黒と白が自動で切り替わります。"
           }
         }
       }
@@ -877,6 +1037,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "バージョン"
+          }
+        }
+      }
+    },
+    "White": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ホワイト"
+          }
+        }
+      }
+    },
+    "Yellow": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "イエロー"
           }
         }
       }

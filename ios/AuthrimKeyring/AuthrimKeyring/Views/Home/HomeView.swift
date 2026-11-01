@@ -11,7 +11,12 @@ struct HomeView: View {
     @State private var isReordering = false
     @State private var editing: OTPAccount?
     @State private var pendingDeletion: OTPAccount?
+    /// The card the user wants open. `expandedID` (sized open) and `revealedID`
+    /// (details shown) catch up with it one animated step at a time.
+    @State private var requestedID: UUID?
     @State private var expandedID: UUID?
+    @State private var revealedID: UUID?
+    @State private var isTransitioning = false
     @State private var copiedAccountID: UUID?
     @State private var copyFeedbackTask: Task<Void, Never>?
     @State private var searchText = ""
@@ -51,7 +56,11 @@ struct HomeView: View {
                 }
                 .onChange(of: scenePhase) { _, phase in
                     // Don't leave a code on screen for the next time the app is opened.
-                    if phase == .background { expandedID = nil }
+                    if phase == .background {
+                        requestedID = nil
+                        expandedID = nil
+                        revealedID = nil
+                    }
                 }
         }
     }
@@ -84,11 +93,12 @@ struct HomeView: View {
 
     private func card(for account: OTPAccount) -> some View {
         KeyringCardView(
-            appearance: .forName(account.displayTitle),
+            appearance: CardAppearance(base: account.effectiveCardColor),
             title: account.displayTitle,
             subtitle: account.displaySubtitle,
             kind: "2FA",
             isExpanded: expandedID == account.id,
+            isDetailVisible: revealedID == account.id,
             onToggle: { toggle(account) }
         ) {
             TOTPCodePanel(account: account, isCopied: copiedAccountID == account.id) {
@@ -131,8 +141,39 @@ struct HomeView: View {
     }
 
     private func toggle(_ account: OTPAccount) {
-        withAnimation(reduceMotion ? .easeInOut(duration: 0.15) : .snappy) {
-            expandedID = expandedID == account.id ? nil : account.id
+        requestedID = requestedID == account.id ? nil : account.id
+        guard !isTransitioning else { return }
+        Task { await settleCards() }
+    }
+
+    /// Moves the cards toward `requestedID`, one step at a time: details fade out,
+    /// pause, the card resizes, pause, details fade in. Taps during a transition only
+    /// change `requestedID`, so every step still runs in order. The steps follow a
+    /// fixed schedule because animation completion callbacks can arrive late.
+    private func settleCards() async {
+        isTransitioning = true
+        defer { isTransitioning = false }
+
+        let resizeDuration = reduceMotion ? 0.15 : 0.25
+        let resizeAnimation: Animation = reduceMotion
+            ? .easeInOut(duration: resizeDuration)
+            : .snappy(duration: resizeDuration)
+        let fadeDuration = 0.12
+        let pause = 0.3
+
+        while expandedID != requestedID || revealedID != requestedID {
+            if revealedID != nil, revealedID != requestedID {
+                withAnimation(.easeInOut(duration: fadeDuration)) { revealedID = nil }
+                try? await Task.sleep(for: .seconds(fadeDuration + pause))
+            } else if expandedID != requestedID {
+                withAnimation(resizeAnimation) { expandedID = requestedID }
+                if requestedID != nil {
+                    try? await Task.sleep(for: .seconds(resizeDuration + pause))
+                }
+            } else {
+                withAnimation(.easeInOut(duration: fadeDuration)) { revealedID = requestedID }
+                try? await Task.sleep(for: .seconds(fadeDuration))
+            }
         }
     }
 

@@ -24,6 +24,8 @@ struct OTPAccount: Codable, Identifiable, Hashable, Sendable {
     var digits: Int
     var period: Int
     var createdAt: Date
+    /// Card face color; nil means a color derived from the name.
+    var cardColor: CardColor?
 
     init(
         id: UUID = UUID(),
@@ -33,7 +35,8 @@ struct OTPAccount: Codable, Identifiable, Hashable, Sendable {
         algorithm: OTPAlgorithm = .sha1,
         digits: Int = 6,
         period: Int = 30,
-        createdAt: Date = .now
+        createdAt: Date = .now,
+        cardColor: CardColor? = nil
     ) {
         self.id = id
         self.issuer = issuer
@@ -43,11 +46,17 @@ struct OTPAccount: Codable, Identifiable, Hashable, Sendable {
         self.digits = digits
         self.period = period
         self.createdAt = createdAt
+        self.cardColor = cardColor
     }
 
     /// Title shown in lists; falls back to the account name when no issuer was given.
     var displayTitle: String {
         issuer.isEmpty ? accountName : issuer
+    }
+
+    /// The color actually shown on the card.
+    var effectiveCardColor: CardColor {
+        cardColor ?? .automatic(for: displayTitle)
     }
 
     var displaySubtitle: String? {

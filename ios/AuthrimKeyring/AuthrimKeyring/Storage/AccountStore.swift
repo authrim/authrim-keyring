@@ -59,11 +59,12 @@ final class AccountStore {
         }
     }
 
-    func rename(_ id: UUID, issuer: String, accountName: String) {
+    func update(_ id: UUID, issuer: String, accountName: String, cardColor: CardColor?) {
         guard let index = accounts.firstIndex(where: { $0.id == id }) else { return }
         var account = accounts[index]
         account.issuer = issuer
         account.accountName = accountName
+        account.cardColor = cardColor
         do {
             try keychain.save(account)
             accounts[index] = account

@@ -24,7 +24,6 @@ struct TOTPCodePanel: View {
                             .lineLimit(1)
                         Text(isCopied ? "Copied" : "Tap the code to copy")
                             .font(.caption)
-                            .opacity(0.8)
                     }
                     Spacer(minLength: 8)
                     if isCopied {
@@ -60,16 +59,18 @@ struct CountdownRing: View {
     let remaining: TimeInterval
     let period: TimeInterval
 
+    @Environment(\.cardAppearance) private var appearance
+
     private var isExpiring: Bool { remaining <= 5 }
 
     var body: some View {
         let fraction = period > 0 ? remaining / period : 0
         ZStack {
             Circle()
-                .stroke(.white.opacity(0.25), lineWidth: 3)
+                .stroke(appearance.foreground.opacity(0.25), lineWidth: 3)
             Circle()
                 .trim(from: 0, to: fraction)
-                .stroke(isExpiring ? Color.yellow : Color.white, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                .stroke(isExpiring ? appearance.warning : appearance.foreground, style: StrokeStyle(lineWidth: 3, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 .animation(.linear(duration: 1), value: fraction)
             Text("\(Int(remaining.rounded(.up)))")

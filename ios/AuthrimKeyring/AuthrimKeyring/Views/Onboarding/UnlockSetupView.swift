@@ -11,10 +11,12 @@ struct UnlockSetupView: View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(spacing: 20) {
+                    Wordmark(style: .logo)
+                        .padding(.top, 48)
                     Image(systemName: appLock.biometrySymbol)
                         .font(.system(size: symbolSize, weight: .light))
                         .foregroundStyle(Color.accentColor.gradient)
-                        .padding(.top, 72)
+                        .padding(.top, 24)
                         .padding(.bottom, 12)
                         .accessibilityHidden(true)
                     Text("Choose How to Unlock")

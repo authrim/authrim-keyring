@@ -427,16 +427,6 @@
         }
       }
     },
-    "Authrim Keyring is locked" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Authrim Keyringはロックされています"
-          }
-        }
-      }
-    },
     "AutoFill" : {
       "localizations" : {
         "ja" : {
@@ -1323,6 +1313,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ロック・同期・バックアップ"
+          }
+        }
+      }
+    },
+    "Locked" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ロック中"
           }
         }
       }

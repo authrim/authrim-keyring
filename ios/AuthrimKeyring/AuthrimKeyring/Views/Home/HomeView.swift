@@ -31,6 +31,7 @@ struct HomeView: View {
     @State private var tutorialAnchors = TutorialAnchors()
     /// Two columns of cards on wide landscape screens, such as an unfolded iPhone Duo.
     @State private var columnCount = 1
+    @State private var titleScroll = HomeTitleScroll()
 
     private var filteredItems: [KeyringItem] {
         let query = searchText.trimmingCharacters(in: .whitespaces)
@@ -42,7 +43,10 @@ struct HomeView: View {
         NavigationStack {
             content
                 .tutorialHost(tutorialAnchors)
+                // The title is the wordmark above the cards; the bar shows it once
+                // that has scrolled away.
                 .navigationTitle("Keyring")
+                .navigationBarTitleDisplayMode(.inline)
                 .toolbar { toolbar }
         }
         // Light or dark text to suit the wallpaper. Sheets and alerts are attached
@@ -119,41 +123,32 @@ struct HomeView: View {
     @ViewBuilder
     private var content: some View {
         if store.items.isEmpty {
-            ContentUnavailableView {
-                Label("No Accounts", systemImage: "key.horizontal")
-            } description: {
-                if store.iCloudAccountCount > 0 {
-                    Text("Accounts were found in iCloud Keychain. Turn on sync to use them on this device.")
-                } else {
-                    Text("Scan the QR code shown when you turn on two-factor authentication for a service.")
-                }
-            } actions: {
-                if store.iCloudAccountCount > 0 {
-                    Button("Turn On iCloud Sync") { Task { await store.enableSync(confirmingWith: appLock) } }
-                        .buttonStyle(.borderedProminent)
-                    Button("Add Account") { isAdding = true }
-                } else {
-                    Button("Add Account") { isAdding = true }
-                        .buttonStyle(.borderedProminent)
-                }
+            VStack(spacing: 0) {
+                HomeTitle(scroll: titleScroll)
+                emptyState
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background { WallpaperFill().ignoresSafeArea() }
+            // Nothing scrolls here: not pulled, and the title is in view.
+            .onAppear { titleScroll.update(offset: 0) }
         } else {
             ScrollView {
-                Group {
-                    if columnCount > 1 {
-                        LazyVGrid(
-                            columns: Array(repeating: GridItem(.flexible(), spacing: 12, alignment: .top), count: columnCount),
-                            spacing: 12
-                        ) { cards }
-                    } else {
-                        LazyVStack(spacing: 12) { cards }
+                VStack(spacing: 0) {
+                    HomeTitle(scroll: titleScroll)
+                    Group {
+                        if columnCount > 1 {
+                            LazyVGrid(
+                                columns: Array(repeating: GridItem(.flexible(), spacing: 12, alignment: .top), count: columnCount),
+                                spacing: 12
+                            ) { cards }
+                        } else {
+                            LazyVStack(spacing: 12) { cards }
+                        }
                     }
+                    .padding(.horizontal)
+                    .padding(.vertical, 8)
                 }
-                .padding(.horizontal)
-                .padding(.vertical, 8)
             }
+            .trackingHomeTitle(titleScroll)
             .background {
                 WallpaperFill()
                     .ignoresSafeArea()
@@ -165,6 +160,28 @@ struct HomeView: View {
             }
             .searchable(text: $searchText, prompt: "Search accounts")
         }
+    }
+
+    private var emptyState: some View {
+        ContentUnavailableView {
+            Label("No Accounts", systemImage: "key.horizontal")
+        } description: {
+            if store.iCloudAccountCount > 0 {
+                Text("Accounts were found in iCloud Keychain. Turn on sync to use them on this device.")
+            } else {
+                Text("Scan the QR code shown when you turn on two-factor authentication for a service.")
+            }
+        } actions: {
+            if store.iCloudAccountCount > 0 {
+                Button("Turn On iCloud Sync") { Task { await store.enableSync(confirmingWith: appLock) } }
+                    .buttonStyle(.borderedProminent)
+                Button("Add Account") { isAdding = true }
+            } else {
+                Button("Add Account") { isAdding = true }
+                    .buttonStyle(.borderedProminent)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var cards: some View {
@@ -234,13 +251,12 @@ struct HomeView: View {
 
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
-        if #available(iOS 26, *) {
-            // The navigation title stays "Keyring" for the small bar and VoiceOver.
-            ToolbarItem(placement: .largeTitle) {
-                // Set outside, where the wordmark's scaled size is read.
-                Wordmark()
-                    .dynamicTypeSize(...Wordmark.maximumTypeSize)
-            }
+        ToolbarItem(placement: .principal) {
+            // Set outside, where the wordmark's scaled size is read.
+            Wordmark(style: .bar)
+                .dynamicTypeSize(...Wordmark.maximumTypeSize)
+                .opacity(titleScroll.isUnderBar ? 1 : 0)
+                .accessibilityHidden(!titleScroll.isUnderBar)
         }
         ToolbarItem(placement: .topBarLeading) {
             Button("Settings", systemImage: "gearshape") { isShowingSettings = true }

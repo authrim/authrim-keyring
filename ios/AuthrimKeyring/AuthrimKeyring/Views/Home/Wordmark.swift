@@ -1,28 +1,52 @@
 import CoreText
 import SwiftUI
 
-/// "AUTHRIM KEYRING" in Cinzel, spaced like the Authrim logo on authrim.com.
+/// "AUTHRIM Keyring" in Cinzel, spaced like the Authrim logo on authrim.com. Cinzel
+/// has no lowercase letters: "Keyring" shows as small capitals after a capital K.
 ///
 /// A logo, so it grows with the text size only up to `maximumTypeSize` and is
-/// never cut off; VoiceOver reads it, and the bar shows "Keyring" once scrolled.
+/// never cut off; VoiceOver reads it as "Authrim Keyring".
 struct Wordmark: View {
+    enum Style {
+        /// The home screen's title, from the leading edge.
+        case title
+        /// Centered on screens with little else on them, such as the lock screen. It
+        /// keeps the one size the launch screen shows it at, so launching continues
+        /// into it unchanged.
+        case logo
+        /// "Keyring" in the navigation bar, once the title has scrolled under it.
+        case bar
+    }
+
     static let maximumTypeSize = DynamicTypeSize.xxxLarge
 
-    @ScaledMetric(relativeTo: .title) private var size: CGFloat = 24
+    var style = Style.title
+    @ScaledMetric(relativeTo: .title) private var titleSize: CGFloat = 18
+    @ScaledMetric(relativeTo: .headline) private var barSize: CGFloat = 17
+
+    private var size: CGFloat {
+        switch style {
+        case .title: titleSize
+        case .logo: 24
+        case .bar: barSize
+        }
+    }
 
     var body: some View {
-        Text(verbatim: "AUTHRIM KEYRING")
+        // The logo's letter spacing: 0.28 of the type size.
+        let tracking = size * 0.28
+        let isCentered = style != .title
+        Text(verbatim: style == .bar ? "Keyring" : "AUTHRIM Keyring")
             .font(.custom(Self.fontName, fixedSize: size))
-            // The logo's letter spacing: 0.28 of the type size.
-            .tracking(size * 0.28)
+            .tracking(tracking)
+            // Tracking also follows the last letter; matching space before the first
+            // keeps a centered wordmark in the middle.
+            .padding(.leading, isCentered ? tracking : 0)
             .lineLimit(1)
             .minimumScaleFactor(0.6)
-            .fixedSize(horizontal: false, vertical: true)
-            // Where the large title sits: the full width, from the leading edge.
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, 14)
-            .padding(.bottom, 6)
-            .accessibilityLabel(Text(verbatim: "Authrim Keyring"))
+            .fixedSize(horizontal: style == .bar, vertical: true)
+            .frame(maxWidth: style == .bar ? nil : .infinity, alignment: isCentered ? .center : .leading)
+            .accessibilityLabel(style == .bar ? Text(verbatim: "Keyring") : Text(verbatim: "Authrim Keyring"))
             .accessibilityAddTraits(.isHeader)
     }
 

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="23504" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="Launch">
+    <device id="retina6_12" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23506"/>
+        <capability name="Named colors" minToolsVersion="9.0"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="System colors in document resources" minToolsVersion="11.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <!--Launch: the lock screen's logo in the same place, so a locked launch
+            continues straight into it.-->
+        <scene sceneID="LaunchScene">
+            <objects>
+                <viewController id="Launch" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="Root">
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="LaunchMark" translatesAutoresizingMaskIntoConstraints="NO" id="Mark">
+                                <rect key="frame" x="144.5" y="115" width="104" height="104"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="104" id="MarkWidth"/>
+                                    <constraint firstAttribute="height" constant="104" id="MarkHeight"/>
+                                </constraints>
+                            </imageView>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="LaunchWordmark" translatesAutoresizingMaskIntoConstraints="NO" id="Wordmark">
+                                <rect key="frame" x="26.5" y="223" width="340" height="33"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" secondItem="Wordmark" secondAttribute="height" multiplier="340:33" id="WordmarkAspect"/>
+                                    <constraint firstAttribute="width" constant="340" priority="750" id="WordmarkWidth"/>
+                                </constraints>
+                            </imageView>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="Safe"/>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <constraints>
+                            <!-- CoverView: 72pt below the safe area; the image has 16pt of room for the shadow. -->
+                            <constraint firstItem="Mark" firstAttribute="top" secondItem="Safe" secondAttribute="top" constant="56" id="MarkTop"/>
+                            <constraint firstItem="Mark" firstAttribute="centerX" secondItem="Root" secondAttribute="centerX" id="MarkCenter"/>
+                            <!-- 20pt below the tile. -->
+                            <constraint firstItem="Wordmark" firstAttribute="top" secondItem="Mark" secondAttribute="bottom" constant="4" id="WordmarkTop"/>
+                            <constraint firstItem="Wordmark" firstAttribute="centerX" secondItem="Root" secondAttribute="centerX" id="WordmarkCenter"/>
+                            <constraint firstItem="Wordmark" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="Root" secondAttribute="leading" constant="32" id="WordmarkLeading"/>
+                        </constraints>
+                    </view>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="FirstResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="0" y="0"/>
+        </scene>
+    </scenes>
+    <resources>
+        <image name="LaunchMark" width="104" height="104"/>
+        <image name="LaunchWordmark" width="340" height="33"/>
+        <systemColor name="systemBackgroundColor">
+            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
+    </resources>
+</document>

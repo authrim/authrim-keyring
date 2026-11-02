@@ -19,7 +19,9 @@ struct RootView: View {
             // Removing the list while locked also dismisses any sheet it presented
             // and keeps codes out of reach of VoiceOver.
             if appLock.isLocked {
-                Color(.systemBackground).ignoresSafeArea()
+                // The cover window appears a moment after launch; until then this
+                // continues the launch screen instead of a blank one.
+                CoverView()
             } else if needsUnlockSetup {
                 UnlockSetupView { hasCompletedOnboarding = true }
             } else {
@@ -102,10 +104,11 @@ private struct CoverView: View {
             VStack(spacing: 0) {
                 VStack(spacing: 20) {
                     BrandMark(size: 72)
+                    Wordmark(style: .logo)
                     if appLock.isLocked {
-                        Text("Authrim Keyring is locked")
-                            .font(.headline)
-                            .multilineTextAlignment(.center)
+                        Label("Locked", systemImage: "lock.fill")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
                     }
                 }
                 .padding(.top, 72)

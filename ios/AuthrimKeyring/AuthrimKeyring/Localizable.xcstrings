@@ -551,6 +551,16 @@
         }
       }
     },
+    "Delete all accounts." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべてのアカウントを削除します。"
+          }
+        }
+      }
+    },
     "Delete all accounts?" : {
       "localizations" : {
         "ja" : {
@@ -1057,6 +1067,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "iCloudから削除"
+          }
+        }
+      }
+    },
+    "Remove your accounts from iCloud Keychain." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloudキーチェーンからアカウントを削除します。"
           }
         }
       }

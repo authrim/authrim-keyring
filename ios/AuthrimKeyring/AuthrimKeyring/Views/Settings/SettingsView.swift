@@ -107,10 +107,12 @@ struct SettingsView: View {
                 isPresented: $isConfirmingDeleteAll,
                 titleVisibility: .visible
             ) {
-                Button("Delete All Accounts", role: .destructive) { store.deleteAll() }
+                Button("Delete All Accounts", role: .destructive) {
+                    Task { await store.deleteAll(confirmingWith: appLock) }
+                }
                 if hasKeptICloudCopies {
                     Button("Also Delete from iCloud", role: .destructive) {
-                        store.deleteAll(includingICloud: true)
+                        Task { await store.deleteAll(includingICloud: true, confirmingWith: appLock) }
                     }
                 }
             } message: {
@@ -131,7 +133,7 @@ struct SettingsView: View {
                     store.setSyncEnabled(false)
                 }
                 Button("Remove from iCloud", role: .destructive) {
-                    store.setSyncEnabled(false, removeFromICloud: true)
+                    Task { await store.disableSyncRemovingICloudCopies(confirmingWith: appLock) }
                 }
             } message: {
                 Text("Your accounts stay on this device. Removing them from iCloud also removes them from your other devices that use sync.")
@@ -211,6 +213,24 @@ extension AccountStore {
             return
         }
         setSyncEnabled(true)
+    }
+
+    /// Deletes every account after the device owner confirms. It cannot be undone,
+    /// and with sync it also reaches the user's other devices.
+    func deleteAll(includingICloud: Bool = false, confirmingWith appLock: AppLock) async {
+        guard await appLock.confirmDeviceOwner(reason: String(localized: "Delete all accounts.")) else {
+            return
+        }
+        deleteAll(includingICloud: includingICloud)
+    }
+
+    /// Turns sync off and deletes the iCloud copies after the device owner confirms,
+    /// since that also removes them from the user's other devices.
+    func disableSyncRemovingICloudCopies(confirmingWith appLock: AppLock) async {
+        guard await appLock.confirmDeviceOwner(reason: String(localized: "Remove your accounts from iCloud Keychain.")) else {
+            return
+        }
+        setSyncEnabled(false, removeFromICloud: true)
     }
 }
 

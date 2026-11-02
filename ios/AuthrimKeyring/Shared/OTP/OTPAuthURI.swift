@@ -1,7 +1,7 @@
 import Foundation
 
 /// Parser for `otpauth://totp/...` key URIs as produced by setup QR codes.
-enum OTPAuthURI {
+nonisolated enum OTPAuthURI {
     enum ParseError: LocalizedError, Equatable {
         case notOTPAuth
         case unsupportedType(String)

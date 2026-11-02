@@ -7,13 +7,21 @@ struct ReorderAccountsView: View {
     var body: some View {
         NavigationStack {
             List {
-                ForEach(store.accounts) { account in
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(account.displayTitle)
-                        if let subtitle = account.displaySubtitle {
-                            Text(subtitle)
-                                .font(.caption)
+                ForEach(store.items) { item in
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(item.displayTitle)
+                            if let subtitle = item.displaySubtitle {
+                                Text(subtitle)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        Spacer()
+                        if case .passkey = item {
+                            Image(systemName: "person.badge.key")
                                 .foregroundStyle(.secondary)
+                                .accessibilityLabel("Passkey")
                         }
                     }
                 }

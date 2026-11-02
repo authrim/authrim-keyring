@@ -1,6 +1,7 @@
 import AVFoundation
 import PhotosUI
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// Entry point for adding a TOTP account by camera, photo or manual entry.
 struct AddAccountView: View {
@@ -14,6 +15,13 @@ struct AddAccountView: View {
     @State private var isImportingPhoto = false
     @State private var errorMessage: String?
     @State private var cameraStatus = AVCaptureDevice.authorizationStatus(for: .video)
+    /// A Google Authenticator transfer whose remaining QR codes are still to be scanned.
+    @State private var migration: MigrationProgress?
+    @State private var imported: ImportedAccounts?
+    @State private var isShowingImported = false
+    @State private var isChoosingFile = false
+    /// A chosen file or pasted text being read.
+    @State private var isReadingImport = false
 
     var body: some View {
         NavigationStack {
@@ -27,10 +35,14 @@ struct AddAccountView: View {
                             .strokeBorder(Color.secondary.opacity(0.3))
                     }
 
-                Text("Point the camera at the QR code shown by the service you are setting up.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
+                if let migration {
+                    migrationBanner(migration)
+                } else {
+                    Text("Point the camera at the QR code shown by the service you are setting up.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
 
                 VStack(spacing: 12) {
                     Button {
@@ -44,6 +56,13 @@ struct AddAccountView: View {
                         isEnteringManually = true
                     } label: {
                         Label("Enter Setup Key", systemImage: "keyboard")
+                            .frame(maxWidth: .infinity)
+                    }
+                    Menu {
+                        Button("Choose File", systemImage: "folder") { isChoosingFile = true }
+                        Button("Paste from Clipboard", systemImage: "doc.on.clipboard") { importClipboard() }
+                    } label: {
+                        Label("Import from Another App", systemImage: "square.and.arrow.down")
                             .frame(maxWidth: .infinity)
                     }
                 }
@@ -65,6 +84,23 @@ struct AddAccountView: View {
             }
             .navigationDestination(isPresented: $isEnteringManually) {
                 ManualEntryView { dismiss() }
+            }
+            .navigationDestination(isPresented: $isShowingImported) {
+                if let imported {
+                    ImportPreviewView(imported: imported) { dismiss() }
+                }
+            }
+            .fileImporter(
+                isPresented: $isChoosingFile,
+                allowedContentTypes: [.json, .plainText, .text, .data]
+            ) { result in
+                switch result {
+                case .success(let url):
+                    // Set before the picker closes, so scanning does not resume in between.
+                    isReadingImport = true
+                    Task { await importFile(url) }
+                case .failure(let error): errorMessage = error.localizedDescription
+                }
             }
             .alert("Cannot Add Account", isPresented: hasError) {
                 Button("OK") { errorMessage = nil }
@@ -141,7 +177,20 @@ struct AddAccountView: View {
     /// Scanning pauses while another screen, alert or photo import is in progress.
     private var isScanning: Bool {
         candidate == nil && !isEnteringManually && errorMessage == nil
-            && !isPickingPhoto && !isImportingPhoto
+            && !isPickingPhoto && !isImportingPhoto && !isShowingImported && !isChoosingFile && !isReadingImport
+    }
+
+    private func migrationBanner(_ progress: MigrationProgress) -> some View {
+        VStack(spacing: 8) {
+            Text("Scanned \(progress.scannedCount) of \(progress.size) codes from Google Authenticator. Scan the next one.")
+                .font(.callout)
+                .multilineTextAlignment(.center)
+            HStack {
+                Button("Start Over") { migration = nil }
+                Button("Review Scanned Accounts") { show(progress.accounts) }
+            }
+            .font(.callout)
+        }
     }
 
     private var hasError: Binding<Bool> {
@@ -149,11 +198,86 @@ struct AddAccountView: View {
     }
 
     private func handle(_ payload: String) {
-        guard candidate == nil, !isEnteringManually, errorMessage == nil else { return }
+        guard candidate == nil, !isEnteringManually, errorMessage == nil, !isShowingImported else { return }
+        if GoogleAuthMigration.isMigrationURI(payload) {
+            handleMigration(payload)
+            return
+        }
         do {
             candidate = try OTPAuthURI.parse(payload)
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    private func handleMigration(_ payload: String) {
+        let batch: GoogleAuthMigration.Batch
+        do {
+            batch = try GoogleAuthMigration.parse(payload)
+        } catch {
+            errorMessage = error.localizedDescription
+            return
+        }
+        if var progress = migration {
+            guard progress.belongs(batch) else {
+                errorMessage = String(localized: "This code is from a different transfer. Tap Start Over to scan a new transfer.")
+                return
+            }
+            // The camera keeps seeing the same code until the next one is shown.
+            guard progress.batches[batch.index] == nil else { return }
+            do {
+                try progress.add(batch)
+            } catch {
+                errorMessage = error.localizedDescription
+                return
+            }
+            migration = progress
+        } else {
+            migration = MigrationProgress(first: batch)
+        }
+        if let progress = migration, progress.isComplete {
+            show(progress.accounts)
+        }
+    }
+
+    private func show(_ accounts: ImportedAccounts) {
+        migration = nil
+        imported = accounts
+        isShowingImported = true
+    }
+
+    private func importClipboard() {
+        guard let text = UIPasteboard.general.string, !text.isEmpty else {
+            errorMessage = String(localized: "The clipboard does not contain any text.")
+            return
+        }
+        isReadingImport = true
+        Task {
+            let result = await Task.detached(priority: .userInitiated) {
+                Result { () throws(ImportError) in try AppExportReader.readKeyURIs(text) }
+            }.value
+            finishImport(result.mapError { $0 as Error })
+        }
+    }
+
+    private func importFile(_ url: URL) async {
+        let result = await Task.detached(priority: .userInitiated) { () -> Result<ImportedAccounts, Error> in
+            let isScoped = url.startAccessingSecurityScopedResource()
+            defer { if isScoped { url.stopAccessingSecurityScopedResource() } }
+            return Result {
+                let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
+                guard size <= AppExportReader.maximumFileSize else { throw ImportError.tooLarge }
+                return try AppExportReader.read(Data(contentsOf: url))
+            }
+        }.value
+        finishImport(result)
+    }
+
+    private func finishImport(_ result: Result<ImportedAccounts, Error>) {
+        isReadingImport = false
+        switch result {
+        case .success(let accounts): show(accounts)
+        case .failure(let error): errorMessage = error.localizedDescription
         }
     }
 
@@ -171,7 +295,7 @@ struct AddAccountView: View {
             QRCodeDecoder.payloads(in: data)
         }.value
         // Prefer a setup code if the image contains several QR codes.
-        if let payload = payloads.first(where: { $0.lowercased().hasPrefix("otpauth:") }) ?? payloads.first {
+        if let payload = payloads.first(where: { $0.lowercased().hasPrefix("otpauth") }) ?? payloads.first {
             handle(payload)
         } else {
             errorMessage = String(localized: "No QR code was found in the photo.")

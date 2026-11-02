@@ -2,16 +2,28 @@ import SwiftUI
 
 @main
 struct AuthrimKeyringApp: App {
-    @State private var store = AccountStore()
-    @State private var appLock = AppLock()
+    @State private var store: AccountStore
+    @State private var appLock: AppLock
     @State private var wallpaper = WallpaperStore()
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
+        // Before the stores read their settings from the App Group.
+        SharedDefaults.migrateFromStandard()
         #if DEBUG
         if ScreenshotDemo.isEnabled {
             _store = State(initialValue: ScreenshotDemo.makeStore())
+            _appLock = State(initialValue: ScreenshotDemo.makeAppLock())
+            return
         }
         #endif
+        _store = State(initialValue: AccountStore())
+        _appLock = State(initialValue: AppLock())
+    }
+
+    private struct AutoFillRegistration: Hashable {
+        var identities: CredentialIdentitySync.Identities
+        var isActive: Bool
     }
 
     var body: some Scene {
@@ -21,6 +33,13 @@ struct AuthrimKeyringApp: App {
                 .environment(appLock)
                 .environment(wallpaper)
                 .task { store.load() }
+                // Keeps AutoFill suggestions in step with the cards, including changes
+                // that arrive through iCloud. Also runs on each return to the app, in
+                // case AutoFill was turned on in Settings meanwhile.
+                .task(id: AutoFillRegistration(identities: store.autoFillIdentities, isActive: scenePhase == .active)) {
+                    guard scenePhase == .active else { return }
+                    await CredentialIdentitySync.replace(with: store.autoFillIdentities)
+                }
         }
     }
 }

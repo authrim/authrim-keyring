@@ -56,6 +56,16 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    NavigationLink {
+                        AutoFillSettingsView()
+                    } label: {
+                        Label("AutoFill & Passkeys", systemImage: "key.viewfinder")
+                    }
+                } footer: {
+                    Text("Passkeys are not included in backup files. Passkeys kept on this iPhone only cannot be moved to another device.")
+                }
+
+                Section {
                     Button("Export Encrypted Backup", systemImage: "square.and.arrow.up") {
                         isExporting = true
                     }
@@ -88,7 +98,7 @@ struct SettingsView: View {
                     Button("Delete All Accounts", role: .destructive) {
                         isConfirmingDeleteAll = true
                     }
-                    .disabled(store.accounts.isEmpty && !hasKeptICloudCopies)
+                    .disabled(store.items.isEmpty && !hasKeptICloudCopies)
                 } header: {
                     Text("Data")
                 } footer: {

@@ -1,6 +1,16 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "“%@” codes are not supported. Only time-based (TOTP) codes can be added." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」コードには対応していません。追加できるのは時間ベース（TOTP）のコードだけです。"
+          }
+        }
+      }
+    },
     "%@-digit codes are not supported." : {
       "localizations" : {
         "ja" : {
@@ -31,12 +41,38 @@
         }
       }
     },
+    "%lld of %lld left" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld of %2$lld left"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "残り %1$lld / %2$lld"
+          }
+        }
+      }
+    },
     "%lld seconds" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld秒"
+          }
+        }
+      }
+    },
+    "%lld-digit codes are not supported." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld桁のコードには対応していません。"
           }
         }
       }
@@ -91,6 +127,26 @@
         }
       }
     },
+    "A period of %lld seconds is not supported." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld秒の更新間隔には対応していません。"
+          }
+        }
+      }
+    },
+    "A secure random number could not be generated." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安全な乱数を作れませんでした。"
+          }
+        }
+      }
+    },
     "About" : {
       "localizations" : {
         "ja" : {
@@ -121,6 +177,26 @@
         }
       }
     },
+    "Accounts" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウント"
+          }
+        }
+      }
+    },
+    "Accounts Added" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウントを追加しました"
+          }
+        }
+      }
+    },
     "Accounts added: %lld" : {
       "localizations" : {
         "ja" : {
@@ -137,6 +213,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "バックアップ内のアカウント"
+          }
+        }
+      }
+    },
+    "Accounts that are already in Keyring are not added again." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keyringにすでにあるアカウントは、もう一度は追加されません。"
           }
         }
       }
@@ -171,6 +257,26 @@
         }
       }
     },
+    "Add %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@を追加"
+          }
+        }
+      }
+    },
+    "Add %lld" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld件を追加"
+          }
+        }
+      }
+    },
     "Add Account" : {
       "localizations" : {
         "ja" : {
@@ -191,12 +297,52 @@
         }
       }
     },
+    "Add accounts in the Keyring app first." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "先にKeyringアプリでアカウントを追加してください。"
+          }
+        }
+      }
+    },
     "Add an Account" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "アカウントを追加"
+          }
+        }
+      }
+    },
+    "Add Recovery Codes" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リカバリーコードを追加"
+          }
+        }
+      }
+    },
+    "Add Website" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウェブサイトを追加"
+          }
+        }
+      }
+    },
+    "Adds this site to the card you choose, so its code appears above the keyboard." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選んだカードにこのサイトを追加し、次からキーボードの上にコードが表示されるようにします。"
           }
         }
       }
@@ -251,6 +397,16 @@
         }
       }
     },
+    "Always for This Website" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このウェブサイトでは常にこうする"
+          }
+        }
+      }
+    },
     "Appearance" : {
       "localizations" : {
         "ja" : {
@@ -277,6 +433,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Authrim Keyringはロックされています"
+          }
+        }
+      }
+    },
+    "AutoFill" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動入力"
+          }
+        }
+      }
+    },
+    "AutoFill & Passkeys" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動入力とパスキー"
           }
         }
       }
@@ -361,6 +537,16 @@
         }
       }
     },
+    "Cannot Be Added" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "追加できないもの"
+          }
+        }
+      }
+    },
     "Cannot Export Backup" : {
       "localizations" : {
         "ja" : {
@@ -421,6 +607,16 @@
         }
       }
     },
+    "Changes to recovery codes are saved right away." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リカバリーコードの変更はすぐに保存されます。"
+          }
+        }
+      }
+    },
     "Changing the name does not affect the codes." : {
       "localizations" : {
         "ja" : {
@@ -437,6 +633,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "2段階認証を設定しているサイトと、サービス名が一致しているか確認してください。"
+          }
+        }
+      }
+    },
+    "Choose a Code" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コードを選択"
+          }
+        }
+      }
+    },
+    "Choose File" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ファイルを選択"
           }
         }
       }
@@ -541,6 +757,36 @@
         }
       }
     },
+    "Counter-based (HOTP) codes are not supported." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カウンターベース（HOTP）のコードには対応していません。"
+          }
+        }
+      }
+    },
+    "Create a passkey for %@." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@のパスキーを作成します。"
+          }
+        }
+      }
+    },
+    "Created %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作成日 %@"
+          }
+        }
+      }
+    },
     "Crimson" : {
       "localizations" : {
         "ja" : {
@@ -611,22 +857,22 @@
         }
       }
     },
+    "Delete “%@”?" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」を削除しますか？"
+          }
+        }
+      }
+    },
     "Delete All Accounts" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "すべてのアカウントを削除"
-          }
-        }
-      }
-    },
-    "Delete all accounts." : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "すべてのアカウントを削除します。"
           }
         }
       }
@@ -641,12 +887,22 @@
         }
       }
     },
-    "Delete “%@”?" : {
+    "Delete all accounts." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "「%@」を削除しますか？"
+            "value" : "すべてのアカウントを削除します。"
+          }
+        }
+      }
+    },
+    "Delete the passkey for “%@”?" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」のパスキーを削除しますか？"
           }
         }
       }
@@ -751,6 +1007,16 @@
         }
       }
     },
+    "Enter a domain such as example.com." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "example.com のようなドメインを入力してください。"
+          }
+        }
+      }
+    },
     "Enter Setup Key" : {
       "localizations" : {
         "ja" : {
@@ -791,6 +1057,16 @@
         }
       }
     },
+    "Export a backup of your accounts." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウントのバックアップを書き出します。"
+          }
+        }
+      }
+    },
     "Export Backup" : {
       "localizations" : {
         "ja" : {
@@ -807,16 +1083,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "暗号化バックアップを書き出す"
-          }
-        }
-      }
-    },
-    "Export a backup of your accounts." : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "アカウントのバックアップを書き出します。"
           }
         }
       }
@@ -871,12 +1137,32 @@
         }
       }
     },
+    "iCloud Keychain Sync" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloudキーチェーンで同期"
+          }
+        }
+      }
+    },
     "Import" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "読み込み"
+          }
+        }
+      }
+    },
+    "Import Accounts" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウントを取り込む"
           }
         }
       }
@@ -897,6 +1183,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "読み込みが完了しました"
+          }
+        }
+      }
+    },
+    "Import from Another App" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ほかのアプリから取り込む"
           }
         }
       }
@@ -931,6 +1227,26 @@
         }
       }
     },
+    "Keep on This iPhone Only" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このiPhoneだけに保存"
+          }
+        }
+      }
+    },
+    "Keep these in the other app, or set them up again with the service." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "これらは元のアプリで使い続けるか、サービスで設定し直してください。"
+          }
+        }
+      }
+    },
     "Keychain error: %@" : {
       "localizations" : {
         "ja" : {
@@ -947,6 +1263,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Keyring"
+          }
+        }
+      }
+    },
+    "Keyring has no passkey for %@." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keyringには%@のパスキーがありません。"
+          }
+        }
+      }
+    },
+    "Keyring keeps the passkey on this iPhone only. It is not synced or included in backups, and cannot be moved later. If you lose this iPhone, sign in another way." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このパスキーはKeyringがこのiPhoneだけに保存します。同期もバックアップもされず、あとから移すこともできません。iPhoneをなくしたときは、ほかの方法でサインインしてください。"
+          }
+        }
+      }
+    },
+    "Last used %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最終使用 %@"
+          }
+        }
+      }
+    },
+    "Leave empty to show the website. Renaming does not affect signing in." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "空にするとウェブサイト名が表示されます。名前を変えてもサインインには影響しません。"
           }
         }
       }
@@ -977,6 +1333,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "このアカウントの2段階認証を解除済みか、別のサインイン手段があることを確認してください。この操作は取り消せません。"
+          }
+        }
+      }
+    },
+    "Mark as Unused" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未使用に戻す"
+          }
+        }
+      }
+    },
+    "Mark as Used" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用済みにする"
           }
         }
       }
@@ -1061,6 +1437,16 @@
         }
       }
     },
+    "New passkeys for these websites and their subdomains are never synced or backed up. You can also choose this each time you save a passkey. Passkeys already saved are not moved." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "これらのウェブサイトとそのサブドメインの新しいパスキーは、同期もバックアップもされません。パスキーを保存するたびに選ぶこともできます。保存済みのパスキーは移動しません。"
+          }
+        }
+      }
+    },
     "Next" : {
       "localizations" : {
         "ja" : {
@@ -1091,12 +1477,52 @@
         }
       }
     },
+    "No Passkeys" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "パスキーがありません"
+          }
+        }
+      }
+    },
     "No QR code was found in the photo." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "写真にQRコードが見つかりませんでした。"
+          }
+        }
+      }
+    },
+    "No Recovery Codes" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リカバリーコードがありません"
+          }
+        }
+      }
+    },
+    "No secret key" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "秘密鍵がありません"
+          }
+        }
+      }
+    },
+    "None" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "なし"
           }
         }
       }
@@ -1111,12 +1537,12 @@
         }
       }
     },
-    "OK" : {
+    "Not used yet. If the website did not finish setting up this passkey, you can delete it." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "OK"
+            "value" : "まだ使われていません。ウェブサイトでこのパスキーの設定が完了しなかった場合は、削除してかまいません。"
           }
         }
       }
@@ -1127,6 +1553,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "海"
+          }
+        }
+      }
+    },
+    "Off" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オフ"
+          }
+        }
+      }
+    },
+    "OK" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        }
+      }
+    },
+    "On" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オン"
+          }
+        }
+      }
+    },
+    "On this iPhone only" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このiPhoneのみ"
+          }
+        }
+      }
+    },
+    "On this iPhone, synced when iCloud sync is on" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このiPhoneに保存（iCloud同期をオンにすると同期）"
+          }
+        }
+      }
+    },
+    "Only %lld of the %lld codes of this Google Authenticator transfer were found." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Only %1$lld of the %2$lld codes of this Google Authenticator transfer were found."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このGoogle Authenticatorの移行は%2$lld枚中%1$lld枚しか見つかりませんでした。"
           }
         }
       }
@@ -1151,6 +1643,16 @@
         }
       }
     },
+    "Other Accounts" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ほかのアカウント"
+          }
+        }
+      }
+    },
     "Passcode" : {
       "localizations" : {
         "ja" : {
@@ -1161,12 +1663,72 @@
         }
       }
     },
+    "Passkey" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "パスキー"
+          }
+        }
+      }
+    },
+    "Passkeys are not included in backup files. Passkeys kept on this iPhone only cannot be moved to another device." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "パスキーはバックアップファイルに含まれません。このiPhoneだけに保存したパスキーは、ほかのデバイスに移せません。"
+          }
+        }
+      }
+    },
+    "Passkeys Kept on This iPhone" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このiPhoneだけに保存するパスキー"
+          }
+        }
+      }
+    },
     "Password" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "パスワード"
+          }
+        }
+      }
+    },
+    "Paste from Clipboard" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クリップボードから貼り付け"
+          }
+        }
+      }
+    },
+    "Paste the recovery codes the service gave you when you turned on two-factor authentication. Each one can be used once to sign in without this app." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2段階認証をオンにしたときにサービスから受け取ったリカバリーコードを貼り付けてください。どれも1回だけ、このアプリなしでサインインするのに使えます。"
+          }
+        }
+      }
+    },
+    "Paste the whole list. Codes on separate lines, in columns, or separated by commas are split up." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一覧をまとめて貼り付けてください。行ごと、列ごと、カンマ区切りのコードは分けて取り込みます。"
           }
         }
       }
@@ -1241,12 +1803,32 @@
         }
       }
     },
-    "Remove Photo" : {
+    "Recovery Codes" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "写真を削除"
+            "value" : "リカバリーコード"
+          }
+        }
+      }
+    },
+    "Recovery codes and websites could not be read from the Keychain. Try again after restarting the app." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リカバリーコードとウェブサイトをキーチェーンから読み込めませんでした。アプリを起動し直してからもう一度お試しください。"
+          }
+        }
+      }
+    },
+    "Recovery codes: %lld left" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リカバリーコード: 残り%lld"
           }
         }
       }
@@ -1257,6 +1839,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "iCloudから削除"
+          }
+        }
+      }
+    },
+    "Remove Photo" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真を削除"
           }
         }
       }
@@ -1301,6 +1893,16 @@
         }
       }
     },
+    "Review Scanned Accounts" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み取ったアカウントを確認"
+          }
+        }
+      }
+    },
     "Sand" : {
       "localizations" : {
         "ja" : {
@@ -1321,6 +1923,16 @@
         }
       }
     },
+    "Save Passkey" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "パスキーを保存"
+          }
+        }
+      }
+    },
     "Scan the QR code a service shows when you turn on two-factor authentication. You can also choose a screenshot or enter the setup key." : {
       "localizations" : {
         "ja" : {
@@ -1337,6 +1949,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "サービスで2段階認証を有効にするときに表示されるQRコードを読み取ってください。"
+          }
+        }
+      }
+    },
+    "Scanned %lld of %lld codes from Google Authenticator. Scan the next one." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Scanned %1$lld of %2$lld codes from Google Authenticator. Scan the next one."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Google Authenticatorのコードを%2$lld枚中%1$lld枚読み取りました。次のコードを読み取ってください。"
           }
         }
       }
@@ -1441,12 +2069,42 @@
         }
       }
     },
+    "Show a Code" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コードを表示"
+          }
+        }
+      }
+    },
+    "Show Codes" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コードを表示"
+          }
+        }
+      }
+    },
     "Show Setup Key" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "セットアップキーを表示"
+          }
+        }
+      }
+    },
+    "Show the recovery codes." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リカバリーコードを表示します。"
           }
         }
       }
@@ -1461,12 +2119,22 @@
         }
       }
     },
-    "Show a Code" : {
+    "Sign in on %@ and choose Keyring when asked for a passkey." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "コードを表示"
+            "value" : "%@でサインインし、パスキーを求められたらKeyringを選んでください。"
+          }
+        }
+      }
+    },
+    "Sign in to %@." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@にサインインします。"
           }
         }
       }
@@ -1511,6 +2179,36 @@
         }
       }
     },
+    "Start Over" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最初から"
+          }
+        }
+      }
+    },
+    "Suggest for %@ Next Time" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次から%@で候補に出す"
+          }
+        }
+      }
+    },
+    "Suggested" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "おすすめ"
+          }
+        }
+      }
+    },
     "Support" : {
       "localizations" : {
         "ja" : {
@@ -1527,6 +2225,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "同期"
+          }
+        }
+      }
+    },
+    "Synced passkey" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同期するパスキー"
+          }
+        }
+      }
+    },
+    "Synced with iCloud Keychain" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloudキーチェーンで同期"
+          }
+        }
+      }
+    },
+    "Tap a code to copy it. Swipe to mark it as used once you have signed in with it." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コードをタップするとコピーできます。使ってサインインしたら、スワイプして使用済みにしてください。"
           }
         }
       }
@@ -1571,12 +2299,22 @@
         }
       }
     },
-    "The backup file contains the secret keys of all your accounts, encrypted with the password you set here. Keep the file and the password in separate places." : {
+    "The algorithm is not supported." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "バックアップファイルには、すべてのアカウントの秘密鍵が、ここで設定するパスワードで暗号化されて入ります。ファイルとパスワードは別々の場所に保管してください。"
+            "value" : "このアルゴリズムには対応していません。"
+          }
+        }
+      }
+    },
+    "The backup file contains the secret keys and recovery codes of all your accounts, encrypted with the password you set here. Keep the file and the password in separate places." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バックアップファイルには、すべてのアカウントの秘密鍵とリカバリーコードが、ここで設定するパスワードで暗号化されて含まれます。ファイルとパスワードは別々の場所に保管してください。"
           }
         }
       }
@@ -1591,12 +2329,62 @@
         }
       }
     },
+    "The clipboard does not contain any text." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クリップボードにテキストがありません。"
+          }
+        }
+      }
+    },
+    "The export could not be read. It may be damaged." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "書き出しファイルを読み込めませんでした。壊れている可能性があります。"
+          }
+        }
+      }
+    },
     "The file is too large to be a Keyring backup." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Keyringのバックアップとしてはファイルが大きすぎます。"
+          }
+        }
+      }
+    },
+    "The file is too large." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ファイルが大きすぎます。"
+          }
+        }
+      }
+    },
+    "The passkey is kept on this iPhone for now and moves to iCloud Keychain if you turn on iCloud sync." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このパスキーは今はこのiPhoneに保存し、iCloud同期をオンにするとiCloudキーチェーンに移ります。"
+          }
+        }
+      }
+    },
+    "The passkey is synced to your other devices through iCloud Keychain, end-to-end encrypted." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このパスキーはiCloudキーチェーンで、エンドツーエンドで暗号化されてほかのデバイスと同期します。"
           }
         }
       }
@@ -1671,6 +2459,26 @@
         }
       }
     },
+    "The site asked for a kind of passkey Keyring cannot create." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このサイトが求める種類のパスキーは、Keyringでは作成できません。"
+          }
+        }
+      }
+    },
+    "These codes come from different transfers. Start over and use the codes of a single transfer." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "これらのコードは別々の移行のものです。最初からやり直し、ひとつの移行のコードだけを使ってください。"
+          }
+        }
+      }
+    },
     "They are also removed from iCloud Keychain and from your other devices that use sync. You will no longer be able to generate codes for these services. Make sure you have another way to sign in. This cannot be undone." : {
       "localizations" : {
         "ja" : {
@@ -1681,12 +2489,12 @@
         }
       }
     },
-    "This QR code is not a two-factor authentication setup code." : {
+    "This %@ export is encrypted. Export it again without encryption, import it, then delete the file." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "このQRコードは2段階認証のセットアップコードではありません。"
+            "value" : "この%@の書き出しファイルは暗号化されています。暗号化せずに書き出し直して取り込み、そのあとファイルを削除してください。"
           }
         }
       }
@@ -1711,12 +2519,52 @@
         }
       }
     },
+    "This code is from a different transfer. Tap Start Over to scan a new transfer." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このコードは別の移行のものです。新しい移行を読み取るには「最初から」をタップしてください。"
+          }
+        }
+      }
+    },
     "This file is not a Keyring backup." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "このファイルはKeyringのバックアップではありません。"
+          }
+        }
+      }
+    },
+    "This file is not an export Keyring can read." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このファイルは、Keyringで読み込める書き出しファイルではありません。"
+          }
+        }
+      }
+    },
+    "This kind of code is not supported." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この種類のコードには対応していません。"
+          }
+        }
+      }
+    },
+    "This number of digits is not supported." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この桁数には対応していません。"
           }
         }
       }
@@ -1731,12 +2579,12 @@
         }
       }
     },
-    "Touch ID" : {
+    "This QR code is not a two-factor authentication setup code." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Touch ID"
+            "value" : "このQRコードは2段階認証のセットアップコードではありません。"
           }
         }
       }
@@ -1751,22 +2599,22 @@
         }
       }
     },
+    "Touch ID" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Touch ID"
+          }
+        }
+      }
+    },
     "Transparency" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "透明度"
-          }
-        }
-      }
-    },
-    "Turn On iCloud Sync" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "iCloud同期をオンにする"
           }
         }
       }
@@ -1791,12 +2639,32 @@
         }
       }
     },
+    "Turn On AutoFill" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動入力をオンにする"
+          }
+        }
+      }
+    },
     "Turn on iCloud Keychain sync." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "iCloudキーチェーンでの同期をオンにします。"
+          }
+        }
+      }
+    },
+    "Turn On iCloud Sync" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud同期をオンにする"
           }
         }
       }
@@ -1851,6 +2719,26 @@
         }
       }
     },
+    "Unnamed" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名前なし"
+          }
+        }
+      }
+    },
+    "Unused" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未使用"
+          }
+        }
+      }
+    },
     "Use %@" : {
       "localizations" : {
         "ja" : {
@@ -1867,6 +2755,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld文字以上にしてください。パスワードは再発行できず、パスワードがないとバックアップを復元できません。"
+          }
+        }
+      }
+    },
+    "Used" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用済み"
           }
         }
       }
@@ -1911,12 +2809,52 @@
         }
       }
     },
+    "Website" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウェブサイト"
+          }
+        }
+      }
+    },
+    "Websites" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウェブサイト"
+          }
+        }
+      }
+    },
     "White" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "ホワイト"
+          }
+        }
+      }
+    },
+    "With AutoFill on, sign-in codes are suggested above the keyboard on the websites set for each card, and Keyring can save and use passkeys." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動入力をオンにすると、カードに登録したウェブサイトでキーボードの上にコードが表示され、Keyringでパスキーを保存して使えるようになります。"
+          }
+        }
+      }
+    },
+    "With Keyring turned on for AutoFill, the code is suggested above the keyboard on these sites and their subdomains." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keyringを自動入力で使うようにすると、これらのサイトとサブドメインで、キーボードの上にコードが表示されます。"
           }
         }
       }
@@ -1951,32 +2889,22 @@
         }
       }
     },
+    "You will no longer be able to sign in to %@ with this passkey. Also remove it in the website’s account settings. This cannot be undone." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このパスキーで%@にサインインできなくなります。ウェブサイトのアカウント設定からも削除してください。この操作は取り消せません。"
+          }
+        }
+      }
+    },
     "Your accounts stay on this device. Removing them from iCloud also removes them from your other devices that use sync." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "アカウントはこのデバイスに残ります。iCloudから削除すると、同期を使っているほかのデバイスからも削除されます。"
-          }
-        }
-      }
-    },
-    "iCloud Keychain Sync" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "iCloudキーチェーンで同期"
-          }
-        }
-      }
-    },
-    "“%@” codes are not supported. Only time-based (TOTP) codes can be added." : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "「%@」コードには対応していません。追加できるのは時間ベース（TOTP）のコードだけです。"
           }
         }
       }

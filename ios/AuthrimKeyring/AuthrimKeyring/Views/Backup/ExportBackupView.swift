@@ -25,7 +25,7 @@ struct ExportBackupView: View {
         NavigationStack {
             Form {
                 Section {
-                    Text("The backup file contains the secret keys of all your accounts, encrypted with the password you set here. Keep the file and the password in separate places.")
+                    Text("The backup file contains the secret keys and recovery codes of all your accounts, encrypted with the password you set here. Keep the file and the password in separate places.")
                 }
 
                 Section {
@@ -102,11 +102,16 @@ struct ExportBackupView: View {
         guard await appLock.confirmDeviceOwner(reason: String(localized: "Export a backup of your accounts.")) else {
             return
         }
-        let accounts = store.accounts
+        // Without the details the file would silently lack the recovery codes.
+        guard !store.areDetailsUnavailable else {
+            errorMessage = AccountStore.StoreError.detailsUnavailable.localizedDescription
+            return
+        }
+        let contents = EncryptedBackup.Contents(accounts: store.accounts, details: Array(store.details.values))
         let password = password
         do {
             let data = try await Task.detached(priority: .userInitiated) {
-                try EncryptedBackup.seal(accounts, password: password)
+                try EncryptedBackup.seal(contents, password: password)
             }.value
             document = BackupDocument(data: data)
         } catch {

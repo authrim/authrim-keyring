@@ -10,7 +10,7 @@ struct ImportBackupView: View {
     @State private var file: Data?
     @State private var password = ""
     @State private var isWorking = false
-    @State private var found: [OTPAccount]?
+    @State private var found: EncryptedBackup.Contents?
     @State private var passwordError: String?
     @State private var loadError: String?
     @State private var addedCount: Int?
@@ -67,7 +67,8 @@ struct ImportBackupView: View {
     }
 
     @ViewBuilder
-    private func summary(of accounts: [OTPAccount]) -> some View {
+    private func summary(of contents: EncryptedBackup.Contents) -> some View {
+        let accounts = contents.accounts
         let newCount = accounts.count(where: { !store.containsDuplicate(of: $0) })
         Section {
             LabeledContent("Accounts in Backup", value: accounts.count, format: .number)
@@ -98,14 +99,15 @@ struct ImportBackupView: View {
         }
         Section {
             Button("Add Accounts") {
-                let result = store.importAccounts(accounts)
+                let result = store.importAccounts(accounts, details: contents.details)
                 if let error = result.error {
                     loadError = String(localized: "Accounts added: \(result.added)") + "\n" + error
                 } else {
                     addedCount = result.added
                 }
             }
-            .disabled(newCount == 0)
+            // Recovery codes in the backup are still added to cards already here.
+            .disabled(newCount == 0 && contents.details.isEmpty)
         }
     }
 

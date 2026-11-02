@@ -69,12 +69,23 @@ nonisolated enum EncryptedBackup {
         }
     }
 
+    /// What a backup holds.
+    struct Contents: Sendable {
+        var accounts: [OTPAccount]
+        /// Websites and recovery codes, matched to `accounts` by identifier.
+        var details: [AccountDetails] = []
+    }
+
+    // `details` was added in 1.1 without changing the version: 1.0 ignores keys it
+    // does not know, so it can still open these files and restore the accounts.
     private struct Payload: Codable {
         var exportedAt: Date
         var accounts: [OTPAccount]
+        var details: [AccountDetails]?
     }
 
-    static func seal(_ accounts: [OTPAccount], password: String, now: Date = .now) throws -> Data {
+    static func seal(_ contents: Contents, password: String, now: Date = .now) throws -> Data {
+        let accounts = contents.accounts
         // Never hand out a file that `open` would refuse.
         guard accounts.count <= maximumAccounts else { throw BackupError.tooManyAccounts }
         let salt = try randomBytes(count: 16)
@@ -86,7 +97,10 @@ nonisolated enum EncryptedBackup {
             sealed: Data()
         )
         let key = try deriveKey(password: password, salt: salt, iterations: iterations)
-        let plaintext = try makeEncoder().encode(Payload(exportedAt: now, accounts: accounts))
+        let accountIDs = Set(accounts.map(\.id))
+        let details = contents.details.filter { accountIDs.contains($0.id) && !$0.isEmpty }
+        let payload = Payload(exportedAt: now, accounts: accounts, details: details.isEmpty ? nil : details)
+        let plaintext = try makeEncoder().encode(payload)
         let box = try AES.GCM.seal(plaintext, using: key, authenticating: envelope.associatedData)
         guard let combined = box.combined else { throw BackupError.damaged }
         envelope.sealed = combined
@@ -95,7 +109,7 @@ nonisolated enum EncryptedBackup {
         return file
     }
 
-    static func open(_ file: Data, password: String) throws -> [OTPAccount] {
+    static func open(_ file: Data, password: String) throws -> Contents {
         guard file.count <= maximumFileSize else { throw BackupError.tooLarge }
         guard let envelope = try? JSONDecoder().decode(Envelope.self, from: file),
               envelope.format == format
@@ -121,9 +135,23 @@ nonisolated enum EncryptedBackup {
         decoder.dateDecodingStrategy = .iso8601
         guard let payload = try? decoder.decode(Payload.self, from: plaintext),
               payload.accounts.count <= maximumAccounts,
-              payload.accounts.allSatisfy(\.isSupported)
+              payload.accounts.allSatisfy(\.isSupported),
+              (payload.details?.count ?? 0) <= maximumAccounts
         else { throw BackupError.damaged }
-        return payload.accounts
+        // Each set of details must belong to exactly one account, or codes could
+        // end up on the wrong card.
+        let accountIDs = Set(payload.accounts.map(\.id))
+        let detailIDs = (payload.details ?? []).map(\.id)
+        guard accountIDs.count == payload.accounts.count,
+              Set(detailIDs).count == detailIDs.count,
+              detailIDs.allSatisfy(accountIDs.contains)
+        else { throw BackupError.damaged }
+        let details = (payload.details ?? []).map { extra in
+            var extra = extra
+            extra.recoveryCodes = Array(extra.recoveryCodes.prefix(AccountDetails.maximumRecoveryCodes))
+            return extra
+        }
+        return Contents(accounts: payload.accounts, details: details)
     }
 
     private static func makeEncoder() -> JSONEncoder {

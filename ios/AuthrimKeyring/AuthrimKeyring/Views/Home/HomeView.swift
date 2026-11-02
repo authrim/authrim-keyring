@@ -14,6 +14,8 @@ struct HomeView: View {
     @State private var isReordering = false
     @State private var editing: OTPAccount?
     @State private var pendingDeletion: OTPAccount?
+    @State private var editingPasskey: Passkey?
+    @State private var pendingPasskeyDeletion: Passkey?
     /// The card the user wants open. `expandedID` (sized open) and `revealedID`
     /// (details shown) catch up with it one animated step at a time.
     @State private var requestedID: UUID?
@@ -30,13 +32,10 @@ struct HomeView: View {
     /// Two columns of cards on wide landscape screens, such as an unfolded iPhone Duo.
     @State private var columnCount = 1
 
-    private var filteredAccounts: [OTPAccount] {
+    private var filteredItems: [KeyringItem] {
         let query = searchText.trimmingCharacters(in: .whitespaces)
-        guard !query.isEmpty else { return store.accounts }
-        return store.accounts.filter {
-            $0.issuer.localizedCaseInsensitiveContains(query)
-                || $0.accountName.localizedCaseInsensitiveContains(query)
-        }
+        guard !query.isEmpty else { return store.items }
+        return store.items.filter { $0.matches(query) }
     }
 
     var body: some View {
@@ -53,6 +52,7 @@ struct HomeView: View {
         .sheet(isPresented: $isShowingSettings) { SettingsView() }
         .sheet(isPresented: $isReordering) { ReorderAccountsView() }
         .sheet(item: $editing) { EditAccountView(account: $0) }
+        .sheet(item: $editingPasskey) { EditPasskeyView(passkey: $0) }
         .confirmationDialog(
             deletionTitle,
             isPresented: isConfirmingDeletion,
@@ -62,6 +62,16 @@ struct HomeView: View {
             Button("Delete", role: .destructive) { store.delete(account.id) }
         } message: { _ in
             Text("Make sure two-factor authentication is turned off for this account or that you have another way to sign in. This cannot be undone.")
+        }
+        .confirmationDialog(
+            passkeyDeletionTitle,
+            isPresented: isConfirmingPasskeyDeletion,
+            titleVisibility: .visible,
+            presenting: pendingPasskeyDeletion
+        ) { passkey in
+            Button("Delete", role: .destructive) { store.deletePasskey(passkey.id) }
+        } message: { passkey in
+            Text("You will no longer be able to sign in to \(passkey.relyingParty) with this passkey. Also remove it in the website’s account settings. This cannot be undone.")
         }
         .alert("Something went wrong", isPresented: hasError) {
             Button("OK") { store.lastError = nil }
@@ -82,7 +92,7 @@ struct HomeView: View {
                     steps: TutorialStep.all,
                     // An empty list has no card to point at, so the callout is centered.
                     frame: { target in
-                        target == .cards && store.accounts.isEmpty ? nil : tutorialAnchors.frame(of: target)
+                        target == .cards && store.items.isEmpty ? nil : tutorialAnchors.frame(of: target)
                     },
                     index: Binding(get: { tutorialIndex }, set: { self.tutorialIndex = $0 }),
                     onFinish: finishTutorial
@@ -108,7 +118,7 @@ struct HomeView: View {
 
     @ViewBuilder
     private var content: some View {
-        if store.accounts.isEmpty {
+        if store.items.isEmpty {
             ContentUnavailableView {
                 Label("No Accounts", systemImage: "key.horizontal")
             } description: {
@@ -158,13 +168,39 @@ struct HomeView: View {
     }
 
     private var cards: some View {
-        ForEach(filteredAccounts) { account in
-            card(for: account)
-                .background {
-                    if account.id == filteredAccounts.first?.id {
-                        Color.clear.tutorialTarget(.cards, anchors: tutorialAnchors)
-                    }
+        ForEach(filteredItems) { item in
+            Group {
+                switch item {
+                case .account(let account): card(for: account)
+                case .passkey(let passkey): card(for: passkey)
                 }
+            }
+            .background {
+                if item.id == filteredItems.first?.id {
+                    Color.clear.tutorialTarget(.cards, anchors: tutorialAnchors)
+                }
+            }
+        }
+    }
+
+    private func card(for passkey: Passkey) -> some View {
+        KeyringCardView(
+            appearance: CardAppearance(
+                base: passkey.effectiveCardColor,
+                glass: wallpaper.cardGlass(in: wallpaper.colorScheme ?? colorScheme)
+            ),
+            title: passkey.displayTitle,
+            subtitle: passkey.displaySubtitle,
+            kind: "Passkey",
+            isExpanded: expandedID == passkey.id,
+            isDetailVisible: revealedID == passkey.id,
+            onToggle: { toggle(passkey.id) }
+        ) {
+            PasskeyPanel(passkey: passkey, isSyncEnabled: store.isSyncEnabled)
+        }
+        .contextMenu {
+            Button("Edit", systemImage: "pencil") { editingPasskey = passkey }
+            Button("Delete", systemImage: "trash", role: .destructive) { pendingPasskeyDeletion = passkey }
         }
     }
 
@@ -179,9 +215,13 @@ struct HomeView: View {
             kind: "2FA",
             isExpanded: expandedID == account.id,
             isDetailVisible: revealedID == account.id,
-            onToggle: { toggle(account) }
+            onToggle: { toggle(account.id) }
         ) {
-            TOTPCodePanel(account: account, isCopied: copiedAccountID == account.id) {
+            TOTPCodePanel(
+                account: account,
+                recoveryCodesLeft: store.details[account.id].flatMap { $0.recoveryCodes.isEmpty ? nil : $0.unusedRecoveryCodeCount },
+                isCopied: copiedAccountID == account.id
+            ) {
                 copy(account)
             }
         }
@@ -197,7 +237,7 @@ struct HomeView: View {
         ToolbarItem(placement: .topBarLeading) {
             Button("Settings", systemImage: "gearshape") { isShowingSettings = true }
         }
-        if store.accounts.count > 1 {
+        if store.items.count > 1 {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Reorder", systemImage: "arrow.up.arrow.down") { isReordering = true }
             }
@@ -216,12 +256,21 @@ struct HomeView: View {
         Binding(get: { pendingDeletion != nil }, set: { if !$0 { pendingDeletion = nil } })
     }
 
+    private var passkeyDeletionTitle: String {
+        guard let passkey = pendingPasskeyDeletion else { return "" }
+        return String(localized: "Delete the passkey for “\(passkey.displayTitle)”?")
+    }
+
+    private var isConfirmingPasskeyDeletion: Binding<Bool> {
+        Binding(get: { pendingPasskeyDeletion != nil }, set: { if !$0 { pendingPasskeyDeletion = nil } })
+    }
+
     private var hasError: Binding<Bool> {
         Binding(get: { store.lastError != nil }, set: { if !$0 { store.lastError = nil } })
     }
 
-    private func toggle(_ account: OTPAccount) {
-        requestedID = requestedID == account.id ? nil : account.id
+    private func toggle(_ id: UUID) {
+        requestedID = requestedID == id ? nil : id
         guard !isTransitioning else { return }
         Task { await settleCards() }
     }

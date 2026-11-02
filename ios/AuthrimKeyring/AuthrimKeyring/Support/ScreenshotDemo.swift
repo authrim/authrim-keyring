@@ -8,12 +8,13 @@ import Foundation
 /// Combine with `-appLockEnabled NO -hasCompletedOnboarding YES -hasSeenTutorial YES`
 /// to skip the lock, the first-launch screen, and the tutorial.
 enum ScreenshotDemo {
+    private static let suite = "com.authrim.keyring.screenshot-demo"
+
     static var isEnabled: Bool {
         UserDefaults.standard.bool(forKey: "screenshotDemo")
     }
 
     static func makeStore() -> AccountStore {
-        let suite = "com.authrim.keyring.screenshot-demo"
         UserDefaults().removePersistentDomain(forName: suite)
         let store = AccountStore(
             keychain: KeychainStore(service: suite),
@@ -27,6 +28,14 @@ enum ScreenshotDemo {
             store.add(account)
         }
         return store
+    }
+
+    /// Takes `-appLockEnabled` from the launch arguments, which only reach the
+    /// app's own settings, not the App Group the lock normally reads.
+    static func makeAppLock() -> AppLock {
+        let defaults = UserDefaults(suiteName: suite) ?? .standard
+        defaults.set(UserDefaults.standard.bool(forKey: SharedDefaults.appLockKey), forKey: SharedDefaults.appLockKey)
+        return AppLock(defaults: defaults)
     }
 
     private static let accounts: [OTPAccount] = [

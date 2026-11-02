@@ -3,6 +3,8 @@ import SwiftUI
 /// Detail content of a one-time code card: the current code and its countdown.
 struct TOTPCodePanel: View {
     let account: OTPAccount
+    /// Unused recovery codes kept for this card, or nil when it has none.
+    var recoveryCodesLeft: Int?
     let isCopied: Bool
     let onCopy: () -> Void
 
@@ -24,6 +26,11 @@ struct TOTPCodePanel: View {
                             .lineLimit(1)
                         Text(isCopied ? "Copied" : "Tap the code to copy")
                             .font(.caption)
+                        if let recoveryCodesLeft {
+                            Label("Recovery codes: \(recoveryCodesLeft) left", systemImage: "key.viewfinder")
+                                .font(.caption2)
+                                .opacity(0.8)
+                        }
                     }
                     Spacer(minLength: 8)
                     if isCopied {

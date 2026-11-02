@@ -5,7 +5,7 @@ import Observation
 /// Optional Face ID / Touch ID / passcode lock for opening the app.
 @Observable
 final class AppLock {
-    private static let enabledKey = "appLockEnabled"
+    private static let enabledKey = SharedDefaults.appLockKey
 
     private(set) var isEnabled: Bool
     private(set) var isUnlocked: Bool
@@ -14,9 +14,11 @@ final class AppLock {
     /// itself makes the scene inactive, so prompting on every activation would
     /// re-prompt forever after the user cancels.
     private var shouldPromptOnActivation: Bool
+    private let defaults: UserDefaults
 
-    init() {
-        let enabled = UserDefaults.standard.bool(forKey: Self.enabledKey)
+    init(defaults: UserDefaults = SharedDefaults.store) {
+        self.defaults = defaults
+        let enabled = defaults.bool(forKey: Self.enabledKey)
         isEnabled = enabled
         isUnlocked = !enabled
         shouldPromptOnActivation = enabled
@@ -81,7 +83,7 @@ final class AppLock {
         guard await authenticate(reason: reason) else { return }
         isEnabled = enabled
         isUnlocked = true
-        UserDefaults.standard.set(enabled, forKey: Self.enabledKey)
+        defaults.set(enabled, forKey: Self.enabledKey)
     }
 
     /// Asks for the device owner before a sensitive action. Passes on a device

@@ -1,7 +1,11 @@
 import Foundation
 import Security
 
-/// Persists each TOTP account as its own generic-password Keychain item.
+/// Persists each item (a TOTP account, or what goes with one) as its own
+/// generic-password Keychain item, keyed by its identifier.
+///
+/// The app and its AutoFill extension list the app's own access group first in
+/// `keychain-access-groups`, so both read and write the items version 1.0 saved.
 ///
 /// Items live in one of two places. Device items use `WhenUnlockedThisDeviceOnly`,
 /// so they are never synced nor restored onto another device. iCloud items are
@@ -46,6 +50,10 @@ struct KeychainStore {
     }
 
     func loadAll(from location: Location) throws -> [OTPAccount] {
+        try loadAll(OTPAccount.self, from: location)
+    }
+
+    func loadAll<Item: Decodable>(_ type: Item.Type, from location: Location) throws -> [Item] {
         var query = baseQuery(location)
         query[kSecMatchLimit as String] = kSecMatchLimitAll
         query[kSecReturnData as String] = true
@@ -58,13 +66,13 @@ struct KeychainStore {
         let items = result as? [Data] ?? []
         let decoder = JSONDecoder()
         // A corrupt item should not hide every other account.
-        return items.compactMap { try? decoder.decode(OTPAccount.self, from: $0) }
+        return items.compactMap { try? decoder.decode(Item.self, from: $0) }
     }
 
-    func save(_ account: OTPAccount, to location: Location) throws {
-        let data = try JSONEncoder().encode(account)
+    func save<Item: Encodable & Identifiable>(_ item: Item, to location: Location) throws where Item.ID == UUID {
+        let data = try JSONEncoder().encode(item)
         var query = baseQuery(location)
-        query[kSecAttrAccount as String] = account.id.uuidString
+        query[kSecAttrAccount as String] = item.id.uuidString
 
         let update: [String: Any] = [kSecValueData as String: data]
         let status = SecItemUpdate(query as CFDictionary, update as CFDictionary)

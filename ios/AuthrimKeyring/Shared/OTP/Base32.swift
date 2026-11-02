@@ -2,7 +2,7 @@ import Foundation
 
 /// RFC 4648 Base32 decoding, tolerant of the formatting users paste from setup pages
 /// (lowercase, spaces, hyphens and missing padding).
-enum Base32 {
+nonisolated enum Base32 {
     private static let alphabet = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZ234567")
     private static let lookup: [Character: UInt8] = {
         var table: [Character: UInt8] = [:]

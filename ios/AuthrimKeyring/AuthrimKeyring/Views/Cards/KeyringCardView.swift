@@ -1,5 +1,12 @@
 import SwiftUI
 
+/// A see-through card: its color at `opacity` over frosted glass that looks
+/// roughly like `backdrop`.
+struct CardGlass: Equatable {
+    var opacity: Double
+    var backdrop: CardColor
+}
+
 /// Colors of a card face, with a text color picked for contrast.
 struct CardAppearance: Equatable {
     var top: Color
@@ -9,18 +16,25 @@ struct CardAppearance: Equatable {
     /// Accent for time-critical state; falls back to the text color when no
     /// accent is legible on this card.
     var warning: Color
+    /// Opacity of the color over frosted glass, or nil for a solid card.
+    var glassOpacity: Double?
 
-    init(base: CardColor) {
-        let darkText = CardColor.prefersDarkText(on: [base])
+    init(base: CardColor, glass: CardGlass? = nil) {
+        // Contrast is checked against what the card looks like on screen.
+        func shown(_ color: CardColor) -> CardColor {
+            glass.map { $0.backdrop.mixed(toward: color, by: $0.opacity) } ?? color
+        }
+        let darkText = CardColor.prefersDarkText(on: [shown(base)])
         // The gradient moves away from the text color, so the base color is the
         // lowest-contrast point under the text.
         let end = darkText ? base.lightened(by: 0.2) : base.darkened(by: 0.25)
         top = Color(base)
         bottom = Color(end)
         usesDarkText = darkText
+        glassOpacity = glass?.opacity
 
         let accent = darkText ? CardColor(hex: 0xA3001B) : CardColor(hex: 0xFFD60A)
-        let accentIsLegible = [base, end].allSatisfy { CardColor.contrast($0, accent) >= 3 }
+        let accentIsLegible = [shown(base), shown(end)].allSatisfy { CardColor.contrast($0, accent) >= 3 }
         warning = accentIsLegible ? Color(accent) : (darkText ? .black : .white)
     }
 
@@ -87,10 +101,16 @@ struct KeyringCardView<Detail: View>: View {
         .background {
             // The shadow is cast by the card shape alone, not by the text on it, so it
             // stays cheap to redraw while the card resizes.
-            RoundedRectangle(cornerRadius: cornerRadius)
-                .fill(LinearGradient(colors: [appearance.top, appearance.bottom], startPoint: .topLeading, endPoint: .bottomTrailing))
-                .strokeBorder(appearance.foreground.opacity(0.15))
-                .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
+            let shape = RoundedRectangle(cornerRadius: cornerRadius)
+            if let opacity = appearance.glassOpacity {
+                // No shadow: it would show through the glass.
+                GlassCardFace(shape: shape, tint: appearance.top, opacity: opacity)
+            } else {
+                shape
+                    .fill(LinearGradient(colors: [appearance.top, appearance.bottom], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .strokeBorder(appearance.foreground.opacity(0.15))
+                    .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
+            }
         }
         .contentShape(.contextMenuPreview, .rect(cornerRadius: cornerRadius))
     }
@@ -112,6 +132,9 @@ struct KeyringCardView<Detail: View>: View {
             Spacer(minLength: 8)
             Text(kind)
                 .font(.caption2.weight(.semibold))
+                // On a narrow card the title gives way instead.
+                .lineLimit(1)
+                .fixedSize()
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
                 .overlay {
@@ -127,6 +150,26 @@ struct KeyringCardView<Detail: View>: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
         .contentShape(.rect)
+    }
+}
+
+/// A see-through card face: Liquid Glass from iOS 26, frosted material before it.
+struct GlassCardFace<S: InsettableShape>: View {
+    let shape: S
+    let tint: Color
+    /// How strongly the card color tints the glass.
+    let opacity: Double
+
+    var body: some View {
+        if #available(iOS 26, *) {
+            Color.clear
+                .glassEffect(.regular.tint(tint.opacity(opacity)), in: shape)
+        } else {
+            shape
+                .fill(.ultraThinMaterial)
+                .overlay { shape.fill(tint).opacity(opacity) }
+                .overlay { shape.strokeBorder(.white.opacity(0.2)) }
+        }
     }
 }
 

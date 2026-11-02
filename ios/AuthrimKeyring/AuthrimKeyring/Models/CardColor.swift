@@ -49,6 +49,15 @@ nonisolated struct CardColor: Codable, Hashable, Sendable {
         return presets[Int(hash % 8)]
     }
 
+    /// Mixes the color toward `other` by `amount` (0...1).
+    func mixed(toward other: CardColor, by amount: Double) -> CardColor {
+        CardColor(
+            red: red + (other.red - red) * amount,
+            green: green + (other.green - green) * amount,
+            blue: blue + (other.blue - blue) * amount
+        )
+    }
+
     /// Mixes the color toward black by `amount` (0...1).
     func darkened(by amount: Double) -> CardColor {
         CardColor(red: red * (1 - amount), green: green * (1 - amount), blue: blue * (1 - amount))
@@ -57,6 +66,11 @@ nonisolated struct CardColor: Codable, Hashable, Sendable {
     /// Mixes the color toward white by `amount` (0...1).
     func lightened(by amount: Double) -> CardColor {
         CardColor(red: red + (1 - red) * amount, green: green + (1 - green) * amount, blue: blue + (1 - blue) * amount)
+    }
+
+    /// Luma of the gamma-encoded components (0...1), as an estimate of lightness.
+    var luma: Double {
+        0.2126 * red + 0.7152 * green + 0.0722 * blue
     }
 
     /// WCAG 2.x relative luminance.

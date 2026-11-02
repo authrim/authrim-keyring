@@ -4,6 +4,8 @@ import SwiftUI
 struct HomeView: View {
     @Environment(AccountStore.self) private var store
     @Environment(AppLock.self) private var appLock
+    @Environment(WallpaperStore.self) private var wallpaper
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -25,6 +27,8 @@ struct HomeView: View {
     /// Index of the tutorial step on screen, nil when the tutorial is not running.
     @State private var tutorialIndex: Int?
     @State private var tutorialAnchors = TutorialAnchors()
+    /// Two columns of cards on wide landscape screens, such as an unfolded iPhone Duo.
+    @State private var columnCount = 1
 
     private var filteredAccounts: [OTPAccount] {
         let query = searchText.trimmingCharacters(in: .whitespaces)
@@ -41,33 +45,36 @@ struct HomeView: View {
                 .tutorialHost(tutorialAnchors)
                 .navigationTitle("Keyring")
                 .toolbar { toolbar }
-                .sheet(isPresented: $isAdding) { AddAccountView() }
-                .sheet(isPresented: $isShowingSettings) { SettingsView() }
-                .sheet(isPresented: $isReordering) { ReorderAccountsView() }
-                .sheet(item: $editing) { EditAccountView(account: $0) }
-                .confirmationDialog(
-                    deletionTitle,
-                    isPresented: isConfirmingDeletion,
-                    titleVisibility: .visible,
-                    presenting: pendingDeletion
-                ) { account in
-                    Button("Delete", role: .destructive) { store.delete(account.id) }
-                } message: { _ in
-                    Text("Make sure two-factor authentication is turned off for this account or that you have another way to sign in. This cannot be undone.")
-                }
-                .alert("Something went wrong", isPresented: hasError) {
-                    Button("OK") { store.lastError = nil }
-                } message: {
-                    Text(store.lastError ?? "")
-                }
-                .onChange(of: scenePhase) { _, phase in
-                    // Don't leave a code on screen for the next time the app is opened.
-                    if phase == .background {
-                        requestedID = nil
-                        expandedID = nil
-                        revealedID = nil
-                    }
-                }
+        }
+        // Light or dark text to suit the wallpaper. Sheets and alerts are attached
+        // after this, so they keep following the system appearance.
+        .environment(\.colorScheme, wallpaper.colorScheme ?? colorScheme)
+        .sheet(isPresented: $isAdding) { AddAccountView() }
+        .sheet(isPresented: $isShowingSettings) { SettingsView() }
+        .sheet(isPresented: $isReordering) { ReorderAccountsView() }
+        .sheet(item: $editing) { EditAccountView(account: $0) }
+        .confirmationDialog(
+            deletionTitle,
+            isPresented: isConfirmingDeletion,
+            titleVisibility: .visible,
+            presenting: pendingDeletion
+        ) { account in
+            Button("Delete", role: .destructive) { store.delete(account.id) }
+        } message: { _ in
+            Text("Make sure two-factor authentication is turned off for this account or that you have another way to sign in. This cannot be undone.")
+        }
+        .alert("Something went wrong", isPresented: hasError) {
+            Button("OK") { store.lastError = nil }
+        } message: {
+            Text(store.lastError ?? "")
+        }
+        .onChange(of: scenePhase) { _, phase in
+            // Don't leave a code on screen for the next time the app is opened.
+            if phase == .background {
+                requestedID = nil
+                expandedID = nil
+                revealedID = nil
+            }
         }
         .overlay {
             if let tutorialIndex {
@@ -120,29 +127,53 @@ struct HomeView: View {
                         .buttonStyle(.borderedProminent)
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background { WallpaperFill().ignoresSafeArea() }
         } else {
             ScrollView {
-                LazyVStack(spacing: 12) {
-                    ForEach(filteredAccounts) { account in
-                        card(for: account)
-                            .background {
-                                if account.id == filteredAccounts.first?.id {
-                                    Color.clear.tutorialTarget(.cards, anchors: tutorialAnchors)
-                                }
-                            }
+                Group {
+                    if columnCount > 1 {
+                        LazyVGrid(
+                            columns: Array(repeating: GridItem(.flexible(), spacing: 12, alignment: .top), count: columnCount),
+                            spacing: 12
+                        ) { cards }
+                    } else {
+                        LazyVStack(spacing: 12) { cards }
                     }
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 8)
             }
-            .background(Color(.systemGroupedBackground))
+            .background {
+                WallpaperFill()
+                    .ignoresSafeArea()
+                    // Measured on the full screen, which the keyboard does not shrink.
+                    .onGeometryChange(for: Int.self) { proxy in
+                        // Only a wide, landscape screen; a tall one keeps a single column.
+                        proxy.size.width >= 640 && proxy.size.width > proxy.size.height ? 2 : 1
+                    } action: { columnCount = $0 }
+            }
             .searchable(text: $searchText, prompt: "Search accounts")
+        }
+    }
+
+    private var cards: some View {
+        ForEach(filteredAccounts) { account in
+            card(for: account)
+                .background {
+                    if account.id == filteredAccounts.first?.id {
+                        Color.clear.tutorialTarget(.cards, anchors: tutorialAnchors)
+                    }
+                }
         }
     }
 
     private func card(for account: OTPAccount) -> some View {
         KeyringCardView(
-            appearance: CardAppearance(base: account.effectiveCardColor),
+            appearance: CardAppearance(
+                base: account.effectiveCardColor,
+                glass: wallpaper.cardGlass(in: wallpaper.colorScheme ?? colorScheme)
+            ),
             title: account.displayTitle,
             subtitle: account.displaySubtitle,
             kind: "2FA",

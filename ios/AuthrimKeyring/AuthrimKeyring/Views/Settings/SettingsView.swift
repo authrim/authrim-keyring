@@ -6,6 +6,7 @@ struct SettingsView: View {
     @Environment(AppLock.self) private var appLock
     @Environment(\.dismiss) private var dismiss
 
+    @Environment(WallpaperStore.self) private var wallpaper
     @AppStorage("hasSeenTutorial") private var hasSeenTutorial = false
     @State private var isConfirmingDeleteAll = false
     @State private var isConfirmingSyncOff = false
@@ -29,6 +30,18 @@ struct SettingsView: View {
                         Text("Ask for \(appLock.biometryName) or your passcode each time the app is opened.")
                     } else {
                         Text("Set a device passcode to use the app lock.")
+                    }
+                }
+
+                Section("Appearance") {
+                    NavigationLink {
+                        WallpaperSettingsView()
+                    } label: {
+                        LabeledContent {
+                            Text(wallpaperName)
+                        } label: {
+                            Label("Wallpaper", systemImage: "photo.on.rectangle")
+                        }
                     }
                 }
 
@@ -170,6 +183,14 @@ struct SettingsView: View {
 
     private var hasStoreError: Binding<Bool> {
         Binding(get: { store.lastError != nil }, set: { if !$0 { store.lastError = nil } })
+    }
+
+    private var wallpaperName: LocalizedStringResource {
+        switch wallpaper.settings.kind {
+        case .system: "Default"
+        case .preset(let id): WallpaperPreset.named(id)?.name ?? "Default"
+        case .photo: "Photo"
+        }
     }
 
     /// Copies left in iCloud Keychain when sync was turned off on this device.

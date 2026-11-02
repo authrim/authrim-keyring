@@ -251,6 +251,16 @@
         }
       }
     },
+    "Appearance" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表示"
+          }
+        }
+      }
+    },
     "Ask for %@ or your passcode each time the app is opened." : {
       "localizations" : {
         "ja" : {
@@ -311,6 +321,16 @@
         }
       }
     },
+    "Blur" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ぼかし"
+          }
+        }
+      }
+    },
     "Brass" : {
       "localizations" : {
         "ja" : {
@@ -361,12 +381,42 @@
         }
       }
     },
+    "Cannot Use Photo" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真を使用できません"
+          }
+        }
+      }
+    },
     "Card Color" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "カードの色"
+          }
+        }
+      }
+    },
+    "Cards" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カード"
+          }
+        }
+      }
+    },
+    "Change Photo" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真を変更"
           }
         }
       }
@@ -397,6 +447,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ロック解除の方法を選択"
+          }
+        }
+      }
+    },
+    "Choose Photo" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真を選ぶ"
           }
         }
       }
@@ -521,6 +581,26 @@
         }
       }
     },
+    "Dawn" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "夜明け"
+          }
+        }
+      }
+    },
+    "Default" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "標準"
+          }
+        }
+      }
+    },
     "Delete" : {
       "localizations" : {
         "ja" : {
@@ -581,6 +661,16 @@
         }
       }
     },
+    "Dim" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暗さ"
+          }
+        }
+      }
+    },
     "Done" : {
       "localizations" : {
         "ja" : {
@@ -617,6 +707,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ダブルタップで詳細を表示します。"
+          }
+        }
+      }
+    },
+    "Dusk" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "夕暮れ"
           }
         }
       }
@@ -731,6 +831,26 @@
         }
       }
     },
+    "Forest" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "森"
+          }
+        }
+      }
+    },
+    "Glass Cards" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ガラス風のカード"
+          }
+        }
+      }
+    },
     "Graphite" : {
       "localizations" : {
         "ja" : {
@@ -831,6 +951,16 @@
         }
       }
     },
+    "Lets the wallpaper show through the cards." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カード越しに壁紙が透けて見えます。"
+          }
+        }
+      }
+    },
     "Lock, Sync and Back Up" : {
       "localizations" : {
         "ja" : {
@@ -861,6 +991,16 @@
         }
       }
     },
+    "Mist" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "霧"
+          }
+        }
+      }
+    },
     "Moss" : {
       "localizations" : {
         "ja" : {
@@ -881,12 +1021,32 @@
         }
       }
     },
+    "Mountains" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "山並み"
+          }
+        }
+      }
+    },
     "Name" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "名前"
+          }
+        }
+      }
+    },
+    "Nebula" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "星雲"
           }
         }
       }
@@ -907,6 +1067,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "次へ"
+          }
+        }
+      }
+    },
+    "Night" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "夜"
           }
         }
       }
@@ -947,6 +1117,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "OK"
+          }
+        }
+      }
+    },
+    "Ocean" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "海"
           }
         }
       }
@@ -1001,6 +1181,16 @@
         }
       }
     },
+    "Photo" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真"
+          }
+        }
+      }
+    },
     "Pink" : {
       "localizations" : {
         "ja" : {
@@ -1051,6 +1241,16 @@
         }
       }
     },
+    "Remove Photo" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真を削除"
+          }
+        }
+      }
+    },
     "Remove from iCloud" : {
       "localizations" : {
         "ja" : {
@@ -1097,6 +1297,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Keyringを開くたびに%@またはパスコードを要求して、ほかの人にコードを見られないようにします。"
+          }
+        }
+      }
+    },
+    "Sand" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "砂"
           }
         }
       }
@@ -1421,6 +1631,16 @@
         }
       }
     },
+    "The photo stays on this device. It is not included in iCloud sync or Keyring backups." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真はこのデバイスにだけ保存され、iCloud同期やKeyringのバックアップには含まれません。"
+          }
+        }
+      }
+    },
     "The secret key is not valid Base32." : {
       "localizations" : {
         "ja" : {
@@ -1501,6 +1721,16 @@
         }
       }
     },
+    "This photo could not be loaded." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この写真を読み込めませんでした。"
+          }
+        }
+      }
+    },
     "Touch ID" : {
       "localizations" : {
         "ja" : {
@@ -1517,6 +1747,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "カードを長押しすると、名前や色を変えたり、削除したりできます。"
+          }
+        }
+      }
+    },
+    "Transparency" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "透明度"
           }
         }
       }
@@ -1637,6 +1877,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "バージョン"
+          }
+        }
+      }
+    },
+    "Wallpaper" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "壁紙"
+          }
+        }
+      }
+    },
+    "Wallpapers" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "壁紙"
+          }
+        }
+      }
+    },
+    "Watercolor" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "水彩"
           }
         }
       }

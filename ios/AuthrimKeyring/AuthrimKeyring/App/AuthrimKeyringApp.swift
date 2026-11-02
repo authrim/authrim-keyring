@@ -4,6 +4,7 @@ import SwiftUI
 struct AuthrimKeyringApp: App {
     @State private var store = AccountStore()
     @State private var appLock = AppLock()
+    @State private var wallpaper = WallpaperStore()
 
     init() {
         #if DEBUG
@@ -18,6 +19,7 @@ struct AuthrimKeyringApp: App {
             RootView()
                 .environment(store)
                 .environment(appLock)
+                .environment(wallpaper)
                 .task { store.load() }
         }
     }

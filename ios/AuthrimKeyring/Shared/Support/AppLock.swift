@@ -53,6 +53,14 @@ final class AppLock {
         LAContext().canEvaluatePolicy(.deviceOwnerAuthentication, error: nil)
     }
 
+    #if DEBUG
+    /// Starts unlocked with the lock still on, for screenshots of the settings.
+    func unlockForScreenshots() {
+        isUnlocked = true
+        shouldPromptOnActivation = false
+    }
+    #endif
+
     func lock() {
         guard isEnabled else { return }
         isUnlocked = false

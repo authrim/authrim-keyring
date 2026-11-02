@@ -8,7 +8,11 @@ struct RecoveryCodesView: View {
     @Environment(\.scenePhase) private var scenePhase
 
     let accountID: UUID
+    #if DEBUG
+    @State private var isRevealed = ScreenshotDemo.scene == .recoveryCodes
+    #else
     @State private var isRevealed = false
+    #endif
     @State private var isAdding = false
     @State private var copiedID: UUID?
 

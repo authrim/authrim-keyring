@@ -1,0 +1,1 @@
+Two-factor codes and passkeys, filled in for you with AutoFill and locked with Face ID. Move from Google Authenticator in a few scans. No ads, no tracking.

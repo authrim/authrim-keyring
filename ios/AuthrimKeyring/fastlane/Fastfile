@@ -1,0 +1,169 @@
+# App Store screenshots and listing for Authrim Keyring.
+#
+#   fastlane screenshots         Takes the screenshots in the simulator.
+#   fastlane upload_metadata     Sends the listing text in metadata/ to App Store Connect.
+#   fastlane upload_listing      Sends the listing text and the screenshots.
+#
+# Run with a UTF-8 locale, for example `LC_ALL=en_US.UTF-8 fastlane screenshots`.
+# Uploading needs an App Store Connect API key: set ASC_API_KEY_PATH to its JSON
+# file (https://docs.fastlane.tools/app-store-connect-api/), kept out of git.
+# Nothing is submitted for review; deliver shows a preview and asks before sending.
+
+require "fileutils"
+
+default_platform(:ios)
+
+PROJECT = "AuthrimKeyring.xcodeproj"
+SCHEME = "AuthrimKeyring"
+BUNDLE_ID = "com.authrim.keyring"
+
+# Simulators by name, each giving one App Store display size.
+DEVICES = {
+  "iPhone 18 Pro Max" => "6.9", # 1320 x 2868
+  "iPhone 17" => "6.3",         # 1206 x 2622
+}.freeze
+
+# App Store Connect language, then the app's language and region.
+LANGUAGES = [
+  ["en-US", "en", "en_US"],
+  ["ja", "ja", "ja_JP"],
+].freeze
+
+# File name order and the screen the Debug build opens for it
+# (`-screenshotScene`, see Support/ScreenshotDemo.swift).
+SCENES = [
+  ["01", "home"],
+  ["02", "code"],
+  ["03", "passkey"],
+  ["04", "import"],
+  ["05", "recovery"],
+  ["06", "wallpaper"],
+  ["07", "settings"],
+].freeze
+
+platform :ios do
+  desc "Takes the App Store screenshots with fictional accounts. Options: devices (comma-separated " \
+       "simulator names), wait (seconds before each shot), derived_data (a build folder to reuse)."
+  lane :screenshots do |options|
+    devices = options[:devices] ? options[:devices].split(",").map(&:strip) : DEVICES.keys
+    wait = (options[:wait] || 9).to_f
+    project_dir = File.expand_path("..", FastlaneCore::FastlaneFolder.path)
+    build_dir = options[:derived_data] || File.join(project_dir, "build", "screenshots")
+    output_dir = File.join(FastlaneCore::FastlaneFolder.path, "screenshots")
+
+    sh("xcodebuild", "-project", File.join(project_dir, PROJECT), "-scheme", SCHEME,
+       "-configuration", "Debug", "-destination", "generic/platform=iOS Simulator",
+       "-derivedDataPath", build_dir, "-quiet", "build")
+    app = File.join(build_dir, "Build", "Products", "Debug-iphonesimulator", "AuthrimKeyring.app")
+
+    devices.each do |name|
+      size = DEVICES.fetch(name) { UI.user_error!("No display size known for #{name}; add it to DEVICES") }
+      udid = simulator_udid(name)
+      begin
+        prepare_simulator(udid, app)
+        LANGUAGES.each do |store_language, language, locale|
+          folder = File.join(output_dir, store_language)
+          FileUtils.mkdir_p(folder)
+          FileUtils.rm_f(Dir.glob(File.join(folder, "#{size}-*.png")))
+          SCENES.each do |order, scene|
+            sh("xcrun", "simctl", "terminate", udid, BUNDLE_ID, log: false, error_callback: ->(_) {})
+            sh("xcrun", "simctl", "launch", udid, BUNDLE_ID,
+               "-screenshotDemo", "YES", "-screenshotScene", scene,
+               "-appLockEnabled", "YES", "-hasCompletedOnboarding", "YES", "-hasSeenTutorial", "YES",
+               "-AppleLanguages", "(#{language})", "-AppleLocale", locale, log: false)
+            sleep(wait)
+            path = File.join(folder, "#{size}-#{order}-#{scene}.png")
+            sh("xcrun", "simctl", "io", udid, "screenshot", path, log: false)
+            UI.message("#{name} #{store_language}: #{File.basename(path)}")
+          end
+        end
+      ensure
+        # Also after a failure, so the simulator is not left at 9:41 with the demo open.
+        sh("xcrun", "simctl", "terminate", udid, BUNDLE_ID, log: false, error_callback: ->(_) {})
+        sh("xcrun", "simctl", "status_bar", udid, "clear", log: false, error_callback: ->(_) {})
+      end
+    end
+    UI.success("Screenshots are in #{output_dir}")
+  end
+
+  desc "Sends the listing text in metadata/ to App Store Connect, without screenshots or a build."
+  lane :upload_metadata do
+    deliver(**deliver_options(skip_screenshots: true))
+  end
+
+  desc "Sends the listing text and the screenshots, replacing the screenshots there."
+  lane :upload_listing do
+    # Replacing removes every screenshot there, so only a complete set goes up.
+    check_screenshots
+    deliver(**deliver_options(skip_screenshots: false, overwrite_screenshots: true))
+  end
+end
+
+def simulator_udid(name)
+  devices = JSON.parse(sh("xcrun", "simctl", "list", "devices", "available", "--json", log: false))["devices"]
+  device = devices.values.flatten.find { |d| d["name"] == name }
+  UI.user_error!("No available simulator named #{name}") unless device
+  device["udid"]
+end
+
+# Boots the simulator, sets 9:41 and a full battery, and installs the app.
+def prepare_simulator(udid, app)
+  sh("xcrun", "simctl", "boot", udid, log: false, error_callback: ->(_) {})
+  sh("xcrun", "simctl", "bootstatus", udid, "-b", log: false)
+  sh("xcrun", "simctl", "status_bar", udid, "override", "--time", "9:41",
+     "--dataNetwork", "wifi", "--wifiMode", "active", "--wifiBars", "3",
+     "--cellularMode", "active", "--cellularBars", "4",
+     "--batteryState", "discharging", "--batteryLevel", "100", log: false)
+  sh("xcrun", "simctl", "ui", udid, "appearance", "light", log: false)
+  sh("xcrun", "simctl", "ui", udid, "content_size", "large", log: false)
+  sh("xcrun", "simctl", "install", udid, app, log: false)
+end
+
+# Stops unless every language has every scene in every size, and nothing else.
+def check_screenshots
+  output_dir = File.join(FastlaneCore::FastlaneFolder.path, "screenshots")
+  expected = LANGUAGES.flat_map do |store_language, _, _|
+    DEVICES.values.flat_map do |size|
+      SCENES.map { |order, scene| File.join(output_dir, store_language, "#{size}-#{order}-#{scene}.png") }
+    end
+  end
+  found = Dir.glob(File.join(output_dir, "*", "*.png"))
+  missing = expected - found
+  extra = found - expected
+  UI.user_error!("Missing screenshots; run fastlane screenshots:\n#{missing.join("\n")}") unless missing.empty?
+  UI.user_error!("Unexpected files in #{output_dir}:\n#{extra.join("\n")}") unless extra.empty?
+end
+
+# The version this checkout builds, which must be the one being edited in App Store
+# Connect: deliver writes to the editable version and is not allowed to change it.
+def check_edit_version(key_path, version)
+  Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.from(filepath: key_path)
+  app = Spaceship::ConnectAPI::App.find(BUNDLE_ID) || UI.user_error!("#{BUNDLE_ID} is not in App Store Connect")
+  editing = app.get_edit_app_store_version(platform: Spaceship::ConnectAPI::Platform::IOS)&.version_string
+  return if editing == version
+  UI.user_error!("App Store Connect is editing version #{editing || "none"}, not #{version}. " \
+                 "Create version #{version} there first.")
+end
+
+def deliver_options(overrides)
+  key_path = ENV["ASC_API_KEY_PATH"]
+  UI.user_error!("Set ASC_API_KEY_PATH to the App Store Connect API key JSON") if key_path.to_s.empty?
+  project_dir = File.expand_path("..", FastlaneCore::FastlaneFolder.path)
+  project = File.read(File.join(project_dir, PROJECT, "project.xcproj"))
+  version = project[/"MARKETING_VERSION": "([^"]+)"/, 1] || UI.user_error!("No MARKETING_VERSION in #{PROJECT}")
+  check_edit_version(key_path, version)
+  attachment = File.expand_path("../../../private/docs/20261102-app-review-qr.png", FastlaneCore::FastlaneFolder.path)
+  options = {
+    api_key_path: key_path,
+    app_identifier: BUNDLE_ID,
+    skip_app_version_update: true,
+    metadata_path: File.join(FastlaneCore::FastlaneFolder.path, "metadata"),
+    screenshots_path: File.join(FastlaneCore::FastlaneFolder.path, "screenshots"),
+    skip_binary_upload: true,
+    submit_for_review: false,
+    automatic_release: false,
+    run_precheck_before_submit: false,
+  }
+  options[:app_review_attachment_file] = attachment if File.exist?(attachment)
+  options.merge(overrides)
+end

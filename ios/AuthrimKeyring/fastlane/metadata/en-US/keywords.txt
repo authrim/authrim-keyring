@@ -1,0 +1,1 @@
+authenticator,2fa,totp,otp,mfa,passkey,autofill,security,token,login,authentication,recovery code

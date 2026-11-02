@@ -1,0 +1,24 @@
+No sign-in is required. The app does not connect to any server of ours.
+
+To try it:
+1. Launch the app. On the first screen, choose "Not Now" to skip the optional app lock, or "Use Face ID" to turn it on.
+2. Tap + (top right), then either:
+   - "Choose QR Code from Photos" and select the attached QR code image, or
+   - "Enter Setup Key" and enter Service "App Review", Account "reviewer@example.com", Setup Key "JBSWY3DPEHPK3PXP", then tap Add.
+3. Tap the card to show the 6-digit code. It matches any standard TOTP generator (RFC 6238, SHA-1, 30 seconds) for this key.
+
+Optional features in Settings:
+- iCloud Keychain Sync stores the keys in the user's own iCloud Keychain. Nothing is sent to us.
+- Export Encrypted Backup creates a password-protected file that the user saves with the system file picker. Import Backup restores it.
+
+Encryption: the app uses only the encryption provided by iOS (Keychain and CryptoKit AES-GCM for the user's backup files).
+
+AutoFill (new in 1.1):
+Keyring includes an AutoFill Credential Provider extension for one-time codes (iOS 18 and later) and passkeys. To try it:
+1. Settings > General > AutoFill & Passwords: turn on Keyring.
+2. In Keyring, edit the "App Review" card and add a website under Websites (any site with a one-time code field you can reach). The code for that card is then suggested above the keyboard on that site.
+3. Passkeys: on any website that offers passkey sign-up (for example webauthn.io), choose "Save to Keyring". Signing in asks for Face ID or the passcode.
+
+Import (new in 1.1): "Import from Another App" on the Add Account screen reads Google Authenticator transfer QR codes, unencrypted Aegis and 2FAS exports, and text with otpauth:// links. Nothing is sent anywhere.
+
+Passkeys are generated on the device. Synced passkeys use the user's own iCloud Keychain; passkeys the user keeps on this iPhone only use the Secure Enclave. Nothing is sent to us.

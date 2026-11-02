@@ -16,3 +16,10 @@ build/
 # Swift Package Manager
 .build/
 .swiftpm/
+
+# fastlane: generated screenshots and reports; API keys stay out of git
+ios/AuthrimKeyring/fastlane/screenshots/
+ios/AuthrimKeyring/fastlane/report.xml
+ios/AuthrimKeyring/fastlane/Preview.html
+ios/AuthrimKeyring/fastlane/test_output/
+*.p8

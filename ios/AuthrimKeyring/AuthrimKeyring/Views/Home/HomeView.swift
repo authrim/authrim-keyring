@@ -11,6 +11,9 @@ struct HomeView: View {
 
     @State private var isAdding = false
     @State private var isShowingSettings = false
+    #if DEBUG
+    @State private var screenshotSheet: ScreenshotScene?
+    #endif
     @State private var isReordering = false
     @State private var editing: OTPAccount?
     @State private var pendingDeletion: OTPAccount?
@@ -60,6 +63,10 @@ struct HomeView: View {
         .sheet(isPresented: $isReordering) { ReorderAccountsView() }
         .sheet(item: $editing) { EditAccountView(account: $0) }
         .sheet(item: $editingPasskey) { EditPasskeyView(passkey: $0) }
+        #if DEBUG
+        .sheet(item: $screenshotSheet) { ScreenshotSceneSheet(scene: $0) }
+        .task { await openScreenshotScene() }
+        #endif
         .confirmationDialog(
             deletionTitle,
             isPresented: isConfirmingDeletion,
@@ -315,6 +322,28 @@ struct HomeView: View {
     private var hasError: Binding<Bool> {
         Binding(get: { store.lastError != nil }, set: { if !$0 { store.lastError = nil } })
     }
+
+    #if DEBUG
+    /// Opens what `-screenshotScene` asks for, once the cards are on screen.
+    private func openScreenshotScene() async {
+        guard let scene = ScreenshotDemo.scene else { return }
+        try? await Task.sleep(for: .seconds(0.5))
+        switch scene {
+        case .home:
+            break
+        case .code:
+            if let account = store.accounts.first(where: { $0.issuer == ScreenshotDemo.codeIssuer }) {
+                toggle(account.id)
+            }
+        case .passkey:
+            if let passkey = store.passkeys.first { toggle(passkey.id) }
+        case .settings:
+            isShowingSettings = true
+        case .importAccounts, .recoveryCodes, .wallpaper:
+            screenshotSheet = scene
+        }
+    }
+    #endif
 
     private func toggle(_ id: UUID) {
         requestedID = requestedID == id ? nil : id

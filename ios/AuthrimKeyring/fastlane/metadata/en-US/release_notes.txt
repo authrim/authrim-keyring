@@ -1,0 +1,5 @@
+- Sign-in codes and passkeys from Keyring in AutoFill: turn Keyring on in Settings > General > AutoFill & Passwords, and codes are suggested above the keyboard on the websites you set for each card.
+- Passkeys: save and use passkeys with Keyring. Choose, per website, to keep a passkey on this iPhone only.
+- Move from other apps: Google Authenticator transfer QR codes, Aegis and 2FAS exports (unencrypted), and lists of otpauth:// links.
+- Recovery codes: keep each service's backup codes with its card, hidden until Face ID.
+- Wallpapers and glass cards.

@@ -1,0 +1,38 @@
+Authrim Keyring keeps the two-factor authentication codes for all your accounts in one place: private, quick to reach, and under your control.
+
+ADD AN ACCOUNT IN SECONDS
+• Scan the QR code a service shows when you turn on two-factor authentication.
+• Or choose a screenshot of that QR code from your photos.
+• Or type the setup key by hand.
+
+YOUR CODES, ONE TAP AWAY
+• Each account is a card. Tap it to see the current code and how long it stays valid.
+• Tap the code to copy it. Copied codes stay on this device and are cleared from the clipboard after 60 seconds.
+• Give each card its own color. The text switches between black and white to stay readable.
+• Search, reorder, and rename your accounts.
+
+FILLED IN FOR YOU
+• Turn on Keyring in Settings > General > AutoFill & Passwords, and the code is suggested above the keyboard on the websites you set for each card.
+• Save passkeys to Keyring and sign in with Face ID. Passkeys sync with iCloud Keychain when sync is on, or stay on this iPhone only for the websites you choose.
+
+MOVE IN EASILY
+• Scan the transfer QR codes from Google Authenticator.
+• Import unencrypted exports from Aegis and 2FAS, or a list of otpauth:// links.
+
+RECOVERY CODES, KEPT WITH THEIR CARD
+• Paste the recovery codes a service gives you. They stay hidden until Face ID, and you can mark each one as used.
+
+PRIVATE BY DESIGN
+• Secret keys are stored in the iOS Keychain.
+• Lock the app with Face ID, Touch ID, or your passcode.
+• No sign-up, no ads, no analytics, no tracking. Keyring does not collect any data.
+• Codes are generated on your device and work without an internet connection.
+
+READY FOR A NEW DEVICE
+• Turn on iCloud Keychain sync to have your accounts on your other devices. iCloud Keychain is end-to-end encrypted. Sync is off unless you turn it on.
+• Export an encrypted backup file protected by a password you choose, and restore it on any device.
+
+WORKS WITH YOUR SERVICES
+Keyring works with any service that supports authenticator apps for two-factor authentication (TOTP, RFC 6238). It supports SHA-1, SHA-256, and SHA-512, 6- to 8-digit codes, and 30- or 60-second periods.
+
+Available in English and Japanese.

@@ -152,8 +152,9 @@ private struct WallpaperPreview: View {
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 24, style: .continuous)
         VStack(alignment: .leading, spacing: 8) {
-            Text("Keyring")
-                .font(.title2.bold())
+            // The bar's wordmark, which fits the small screen.
+            Wordmark(style: .bar)
+                .dynamicTypeSize(.large)
                 .foregroundStyle(.primary)
                 .padding(.bottom, 4)
             ForEach([0, 1, 10], id: \.self) { index in

@@ -20,9 +20,11 @@ final class WallpaperStore {
     private let defaults: UserDefaults
     private let photoURL: URL?
 
-    init(defaults: UserDefaults = .standard) {
+    /// - Parameter keepsPhoto: False for a store that must not touch the photo file,
+    ///   such as one for screenshots; it then cannot hold a photo.
+    init(defaults: UserDefaults = .standard, keepsPhoto: Bool = true) {
         self.defaults = defaults
-        photoURL = try? FileManager.default
+        photoURL = !keepsPhoto ? nil : try? FileManager.default
             .url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
             .appending(path: "Wallpaper.jpg")
         let saved = defaults.data(forKey: Self.settingsKey)

@@ -12,6 +12,8 @@ extension CredentialProviderViewController {
         else { return cancel(.failed) }
         guard request.supportedAlgorithms.contains(.ES256) else { return cancel(.failed) }
         store.load()
+        // Unreadable passkeys must not pass for none, or an excluded one could be created twice.
+        guard !store.arePasskeysUnavailable else { return cancel(.failed) }
         let relyingParty = identity.relyingPartyIdentifier
         if #available(iOS 18, *), let excluded = request.excludedCredentials, !excluded.isEmpty {
             let excludedIDs = Set(excluded.map(\.credentialID))
@@ -25,7 +27,9 @@ extension CredentialProviderViewController {
             isDeviceOnlyByRule: PasskeySyncRules.isDeviceOnly(relyingParty),
             isSyncEnabled: store.isSyncEnabled,
             onCreate: { [weak self] deviceOnly, remember in
-                Task { await self?.register(request, identity: identity, deviceOnly: deviceOnly, rememberRule: remember) }
+                self?.startTask { [weak self] in
+                    await self?.register(request, identity: identity, deviceOnly: deviceOnly, rememberRule: remember)
+                }
             },
             onCancel: { [weak self] in self?.cancel(.userCanceled) }
         ))
@@ -64,11 +68,15 @@ extension CredentialProviderViewController {
                 attestationObject: WebAuthn.attestationObject(authenticatorData: authenticatorData)
             )
             // Before completing, since the extension may be stopped right after.
-            await CredentialIdentitySync.replace(with: store.autoFillIdentities)
+            if let identities = store.autoFillIdentities {
+                await CredentialIdentitySync.replace(with: identities)
+            }
             guard beginFinishing() else {
                 // Cancelled meanwhile: the site never learns of this passkey.
                 store.deletePasskey(passkey.id)
-                await CredentialIdentitySync.replace(with: store.autoFillIdentities)
+                if let identities = store.autoFillIdentities {
+                    await CredentialIdentitySync.replace(with: identities)
+                }
                 return
             }
             _ = await extensionContext.completeRegistrationRequest(using: credential)
@@ -91,11 +99,23 @@ extension CredentialProviderViewController {
             $0.relyingParty == requestParameters.relyingPartyIdentifier
                 && (allowed.isEmpty || allowed.contains($0.credentialID))
         }
+        // The list shows account names, so the app lock comes first. Face ID passed
+        // here also verifies the user for the sign-in, so it is not asked twice.
+        whenVisible { [self] in
+            if isLockRequired {
+                guard await unlockIfNeeded() else { return cancel(.userCanceled) }
+                isUserVerified = LAContext().canEvaluatePolicy(.deviceOwnerAuthentication, error: nil)
+            }
+            showPasskeyList(candidates, requestParameters: requestParameters)
+        }
+    }
+
+    private func showPasskeyList(_ candidates: [Passkey], requestParameters: ASPasskeyCredentialRequestParameters) {
         show(PasskeyPickerView(
             relyingParty: requestParameters.relyingPartyIdentifier,
             passkeys: candidates,
             onPick: { [weak self] passkey in
-                Task {
+                self?.startTask { [weak self] in
                     await self?.assert(
                         with: passkey,
                         clientDataHash: requestParameters.clientDataHash,
@@ -125,10 +145,16 @@ extension CredentialProviderViewController {
         clientDataHash: Data,
         preference: ASAuthorizationPublicKeyCredentialUserVerificationPreference
     ) async {
-        guard let verified = await verifyUser(
-            reason: String(localized: "Sign in to \(passkey.relyingParty)."),
-            preference: preference
-        ) else { return cancel(.userCanceled) }
+        let verified: Bool
+        if isUserVerified {
+            verified = true
+        } else {
+            guard let result = await verifyUser(
+                reason: String(localized: "Sign in to \(passkey.relyingParty)."),
+                preference: preference
+            ) else { return cancel(.userCanceled) }
+            verified = result
+        }
         do {
             let authenticatorData = WebAuthn.authenticatorData(
                 relyingParty: passkey.relyingParty,

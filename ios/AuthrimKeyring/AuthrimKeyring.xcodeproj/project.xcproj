@@ -20,7 +20,7 @@
       "name": "Products",
       "children": [
         { "path": "<PRODUCTS>/AuthrimKeyring.app", "id": "000000000000000000000120", "type": "wrapper.application", "index": false },
-        { "path": "<PRODUCTS>/KeyringAutoFill.appex", "id": "000000000000000000000121", "type": "wrapper.app-extension", "index": false, "target-membership": [ { "build-phase": "AuthrimKeyring/copy/Embed Foundation Extensions", "code-sign-on-copy": true, "remove-on-copy": true } ] },
+        { "path": "<PRODUCTS>/KeyringAutoFill.appex", "id": "000000000000000000000121", "type": "wrapper.app-extension", "index": false, "target-membership": [ { "build-phase": "AuthrimKeyring/copy/Embed Foundation Extensions", "code-sign-on-copy": true } ] },
       ],
     },
   ],
@@ -30,12 +30,18 @@
       "id": "000000000000000100000000",
       "product": "Products/AuthrimKeyring.app",
       "product-type": "application",
-      "dependencies": [ "KeyringAutoFill" ],
+      "dependencies": [
+        "KeyringAutoFill",
+      ],
       "build-phases": [
         "compile-sources",
         "frameworks",
         "resources",
-        { "kind": "copy", "name": "Embed Foundation Extensions", "bundle-base-path": "plugins-directory" },
+        {
+          "kind": "copy",
+          "name": "Embed Foundation Extensions",
+          "bundle-base-path": "plugins-directory",
+        },
       ],
       "build-settings": {
         "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
@@ -79,8 +85,7 @@
         "SWIFT_VERSION": "5.0",
         "TARGETED_DEVICE_FAMILY": "1",
       },
-    },
-    {
+    }, {
       "name": "KeyringAutoFill",
       "id": "000000000000000200000000",
       "product": "Products/KeyringAutoFill.appex",
@@ -100,7 +105,10 @@
         "INFOPLIST_KEY_CFBundleDisplayName": "Keyring",
         "INFOPLIST_KEY_NSFaceIDUsageDescription": "Face ID is used to unlock Authrim Keyring and to confirm signing in with a passkey.",
         "IPHONEOS_DEPLOYMENT_TARGET": "17.0",
-        "LD_RUNPATH_SEARCH_PATHS": "@executable_path/Frameworks @executable_path/../../Frameworks",
+        "LD_RUNPATH_SEARCH_PATHS": [
+          "@executable_path/Frameworks",
+          "@executable_path/../../Frameworks",
+        ],
         "MARKETING_VERSION": "1.1",
         "PRODUCT_BUNDLE_IDENTIFIER": "com.authrim.keyring.autofill",
         "PRODUCT_NAME": "$(TARGET_NAME)",

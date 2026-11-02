@@ -45,7 +45,8 @@ struct TutorialStep: Identifiable {
 ///
 /// Content views carry a small UIKit probe. Toolbar buttons become UIKit bar
 /// buttons that drop such modifiers and carry no label on their views, so they
-/// are found as the first or last control in the navigation bar instead.
+/// are found by position among the icon buttons on screen instead: a row along
+/// the top, or a column down the side as on a closed iPhone Duo.
 @MainActor
 final class TutorialAnchors {
     /// Which end of the navigation bar a toolbar button sits at.
@@ -85,29 +86,49 @@ final class TutorialAnchors {
     }
 
     private func barButtonFrame(at edge: BarEdge) -> CGRect? {
-        // The bar of the navigation stack the host sits in, not some other bar on screen.
-        guard let bar = host.flatMap(Self.navigationBar(of:)), !bar.isHidden else { return nil }
-        let controls = Self.outermostControls(in: bar).compactMap(Self.windowFrame(of:))
-        guard let leftmost = controls.min(by: { $0.minX < $1.minX }),
-              let rightmost = controls.max(by: { $0.maxX < $1.maxX })
+        guard let host, let window = host.window else { return nil }
+        // Bar buttons are small icon buttons; the large title is also a control, but wider.
+        let buttons = Self.outermostControls(in: window)
+            .compactMap(Self.windowFrame(of:))
+            .filter { $0.width <= Self.maximumIconSize && $0.height <= Self.maximumIconSize }
+            .filter { window.bounds.contains(CGPoint(x: $0.midX, y: $0.midY)) }
+        guard let first = buttons.min(by: { $0.minY < $1.minY }) else { return nil }
+
+        // A column down the side, as on a closed iPhone Duo: two or more buttons
+        // stacked at the same place across. Its toolbar group starts at the top; a
+        // search button further down belongs to another group.
+        let columns = Dictionary(grouping: buttons) { ($0.midX / 8).rounded() }.values
+        if let column = columns.filter({ $0.count > 1 }).max(by: { $0.count < $1.count }) {
+            let stacked = column.sorted { $0.minY < $1.minY }
+            var group = [stacked[0]]
+            for frame in stacked.dropFirst() {
+                guard let last = group.last, frame.minY - last.maxY < last.height else { break }
+                group.append(frame)
+            }
+            if group.count > 1 {
+                return edge == .leading ? group.first : group.last
+            }
+        }
+
+        // A row along the top.
+        let row = buttons.filter { abs($0.midY - first.midY) < first.height / 2 }
+        guard let leftmost = row.min(by: { $0.minX < $1.minX }),
+              let rightmost = row.max(by: { $0.maxX < $1.maxX })
         else { return nil }
-        let isRightToLeft = bar.effectiveUserInterfaceLayoutDirection == .rightToLeft
+        let isRightToLeft = host.effectiveUserInterfaceLayoutDirection == .rightToLeft
         return (edge == .leading) != isRightToLeft ? leftmost : rightmost
     }
 
-    private static func navigationBar(of view: UIView) -> UINavigationBar? {
-        var responder: UIResponder? = view
-        while let current = responder {
-            if let controller = current as? UIViewController, let navigation = controller.navigationController {
-                return navigation.navigationBar
-            }
-            responder = current.next
-        }
-        return nil
-    }
+    private static let maximumIconSize: CGFloat = 60
 
     private static func windowFrame(of view: UIView) -> CGRect? {
-        guard view.window != nil, !view.isHidden, view.alpha > 0 else { return nil }
+        guard view.window != nil else { return nil }
+        // Hidden through any ancestor, as a bar left over from another layout can be.
+        var current: UIView? = view
+        while let shown = current {
+            guard !shown.isHidden, shown.alpha > 0 else { return nil }
+            current = shown.superview
+        }
         let frame = view.convert(view.bounds, to: nil)
         return frame.isEmpty ? nil : frame
     }

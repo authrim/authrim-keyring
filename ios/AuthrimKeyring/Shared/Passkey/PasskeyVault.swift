@@ -9,12 +9,16 @@ nonisolated struct PasskeyVault {
         keychain = KeychainStore(service: base.service + ".passkey")
     }
 
-    func loadAll(syncEnabled: Bool) throws -> [Passkey] {
-        let local = try keychain.loadAll(Passkey.self, from: .device)
-        guard syncEnabled else { return local }
+    /// The passkeys in use, and how many items could not be read.
+    func loadAll(syncEnabled: Bool) throws -> (passkeys: [Passkey], skipped: Int) {
+        let local = try keychain.loadAllCountingSkipped(Passkey.self, from: .device)
+        guard syncEnabled else { return (local.items, local.skipped) }
         // While syncing, eligible ones on this device are leftovers of an interrupted switch.
-        let synced = try keychain.loadAll(Passkey.self, from: .iCloud)
-        return synced.filter(\.isBackupEligible) + local.filter { !$0.isBackupEligible }
+        let synced = try keychain.loadAllCountingSkipped(Passkey.self, from: .iCloud)
+        return (
+            synced.items.filter(\.isBackupEligible) + local.items.filter { !$0.isBackupEligible },
+            synced.skipped + local.skipped
+        )
     }
 
     func save(_ passkey: Passkey, syncEnabled: Bool) throws {

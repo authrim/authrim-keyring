@@ -11,9 +11,15 @@ final class AccountStore {
     private(set) var passkeys: [Passkey] = []
     /// Websites and recovery codes, by account; accounts without any are absent.
     private(set) var details: [UUID: AccountDetails] = [:]
-    /// Set while the details could not be read, so an edit cannot overwrite what is
+    /// Set until the details have been read, so an edit cannot overwrite what is
     /// actually stored with a partial copy.
-    private(set) var areDetailsUnavailable = false
+    private(set) var areDetailsUnavailable = true
+    /// Set until the accounts and passkeys have been read. Until then the lists may
+    /// be empty only because reading failed, which must not count as "none".
+    private(set) var isContentUnavailable = true
+    /// Set until every passkey has been read, so one that could not be is never
+    /// taken for absent, as when checking for a passkey a site already has.
+    private(set) var arePasskeysUnavailable = true
     /// Whether accounts are kept in iCloud Keychain rather than on this device only.
     private(set) var isSyncEnabled: Bool
     /// Accounts and passkeys in iCloud Keychain while sync is off here, e.g. on a new device.
@@ -38,8 +44,20 @@ final class AccountStore {
     private var location: KeychainStore.Location { isSyncEnabled ? .iCloud : .device }
 
     func load() {
+        // Fails closed: only a successful read below clears these.
+        areDetailsUnavailable = true
+        isContentUnavailable = true
+        arePasskeysUnavailable = true
+        // Read on its own, so trouble with the accounts does not stop passkeys.
         do {
-            let loaded = try keychain.loadAll(from: location)
+            let (loadedPasskeys, skippedPasskeys) = try passkeyVault.loadAll(syncEnabled: isSyncEnabled)
+            passkeys = loadedPasskeys
+            arePasskeysUnavailable = skippedPasskeys > 0
+        } catch {
+            lastError = error.localizedDescription
+        }
+        do {
+            let (loaded, skippedAccounts) = try keychain.loadAllCountingSkipped(OTPAccount.self, from: location)
             // The display order is kept separately so a reorder is a single write.
             order = defaults.stringArray(forKey: Self.orderKey) ?? []
             let position = positions()
@@ -48,17 +66,13 @@ final class AccountStore {
                 let right = position[rhs.id.uuidString] ?? Int.max
                 return left != right ? left < right : lhs.createdAt < rhs.createdAt
             }
-            do {
-                passkeys = try passkeyVault.loadAll(syncEnabled: isSyncEnabled)
-            } catch {
-                lastError = error.localizedDescription
-            }
+            // What can be read is shown, but an item that could not be decoded keeps
+            // the lists from counting as complete.
+            isContentUnavailable = skippedAccounts > 0 || arePasskeysUnavailable
             // Extras should not hide the accounts if they cannot be read.
-            if let loadedDetails = try? detailsKeychain.loadAll(AccountDetails.self, from: location) {
+            if let (loadedDetails, skippedDetails) = try? detailsKeychain.loadAllCountingSkipped(AccountDetails.self, from: location) {
                 details = Dictionary(loadedDetails.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-                areDetailsUnavailable = false
-            } else {
-                areDetailsUnavailable = true
+                areDetailsUnavailable = skippedDetails > 0
             }
             // Only a hint, so a failure here should not hide the accounts.
             iCloudAccountCount = isSyncEnabled ? 0

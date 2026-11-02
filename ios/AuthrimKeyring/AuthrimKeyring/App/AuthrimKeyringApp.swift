@@ -10,6 +10,7 @@ struct AuthrimKeyringApp: App {
     init() {
         // Before the stores read their settings from the App Group.
         SharedDefaults.migrateFromStandard()
+        Wordmark.registerFont()
         #if DEBUG
         if ScreenshotDemo.isEnabled {
             _store = State(initialValue: ScreenshotDemo.makeStore())
@@ -22,7 +23,7 @@ struct AuthrimKeyringApp: App {
     }
 
     private struct AutoFillRegistration: Hashable {
-        var identities: CredentialIdentitySync.Identities
+        var identities: CredentialIdentitySync.Identities?
         var isActive: Bool
     }
 
@@ -37,8 +38,8 @@ struct AuthrimKeyringApp: App {
                 // that arrive through iCloud. Also runs on each return to the app, in
                 // case AutoFill was turned on in Settings meanwhile.
                 .task(id: AutoFillRegistration(identities: store.autoFillIdentities, isActive: scenePhase == .active)) {
-                    guard scenePhase == .active else { return }
-                    await CredentialIdentitySync.replace(with: store.autoFillIdentities)
+                    guard scenePhase == .active, let identities = store.autoFillIdentities else { return }
+                    await CredentialIdentitySync.replace(with: identities)
                 }
         }
     }

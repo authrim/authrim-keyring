@@ -234,6 +234,14 @@ struct HomeView: View {
 
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
+        if #available(iOS 26, *) {
+            // The navigation title stays "Keyring" for the small bar and VoiceOver.
+            ToolbarItem(placement: .largeTitle) {
+                // Set outside, where the wordmark's scaled size is read.
+                Wordmark()
+                    .dynamicTypeSize(...Wordmark.maximumTypeSize)
+            }
+        }
         ToolbarItem(placement: .topBarLeading) {
             Button("Settings", systemImage: "gearshape") { isShowingSettings = true }
         }

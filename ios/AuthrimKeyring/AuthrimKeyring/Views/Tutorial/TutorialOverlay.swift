@@ -54,9 +54,10 @@ struct TutorialOverlay: View {
         guard let target = frame(step.target) else { return nil }
         let origin = proxy.frame(in: .global).origin
         let local = target.offsetBy(dx: -origin.x, dy: -origin.y).insetBy(dx: -6, dy: -6)
-        // Generous above and below: the callout area excludes the safe area, where
-        // navigation bar buttons may sit, yet still points at them.
-        let visible = CGRect(origin: .zero, size: proxy.size).insetBy(dx: -8, dy: -80)
+        // Generous on every side: the callout area excludes the safe area, where bar
+        // buttons may sit (above, or down the side as on an iPhone Duo), yet still
+        // points at them.
+        let visible = CGRect(origin: .zero, size: proxy.size).insetBy(dx: -80, dy: -80)
         return visible.contains(CGPoint(x: local.midX, y: local.midY)) ? local : nil
     }
 
@@ -72,7 +73,12 @@ struct TutorialOverlay: View {
     private func callout(pointingAt spot: CGRect?, in size: CGSize) -> some View {
         let isBelow = spot.map { $0.midY < size.height / 2 } ?? true
         let calloutWidth = min(size.width, maxCalloutWidth)
-        let cardMinX = (size.width - calloutWidth) / 2 + margin
+        // Under the target where the screen is wider than the callout, as when the
+        // toolbar runs down the side of a closed iPhone Duo; centered otherwise.
+        let centerX = spot.map {
+            min(max($0.midX, calloutWidth / 2), size.width - calloutWidth / 2)
+        } ?? size.width / 2
+        let cardMinX = centerX - calloutWidth / 2 + margin
         let cardWidth = calloutWidth - margin * 2
         let arrowX = spot.map {
             min(max($0.midX - cardMinX - arrowSize.width / 2, 20), cardWidth - arrowSize.width - 20)
@@ -89,6 +95,7 @@ struct TutorialOverlay: View {
         }
         .padding(.horizontal, margin)
         .frame(maxWidth: maxCalloutWidth)
+        .offset(x: centerX - size.width / 2)
         .frame(
             maxWidth: .infinity,
             maxHeight: .infinity,

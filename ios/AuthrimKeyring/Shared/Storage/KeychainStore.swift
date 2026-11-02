@@ -54,19 +54,29 @@ struct KeychainStore {
     }
 
     func loadAll<Item: Decodable>(_ type: Item.Type, from location: Location) throws -> [Item] {
+        try loadAllCountingSkipped(type, from: location).items
+    }
+
+    /// Also tells how many items could not be decoded, so a caller can tell a
+    /// complete list from one missing what it could not read.
+    func loadAllCountingSkipped<Item: Decodable>(
+        _ type: Item.Type,
+        from location: Location
+    ) throws -> (items: [Item], skipped: Int) {
         var query = baseQuery(location)
         query[kSecMatchLimit as String] = kSecMatchLimitAll
         query[kSecReturnData as String] = true
 
         var result: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
-        if status == errSecItemNotFound { return [] }
+        if status == errSecItemNotFound { return ([], 0) }
         guard status == errSecSuccess else { throw KeychainError.unexpectedStatus(status) }
 
         let items = result as? [Data] ?? []
         let decoder = JSONDecoder()
         // A corrupt item should not hide every other account.
-        return items.compactMap { try? decoder.decode(Item.self, from: $0) }
+        let decoded = items.compactMap { try? decoder.decode(Item.self, from: $0) }
+        return (decoded, items.count - decoded.count)
     }
 
     func save<Item: Encodable & Identifiable>(_ item: Item, to location: Location) throws where Item.ID == UUID {

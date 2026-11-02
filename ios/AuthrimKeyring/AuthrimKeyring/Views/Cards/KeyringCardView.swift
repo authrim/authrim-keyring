@@ -69,6 +69,8 @@ struct KeyringCardView<Detail: View>: View {
     let onToggle: () -> Void
     @ViewBuilder let detail: () -> Detail
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     private let cornerRadius: CGFloat = 18
 
     var body: some View {
@@ -115,41 +117,68 @@ struct KeyringCardView<Detail: View>: View {
         .contentShape(.contextMenuPreview, .rect(cornerRadius: cornerRadius))
     }
 
+    @ViewBuilder
     private var header: some View {
-        HStack(spacing: 12) {
-            Monogram(text: title, outline: appearance.foreground.opacity(0.5))
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.headline)
-                    .lineLimit(1)
-                if let subtitle {
-                    // Kept opaque: the contrast check assumes solid black or white text.
-                    Text(subtitle)
-                        .font(.subheadline)
-                        .lineLimit(1)
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                // Too large for one row: the names wrap and the badge moves under them.
+                HStack(alignment: .top, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        names(lineLimit: nil)
+                        badge
+                    }
+                    Spacer(minLength: 8)
+                    chevron
+                }
+            } else {
+                HStack(spacing: 12) {
+                    Monogram(text: title, outline: appearance.foreground.opacity(0.5))
+                    names(lineLimit: 1)
+                    Spacer(minLength: 8)
+                    badge
+                    chevron
                 }
             }
-            Spacer(minLength: 8)
-            Text(kind)
-                .font(.caption2.weight(.semibold))
-                // On a narrow card the title gives way instead.
-                .lineLimit(1)
-                .fixedSize()
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .overlay {
-                    // Outlined rather than filled so the text sits on the card color itself.
-                    Capsule().strokeBorder(appearance.foreground.opacity(0.5))
-                }
-            Image(systemName: "chevron.down")
-                .font(.footnote.weight(.semibold))
-                .rotationEffect(.degrees(isExpanded ? 180 : 0))
-                .opacity(0.8)
-                .accessibilityHidden(true)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
         .contentShape(.rect)
+    }
+
+    private func names(lineLimit: Int?) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.headline)
+                .lineLimit(lineLimit)
+            if let subtitle {
+                // Kept opaque: the contrast check assumes solid black or white text.
+                Text(subtitle)
+                    .font(.subheadline)
+                    .lineLimit(lineLimit)
+            }
+        }
+    }
+
+    private var badge: some View {
+        Text(kind)
+            .font(.caption2.weight(.semibold))
+            // On a narrow card the title gives way instead.
+            .lineLimit(1)
+            .fixedSize()
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .overlay {
+                // Outlined rather than filled so the text sits on the card color itself.
+                Capsule().strokeBorder(appearance.foreground.opacity(0.5))
+            }
+    }
+
+    private var chevron: some View {
+        Image(systemName: "chevron.down")
+            .font(.footnote.weight(.semibold))
+            .rotationEffect(.degrees(isExpanded ? 180 : 0))
+            .opacity(0.8)
+            .accessibilityHidden(true)
     }
 }
 
@@ -176,11 +205,13 @@ struct GlassCardFace<S: InsettableShape>: View {
 private struct Monogram: View {
     let text: String
     let outline: Color
+    /// Grows with the letter inside it.
+    @ScaledMetric(relativeTo: .headline) private var diameter: CGFloat = 40
 
     var body: some View {
         Text(text.first.map { String($0).uppercased() } ?? "?")
             .font(.headline)
-            .frame(width: 40, height: 40)
+            .frame(width: diameter, height: diameter)
             .overlay { Circle().strokeBorder(outline, lineWidth: 1.5) }
             .accessibilityHidden(true)
     }

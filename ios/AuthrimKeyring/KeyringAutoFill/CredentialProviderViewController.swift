@@ -4,19 +4,37 @@ import SwiftUI
 /// Entry point the system loads for AutoFill of one-time codes and passkeys.
 final class CredentialProviderViewController: ASCredentialProviderViewController {
     lazy var store = AccountStore()
-    private lazy var appLock = AppLock()
+    private var appLock = AppLock()
     /// Set once the request is completed or cancelled; the system takes only one answer.
     private var isFinished = false
+    /// Work started for the current request, cancelled when the next one begins so
+    /// a late result from an earlier request cannot answer this one.
+    private var tasks: [Task<Void, Never>] = []
+    /// Set when the device owner was confirmed earlier in the current request.
+    var isUserVerified = false
 
     /// Starts answering a new request; the system may reuse this controller.
     func resetFinished() {
         isFinished = false
+        isUserVerified = false
+        // A reused controller must not carry an unlock, the lock setting as it was,
+        // or work waiting for a sheet over to the next request.
+        appLock = AppLock()
+        onAppear = []
+        tasks.forEach { $0.cancel() }
+        tasks = []
+    }
+
+    /// Starts work for the current request.
+    func startTask(_ work: @escaping () async -> Void) {
+        tasks.append(Task { await work() })
     }
 
     /// Claims the one answer to the current request. False if it has already ended,
     /// for example cancelled while Face ID or a save was still in progress.
     func beginFinishing() -> Bool {
-        guard !isFinished else { return false }
+        // Work of an earlier request is cancelled and may not answer this one.
+        guard !isFinished, !Task.isCancelled else { return false }
         isFinished = true
         return true
     }
@@ -24,6 +42,11 @@ final class CredentialProviderViewController: ASCredentialProviderViewController
     /// Work that asks for Face ID, which only succeeds once the sheet is on screen.
     private var onAppear: [() -> Void] = []
     private var hasAppeared = false
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        hasAppeared = false
+    }
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
@@ -35,7 +58,7 @@ final class CredentialProviderViewController: ASCredentialProviderViewController
 
     /// Runs `work` once the interface is visible.
     func whenVisible(_ work: @escaping () async -> Void) {
-        let start = { Task { await work() } }
+        let start = { self.startTask(work) }
         if hasAppeared {
             _ = start()
         } else {
@@ -121,10 +144,12 @@ final class CredentialProviderViewController: ASCredentialProviderViewController
 
     private func finish(with account: OTPAccount) {
         guard #available(iOS 18, *) else { return cancel(.failed) }
-        Task {
+        startTask { [self] in
             // Before completing: the extension may be stopped right after. This keeps
             // suggestions current with a site added here or a card changed in the app.
-            await CredentialIdentitySync.replace(with: store.autoFillIdentities)
+            if let identities = store.autoFillIdentities {
+                await CredentialIdentitySync.replace(with: identities)
+            }
             guard beginFinishing() else { return }
             let code = TOTPGenerator.code(for: account, at: .now).value
             _ = await extensionContext.completeOneTimeCodeRequest(using: ASOneTimeCodeCredential(code: code))
@@ -135,17 +160,19 @@ final class CredentialProviderViewController: ASCredentialProviderViewController
 
     /// Whether codes need Face ID or the passcode first. Also before the app has
     /// run since updating from 1.0, when the lock setting has not reached the App Group.
-    private var isLockRequired: Bool {
+    var isLockRequired: Bool {
         appLock.isLocked || !SharedDefaults.hasMigrated
     }
 
-    private func unlockIfNeeded() async -> Bool {
-        if appLock.isLocked {
-            await appLock.unlock()
-            return !appLock.isLocked
+    func unlockIfNeeded() async -> Bool {
+        // The lock of this request, even if another request replaces it meanwhile.
+        let lock = appLock
+        if lock.isLocked {
+            await lock.unlock()
+            return !lock.isLocked
         }
         if !SharedDefaults.hasMigrated {
-            return await appLock.confirmDeviceOwner(reason: String(localized: "Unlock Authrim Keyring to view your codes."))
+            return await lock.confirmDeviceOwner(reason: String(localized: "Unlock Authrim Keyring to view your codes."))
         }
         return true
     }
@@ -156,6 +183,8 @@ final class CredentialProviderViewController: ASCredentialProviderViewController
     }
 
     func show(_ view: some View) {
+        // A screen for an earlier request must not replace the current one.
+        guard !Task.isCancelled else { return }
         children.forEach {
             $0.willMove(toParent: nil)
             $0.view.removeFromSuperview()

@@ -129,16 +129,20 @@ private struct CoverView: View {
     }
 }
 
-/// App mark used on lock and privacy screens.
+/// App mark used on lock and privacy screens: the app icon's artwork.
 struct BrandMark: View {
     var size: CGFloat
 
     var body: some View {
-        Image(systemName: "key.horizontal.fill")
-            .font(.system(size: size * 0.5, weight: .semibold))
-            .foregroundStyle(.white)
+        let shape = RoundedRectangle(cornerRadius: size * 0.225, style: .continuous)
+        Image("BrandMark")
+            .resizable()
+            .interpolation(.high)
             .frame(width: size, height: size)
-            .background(Color.accentColor.gradient, in: .rect(cornerRadius: size * 0.24))
+            .clipShape(shape)
+            // The light tile needs an edge on the light background.
+            .overlay { shape.strokeBorder(.black.opacity(0.08)) }
+            .shadow(color: .black.opacity(0.12), radius: 8, y: 3)
             .accessibilityHidden(true)
     }
 }

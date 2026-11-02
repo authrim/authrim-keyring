@@ -199,7 +199,7 @@ final class CredentialProviderViewController: ASCredentialProviderViewController
     }
 
     /// The domain of a page or app asking for a credential.
-    static func host(of identifier: ASCredentialServiceIdentifier) -> String? {
+    nonisolated static func host(of identifier: ASCredentialServiceIdentifier) -> String? {
         switch identifier.type {
         case .domain:
             identifier.identifier.lowercased()

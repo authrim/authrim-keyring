@@ -11,7 +11,7 @@ import Security
 /// so they are never synced nor restored onto another device. iCloud items are
 /// synchronizable, which iCloud Keychain end-to-end encrypts and shares with the
 /// user's other devices; the system does not allow `ThisDeviceOnly` for them.
-struct KeychainStore {
+nonisolated struct KeychainStore {
     enum Location {
         case device
         case iCloud

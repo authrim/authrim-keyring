@@ -104,6 +104,8 @@ extension CredentialProviderViewController {
         whenVisible { [self] in
             if isLockRequired {
                 guard await unlockIfNeeded() else { return cancel(.userCanceled) }
+                // Face ID for an earlier request does not verify the user for this one.
+                guard !Task.isCancelled else { return }
                 isUserVerified = LAContext().canEvaluatePolicy(.deviceOwnerAuthentication, error: nil)
             }
             showPasskeyList(candidates, requestParameters: requestParameters)

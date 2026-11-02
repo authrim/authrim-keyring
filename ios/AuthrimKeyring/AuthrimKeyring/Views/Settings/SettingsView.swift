@@ -39,7 +39,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Sync")
                 } footer: {
-                    Text("When on, secret keys are kept in iCloud Keychain, which is end-to-end encrypted, and appear on your other devices where Keyring sync is on. iCloud Keychain must be turned on in the Settings app. Card order is not synced.")
+                    Text("Shares your accounts, end-to-end encrypted, among your devices with sync on. Requires iCloud Keychain.")
                 }
 
                 Section {
@@ -56,30 +56,6 @@ struct SettingsView: View {
                     Text("A backup file is protected by a password you choose and can be restored on any device, even without iCloud.")
                 }
 
-                Section {
-                    Button("Delete All Accounts", role: .destructive) {
-                        isConfirmingDeleteAll = true
-                    }
-                    .disabled(store.accounts.isEmpty && !hasKeptICloudCopies)
-                } header: {
-                    Text("Data")
-                } footer: {
-                    if store.isSyncEnabled {
-                        Text("Secret keys are stored in iCloud Keychain and are never sent to any other server. Also keep the backup codes each service provides.")
-                    } else {
-                        Text("Secret keys are stored only in this device’s Keychain and are never sent to a server. They do not move to a new device on their own, so turn on iCloud sync or keep an encrypted backup. Also keep the backup codes each service provides.")
-                    }
-                }
-
-                Section("Supported Codes") {
-                    LabeledContent("Type", value: "TOTP (RFC 6238)")
-                    LabeledContent("Algorithm", value: "SHA1, SHA256, SHA512")
-                    LabeledContent("Digits", value: "6, 7, 8")
-                    LabeledContent("Period") {
-                        Text("30, 60 seconds")
-                    }
-                }
-
                 Section("About") {
                     LabeledContent("Version", value: Self.appVersion)
                     Button("Show Tutorial", systemImage: "questionmark.bubble") {
@@ -92,6 +68,21 @@ struct SettingsView: View {
                     }
                     Link(destination: AppLinks.support) {
                         Label("Support", systemImage: "questionmark.circle")
+                    }
+                }
+
+                Section {
+                    Button("Delete All Accounts", role: .destructive) {
+                        isConfirmingDeleteAll = true
+                    }
+                    .disabled(store.accounts.isEmpty && !hasKeptICloudCopies)
+                } header: {
+                    Text("Data")
+                } footer: {
+                    if store.isSyncEnabled {
+                        Text("Secret keys are stored in iCloud Keychain and are never sent to any other server. Also keep the backup codes each service provides.")
+                    } else {
+                        Text("Secret keys are stored only in this device’s Keychain and are never sent to a server. They do not move to a new device on their own, so turn on iCloud sync or keep an encrypted backup. Also keep the backup codes each service provides.")
                     }
                 }
             }

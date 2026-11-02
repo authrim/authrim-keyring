@@ -51,16 +51,6 @@
         }
       }
     },
-    "30, 60 seconds" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "30秒、60秒"
-          }
-        }
-      }
-    },
     "A backup can hold up to %lld accounts." : {
       "localizations" : {
         "ja" : {
@@ -1231,6 +1221,16 @@
         }
       }
     },
+    "Shares your accounts, end-to-end encrypted, among your devices with sync on. Requires iCloud Keychain." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同期をオンにしたデバイス間で、アカウントをエンドツーエンド暗号化して共有します。iCloudキーチェーンがオンである必要があります。"
+          }
+        }
+      }
+    },
     "Show Setup Key" : {
       "localizations" : {
         "ja" : {
@@ -1307,16 +1307,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "サポート"
-          }
-        }
-      }
-    },
-    "Supported Codes" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "対応するコード"
           }
         }
       }
@@ -1647,16 +1637,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "バージョン"
-          }
-        }
-      }
-    },
-    "When on, secret keys are kept in iCloud Keychain, which is end-to-end encrypted, and appear on your other devices where Keyring sync is on. iCloud Keychain must be turned on in the Settings app. Card order is not synced." : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "オンにすると、秘密鍵はエンドツーエンドで暗号化されるiCloudキーチェーンに保存され、Keyringの同期をオンにしているほかのデバイスにも表示されます。「設定」アプリでiCloudキーチェーンをオンにしておく必要があります。カードの並び順は同期されません。"
           }
         }
       }

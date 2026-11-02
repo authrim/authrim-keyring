@@ -31,6 +31,7 @@ struct HomeView: View {
     @State private var tutorialAnchors = TutorialAnchors()
     /// Two columns of cards on wide landscape screens, such as an unfolded iPhone Duo.
     @State private var columnCount = 1
+    @Environment(\.accessibilityVoiceOverEnabled) private var isVoiceOverEnabled
     @State private var titleScroll = HomeTitleScroll()
 
     private var filteredItems: [KeyringItem] {
@@ -48,6 +49,8 @@ struct HomeView: View {
                 .navigationTitle("Keyring")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar { toolbar }
+                .hidingSystemTitle(titleScroll.hasSideBar)
+                .measuringSideBar(titleScroll)
         }
         // Light or dark text to suit the wallpaper. Sheets and alerts are attached
         // after this, so they keep following the system appearance.
@@ -135,13 +138,25 @@ struct HomeView: View {
                 VStack(spacing: 0) {
                     HomeTitle(scroll: titleScroll)
                     Group {
-                        if columnCount > 1 {
+                        if columnCount > 1 && !isVoiceOverEnabled {
+                            // Each column stacks on its own, so opening a card moves only
+                            // the cards below it. Cards go left and right in turn.
+                            HStack(alignment: .top, spacing: 12) {
+                                ForEach(0..<columnCount, id: \.self) { column in
+                                    LazyVStack(spacing: 12) {
+                                        cards(numberedItems.filter { $0.offset % columnCount == column })
+                                    }
+                                }
+                            }
+                        } else if columnCount > 1 {
+                            // Rows, which VoiceOver reads in the list's order; separate
+                            // columns would be read one column after the other.
                             LazyVGrid(
                                 columns: Array(repeating: GridItem(.flexible(), spacing: 12, alignment: .top), count: columnCount),
                                 spacing: 12
-                            ) { cards }
+                            ) { cards(numberedItems) }
                         } else {
-                            LazyVStack(spacing: 12) { cards }
+                            LazyVStack(spacing: 12) { cards(numberedItems) }
                         }
                     }
                     .padding(.horizontal)
@@ -184,8 +199,13 @@ struct HomeView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private var cards: some View {
-        ForEach(filteredItems) { item in
+    /// The items with their place in the list.
+    private var numberedItems: [(offset: Int, element: KeyringItem)] {
+        Array(filteredItems.enumerated())
+    }
+
+    private func cards(_ items: [(offset: Int, element: KeyringItem)]) -> some View {
+        ForEach(items, id: \.element.id) { index, item in
             Group {
                 switch item {
                 case .account(let account): card(for: account)
@@ -193,7 +213,7 @@ struct HomeView: View {
                 }
             }
             .background {
-                if item.id == filteredItems.first?.id {
+                if index == 0 {
                     Color.clear.tutorialTarget(.cards, anchors: tutorialAnchors)
                 }
             }
@@ -251,12 +271,15 @@ struct HomeView: View {
 
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
-        ToolbarItem(placement: .principal) {
-            // Set outside, where the wordmark's scaled size is read.
-            Wordmark(style: .bar)
-                .dynamicTypeSize(...Wordmark.maximumTypeSize)
-                .opacity(titleScroll.isUnderBar ? 1 : 0)
-                .accessibilityHidden(!titleScroll.isUnderBar)
+        // With the buttons down the side there is no bar above to show it in.
+        if !titleScroll.hasSideBar {
+            ToolbarItem(placement: .principal) {
+                // Set outside, where the wordmark's scaled size is read.
+                Wordmark(style: .bar)
+                    .dynamicTypeSize(...Wordmark.maximumTypeSize)
+                    .opacity(titleScroll.isUnderBar ? 1 : 0)
+                    .accessibilityHidden(!titleScroll.isUnderBar)
+            }
         }
         ToolbarItem(placement: .topBarLeading) {
             Button("Settings", systemImage: "gearshape") { isShowingSettings = true }

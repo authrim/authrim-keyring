@@ -7,7 +7,10 @@ final class HomeTitleScroll {
     /// How far the list is pulled down past its top.
     var pull: CGFloat = 0
     /// Whether the title has scrolled up under the navigation bar.
-    var isUnderBar = false
+    private(set) var isUnderBar = false
+    /// Whether the bar's buttons run down the side of the screen, as on an iPhone
+    /// Duo, rather than along the top.
+    private(set) var hasSideBar = false
     @ObservationIgnored var titleHeight: CGFloat = 0 {
         didSet { update(offset: offset) }
     }
@@ -22,6 +25,13 @@ final class HomeTitleScroll {
         if isUnderBar != self.isUnderBar {
             withAnimation(.easeOut(duration: 0.15)) { self.isUnderBar = isUnderBar }
         }
+    }
+
+    /// `inset`: the room the screen leaves at its widest side, which buttons down
+    /// the side take; a phone otherwise leaves none there.
+    func update(sideInset inset: CGFloat) {
+        let hasSideBar = inset >= 44
+        if hasSideBar != self.hasSideBar { self.hasSideBar = hasSideBar }
     }
 }
 
@@ -52,6 +62,26 @@ extension View {
             } action: { _, offset in
                 scroll.update(offset: offset)
             }
+        } else {
+            self
+        }
+    }
+
+    /// Notes in `scroll` whether the bar's buttons run down the side.
+    func measuringSideBar(_ scroll: HomeTitleScroll) -> some View {
+        onGeometryChange(for: CGFloat.self) { proxy in
+            max(proxy.safeAreaInsets.leading, proxy.safeAreaInsets.trailing)
+        } action: { scroll.update(sideInset: $0) }
+    }
+
+    /// With the buttons down the side, keeps the empty title out of the bar, where it
+    /// would leave a gap above `HomeTitle`. Along the top the title stays: it is
+    /// where "Keyring" appears once `HomeTitle` has scrolled away.
+    @ViewBuilder
+    func hidingSystemTitle(_ isHidden: Bool) -> some View {
+        if #available(iOS 18, *) {
+            // One modifier either way, so a change keeps the screen's state.
+            toolbar(removing: isHidden ? .title : nil)
         } else {
             self
         }

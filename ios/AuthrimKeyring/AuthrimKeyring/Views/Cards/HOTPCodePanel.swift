@@ -29,6 +29,7 @@ struct HOTPCodePanel: View {
                     if isCopied {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.title2)
+                            .frame(width: CountdownRing.size, height: CountdownRing.size)
                             .transition(.scale.combined(with: .opacity))
                     }
                 }

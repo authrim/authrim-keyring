@@ -43,6 +43,7 @@ struct TOTPCodePanel: View {
                     if isCopied {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.title2)
+                            .frame(width: CountdownRing.size, height: CountdownRing.size)
                             .transition(.scale.combined(with: .opacity))
                     } else {
                         CountdownRing(remaining: remaining, period: TimeInterval(account.period))
@@ -83,6 +84,9 @@ struct RecoveryCodesLeftLabel: View {
 }
 
 struct CountdownRing: View {
+    /// Also the frame of the check that replaces it, so both share a center.
+    static let size: CGFloat = 36
+
     let remaining: TimeInterval
     let period: TimeInterval
 
@@ -103,7 +107,7 @@ struct CountdownRing: View {
             Text("\(Int(remaining.rounded(.up)))")
                 .font(.caption.monospacedDigit().weight(.semibold))
         }
-        .frame(width: 36, height: 36)
+        .frame(width: Self.size, height: Self.size)
         .accessibilityHidden(true)
     }
 }

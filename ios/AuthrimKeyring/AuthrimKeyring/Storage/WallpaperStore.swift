@@ -30,7 +30,7 @@ final class WallpaperStore {
         settings = saved ?? WallpaperSettings()
         if settings.kind == .photo {
             photo = photoURL.flatMap { UIImage(contentsOfFile: $0.path(percentEncoded: false)) }
-            if photo == nil { settings.kind = .system }
+            if photo == nil { settings.kind = WallpaperSettings().kind }
         } else {
             // A photo left behind by an earlier choice is no longer shown.
             removePhotoFile()

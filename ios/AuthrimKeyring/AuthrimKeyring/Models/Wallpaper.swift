@@ -9,7 +9,8 @@ nonisolated struct WallpaperSettings: Codable, Equatable, Sendable {
         case photo
     }
 
-    var kind: Kind = .system
+    /// Mountains with glass cards, until the user chooses otherwise.
+    var kind: Kind = .preset("mountains")
     /// Blur of a photo, 0...1. Slightly blurred by default so cards stand out.
     var blur: Double = 0.15
     /// Darkening over a photo, 0...1.
@@ -17,9 +18,9 @@ nonisolated struct WallpaperSettings: Codable, Equatable, Sendable {
     /// Average gamma-encoded luma (sRGB, 0...1) of the photo, measured when it was chosen.
     var photoLightness: Double = 0.5
     /// Cards let the wallpaper show through, like frosted glass.
-    var glassCards = false
+    var glassCards = true
     /// How much of the wallpaper shows through a glass card.
-    var cardTransparency = 0.5
+    var cardTransparency = 0.75
 
     static let maximumBlurRadius: CGFloat = 30
     static let maximumDim = 0.7

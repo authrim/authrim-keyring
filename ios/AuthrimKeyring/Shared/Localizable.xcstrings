@@ -827,16 +827,6 @@
         }
       }
     },
-    "Default" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "標準"
-          }
-        }
-      }
-    },
     "Delete" : {
       "localizations" : {
         "ja" : {

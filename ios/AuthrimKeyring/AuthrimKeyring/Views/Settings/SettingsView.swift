@@ -197,8 +197,8 @@ struct SettingsView: View {
 
     private var wallpaperName: LocalizedStringResource {
         switch wallpaper.settings.kind {
-        case .system: "Default"
-        case .preset(let id): WallpaperPreset.named(id)?.name ?? "Default"
+        case .system: "None"
+        case .preset(let id): WallpaperPreset.named(id)?.name ?? "None"
         case .photo: "Photo"
         }
     }

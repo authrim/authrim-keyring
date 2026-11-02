@@ -36,7 +36,7 @@ struct WallpaperSettingsView: View {
                             .frame(maxWidth: 200)
                     }
                     Button("Remove Photo", role: .destructive) {
-                        wallpaper.select(.system)
+                        wallpaper.select(WallpaperSettings().kind)
                     }
                     .disabled(isLoadingPhoto)
                 }
@@ -62,7 +62,7 @@ struct WallpaperSettingsView: View {
 
             Section("Wallpapers") {
                 LazyVGrid(columns: columns, spacing: 16) {
-                    swatch(for: .system, name: "Default") { Color(.systemGroupedBackground) }
+                    swatch(for: .system, name: "None") { Color(.systemGroupedBackground) }
                     ForEach(WallpaperPreset.all) { preset in
                         swatch(for: .preset(preset.id), name: preset.name) { WallpaperPresetFill(preset: preset, thumbnail: true) }
                     }

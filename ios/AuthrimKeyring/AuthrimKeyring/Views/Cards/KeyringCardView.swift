@@ -64,6 +64,7 @@ struct KeyringCardView<Detail: View>: View {
     let title: String
     let subtitle: String?
     let kind: LocalizedStringKey
+    var isFavorite = false
     let isExpanded: Bool
     let isDetailVisible: Bool
     let onToggle: () -> Void
@@ -147,9 +148,16 @@ struct KeyringCardView<Detail: View>: View {
 
     private func names(lineLimit: Int?) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(title)
-                .font(.headline)
-                .lineLimit(lineLimit)
+            HStack(spacing: 4) {
+                Text(title)
+                    .font(.headline)
+                    .lineLimit(lineLimit)
+                if isFavorite {
+                    Image(systemName: "star.fill")
+                        .font(.caption)
+                        .accessibilityLabel("Favorite")
+                }
+            }
             if let subtitle {
                 // Kept opaque: the contrast check assumes solid black or white text.
                 Text(subtitle)

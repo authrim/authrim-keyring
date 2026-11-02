@@ -46,6 +46,10 @@ struct EditPasskeyView: View {
     let passkey: Passkey
     @State private var title: String
     @State private var cardColor: CardColor?
+    @State private var isFavorite = false
+    @State private var tags: [String] = []
+    @State private var newTag = ""
+    @State private var hasLoaded = false
 
     init(passkey: Passkey) {
         self.passkey = passkey
@@ -67,7 +71,16 @@ struct EditPasskeyView: View {
                     LabeledContent("Website", value: passkey.relyingParty)
                     LabeledContent("Account", value: passkey.userName)
                 }
+                if !store.isMetaUnavailable {
+                    OrganizeSection(isFavorite: $isFavorite, tags: $tags, newTag: $newTag)
+                }
                 CardColorSection(selection: $cardColor, automatic: .automatic(for: passkey.relyingParty))
+            }
+            .onAppear {
+                guard !hasLoaded else { return }
+                hasLoaded = true
+                isFavorite = store.meta(for: passkey.id).isFavorite
+                tags = store.meta(for: passkey.id).tags
             }
             .navigationTitle("Edit Card")
             .navigationBarTitleDisplayMode(.inline)
@@ -78,6 +91,9 @@ struct EditPasskeyView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
                         store.updatePasskey(passkey.id, title: title.trimmed, cardColor: cardColor)
+                        if !store.isMetaUnavailable {
+                            store.setOrganization(isFavorite: isFavorite, tags: OrganizeSection.adding(newTag, to: tags), for: passkey.id)
+                        }
                         dismiss()
                     }
                 }

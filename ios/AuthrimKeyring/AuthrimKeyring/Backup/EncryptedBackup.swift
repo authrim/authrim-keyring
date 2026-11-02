@@ -14,7 +14,10 @@ nonisolated enum EncryptedBackup {
     static let minimumPasswordLength = 8
 
     private static let format = "com.authrim.keyring.backup"
-    private static let version = 1
+    /// Files are version 1 whenever versions 1.0 and 1.1 can restore every account
+    /// in them, and 2 otherwise: those versions refuse a newer file outright,
+    /// rather than restore counter-based or Steam accounts as time-based ones.
+    private static let currentVersion = 2
     private static let kdfName = "PBKDF2-HMAC-SHA256"
     private static let cipherName = "AES-256-GCM"
     private static let iterations = 600_000
@@ -74,14 +77,18 @@ nonisolated enum EncryptedBackup {
         var accounts: [OTPAccount]
         /// Websites and recovery codes, matched to `accounts` by identifier.
         var details: [AccountDetails] = []
+        /// Favorites and tags, matched the same way.
+        var meta: [ItemMeta] = []
     }
 
-    // `details` was added in 1.1 without changing the version: 1.0 ignores keys it
-    // does not know, so it can still open these files and restore the accounts.
+    // `details` (1.1) and `meta` (1.2) were added without changing the version:
+    // earlier versions ignore keys they do not know, so they can still open these
+    // files and restore the accounts.
     private struct Payload: Codable {
         var exportedAt: Date
         var accounts: [OTPAccount]
         var details: [AccountDetails]?
+        var meta: [ItemMeta]?
     }
 
     static func seal(_ contents: Contents, password: String, now: Date = .now) throws -> Data {
@@ -91,7 +98,7 @@ nonisolated enum EncryptedBackup {
         let salt = try randomBytes(count: 16)
         var envelope = Envelope(
             format: format,
-            version: version,
+            version: accounts.allSatisfy(\.isReadableByVersion1) ? 1 : currentVersion,
             kdf: .init(algorithm: kdfName, iterations: iterations, salt: salt),
             cipher: cipherName,
             sealed: Data()
@@ -99,7 +106,13 @@ nonisolated enum EncryptedBackup {
         let key = try deriveKey(password: password, salt: salt, iterations: iterations)
         let accountIDs = Set(accounts.map(\.id))
         let details = contents.details.filter { accountIDs.contains($0.id) && !$0.isEmpty }
-        let payload = Payload(exportedAt: now, accounts: accounts, details: details.isEmpty ? nil : details)
+        let meta = contents.meta.filter { accountIDs.contains($0.id) && !$0.isEmpty }
+        let payload = Payload(
+            exportedAt: now,
+            accounts: accounts,
+            details: details.isEmpty ? nil : details,
+            meta: meta.isEmpty ? nil : meta
+        )
         let plaintext = try makeEncoder().encode(payload)
         let box = try AES.GCM.seal(plaintext, using: key, authenticating: envelope.associatedData)
         guard let combined = box.combined else { throw BackupError.damaged }
@@ -114,8 +127,8 @@ nonisolated enum EncryptedBackup {
         guard let envelope = try? JSONDecoder().decode(Envelope.self, from: file),
               envelope.format == format
         else { throw BackupError.notABackup }
-        guard envelope.version <= version else { throw BackupError.newerVersion }
-        guard envelope.version == version,
+        guard envelope.version <= currentVersion else { throw BackupError.newerVersion }
+        guard envelope.version >= 1,
               envelope.kdf.algorithm == kdfName,
               envelope.cipher == cipherName,
               acceptedIterations.contains(envelope.kdf.iterations),
@@ -136,22 +149,31 @@ nonisolated enum EncryptedBackup {
         guard let payload = try? decoder.decode(Payload.self, from: plaintext),
               payload.accounts.count <= maximumAccounts,
               payload.accounts.allSatisfy(\.isSupported),
-              (payload.details?.count ?? 0) <= maximumAccounts
+              (payload.details?.count ?? 0) <= maximumAccounts,
+              (payload.meta?.count ?? 0) <= maximumAccounts
         else { throw BackupError.damaged }
         // Each set of details must belong to exactly one account, or codes could
         // end up on the wrong card.
         let accountIDs = Set(payload.accounts.map(\.id))
         let detailIDs = (payload.details ?? []).map(\.id)
+        let metaIDs = (payload.meta ?? []).map(\.id)
         guard accountIDs.count == payload.accounts.count,
               Set(detailIDs).count == detailIDs.count,
-              detailIDs.allSatisfy(accountIDs.contains)
+              detailIDs.allSatisfy(accountIDs.contains),
+              Set(metaIDs).count == metaIDs.count,
+              metaIDs.allSatisfy(accountIDs.contains)
         else { throw BackupError.damaged }
         let details = (payload.details ?? []).map { extra in
             var extra = extra
             extra.recoveryCodes = Array(extra.recoveryCodes.prefix(AccountDetails.maximumRecoveryCodes))
             return extra
         }
-        return Contents(accounts: payload.accounts, details: details)
+        let meta = (payload.meta ?? []).map { note in
+            var note = note
+            note.tags = ItemMeta.cleaned(note.tags)
+            return note
+        }
+        return Contents(accounts: payload.accounts, details: details, meta: meta)
     }
 
     private static func makeEncoder() -> JSONEncoder {

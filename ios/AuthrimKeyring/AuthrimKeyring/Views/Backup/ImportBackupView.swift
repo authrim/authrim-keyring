@@ -99,7 +99,7 @@ struct ImportBackupView: View {
         }
         Section {
             Button("Add Accounts") {
-                let result = store.importAccounts(accounts, details: contents.details)
+                let result = store.importAccounts(accounts, details: contents.details, meta: contents.meta)
                 if let error = result.error {
                     loadError = String(localized: "Accounts added: \(result.added)") + "\n" + error
                 } else {
@@ -107,7 +107,8 @@ struct ImportBackupView: View {
                 }
             }
             // Recovery codes in the backup are still added to cards already here.
-            .disabled(newCount == 0 && contents.details.isEmpty)
+            .disabled(newCount == 0 && contents.details.isEmpty && contents.meta.isEmpty
+                && !contents.accounts.contains(where: store.advancesCounter))
         }
     }
 

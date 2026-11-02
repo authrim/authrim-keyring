@@ -1,22 +1,33 @@
 import SwiftUI
 
-/// Detail content of a one-time code card: the current code and its countdown.
+/// Detail content of a one-time code card: the current code and its countdown, or
+/// for a counter-based account the next code on request.
 struct TOTPCodePanel: View {
     let account: OTPAccount
     /// Unused recovery codes kept for this card, or nil when it has none.
     var recoveryCodesLeft: Int?
     let isCopied: Bool
-    let onCopy: () -> Void
+    /// Copies the code shown.
+    let onCopy: (String) -> Void
 
     @ScaledMetric(relativeTo: .largeTitle) private var codeSize: CGFloat = 34
 
     var body: some View {
+        if account.kind.isTimeBased {
+            timeBased
+        } else {
+            HOTPCodePanel(account: account, recoveryCodesLeft: recoveryCodesLeft, isCopied: isCopied, onCopy: onCopy)
+        }
+    }
+
+    private var timeBased: some View {
         // Only expanded cards tick, so collapsed cards cost nothing.
         TimelineView(.periodic(from: .now, by: 1)) { timeline in
             let code = TOTPGenerator.code(for: account, at: timeline.date)
+                ?? TOTPGenerator.Code(value: "", validFrom: timeline.date, validUntil: timeline.date)
             let remaining = code.secondsRemaining(at: timeline.date)
 
-            Button(action: onCopy) {
+            Button { onCopy(code.value) } label: {
                 HStack(alignment: .center, spacing: 12) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(TOTPGenerator.formatted(code.value))
@@ -26,11 +37,7 @@ struct TOTPCodePanel: View {
                             .lineLimit(1)
                         Text(isCopied ? "Copied" : "Tap the code to copy")
                             .font(.caption)
-                        if let recoveryCodesLeft {
-                            Label("Recovery codes: \(recoveryCodesLeft) left", systemImage: "key.viewfinder")
-                                .font(.caption2)
-                                .opacity(0.8)
-                        }
+                        RecoveryCodesLeftLabel(count: recoveryCodesLeft)
                     }
                     Spacer(minLength: 8)
                     if isCopied {
@@ -59,6 +66,19 @@ struct TOTPCodePanel: View {
         let spokenCode = code.map(String.init).joined(separator: " ")
         let seconds = Int(remaining.rounded(.up))
         return String(localized: "Code \(spokenCode), \(seconds) seconds left")
+    }
+}
+
+/// How many unused recovery codes a card has, when it has any.
+struct RecoveryCodesLeftLabel: View {
+    let count: Int?
+
+    var body: some View {
+        if let count {
+            Label("Recovery codes: \(count) left", systemImage: "key.viewfinder")
+                .font(.caption2)
+                .opacity(0.8)
+        }
     }
 }
 

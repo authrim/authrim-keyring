@@ -73,10 +73,17 @@ struct SettingsView: View {
                     Button("Import Backup", systemImage: "square.and.arrow.down") {
                         isPickingBackup = true
                     }
+                    if #available(iOS 26, *) {
+                        CredentialExportButton()
+                    }
                 } header: {
                     Text("Backup")
                 } footer: {
-                    Text("A backup file is protected by a password you choose and can be restored on any device, even without iCloud.")
+                    if #available(iOS 26, *) {
+                        Text("A backup file is protected by a password you choose and can be restored on any device, even without iCloud. Export to Another App moves your codes and passkeys to an app that supports it, such as Passwords.")
+                    } else {
+                        Text("A backup file is protected by a password you choose and can be restored on any device, even without iCloud.")
+                    }
                 }
 
                 Section("About") {

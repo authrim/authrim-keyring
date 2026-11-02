@@ -14,6 +14,11 @@ final class AccountStore {
     /// Set until the details have been read, so an edit cannot overwrite what is
     /// actually stored with a partial copy.
     private(set) var areDetailsUnavailable = true
+    /// Favorites and tags, by card; cards with neither are absent. Changed only
+    /// through the methods in AccountStore+Meta.
+    var meta: [UUID: ItemMeta] = [:]
+    /// Set until the favorites and tags have been read, for the same reason.
+    var isMetaUnavailable = true
     /// Set until the accounts and passkeys have been read. Until then the lists may
     /// be empty only because reading failed, which must not count as "none".
     private(set) var isContentUnavailable = true
@@ -26,26 +31,29 @@ final class AccountStore {
     private(set) var iCloudAccountCount = 0
     var lastError: String?
 
-    private let keychain: KeychainStore
-    private let detailsKeychain: KeychainStore
-    private let passkeyVault: PasskeyVault
-    private let defaults: UserDefaults
+    let keychain: AccountKeychain
+    let detailsKeychain: KeychainStore
+    let metaKeychain: KeychainStore
+    let passkeyVault: PasskeyVault
+    let defaults: UserDefaults
     /// Identifiers of every card in display order, as saved.
     private var order: [String] = []
 
     init(keychain: KeychainStore = KeychainStore(), defaults: UserDefaults = SharedDefaults.store) {
-        self.keychain = keychain
+        self.keychain = AccountKeychain(base: keychain)
         detailsKeychain = KeychainStore(service: keychain.service + ".details")
+        metaKeychain = KeychainStore(service: keychain.service + ".meta")
         passkeyVault = PasskeyVault(base: keychain)
         self.defaults = defaults
         isSyncEnabled = defaults.bool(forKey: Self.syncKey)
     }
 
-    private var location: KeychainStore.Location { isSyncEnabled ? .iCloud : .device }
+    var location: KeychainStore.Location { isSyncEnabled ? .iCloud : .device }
 
     func load() {
         // Fails closed: only a successful read below clears these.
         areDetailsUnavailable = true
+        isMetaUnavailable = true
         isContentUnavailable = true
         arePasskeysUnavailable = true
         // Read on its own, so trouble with the accounts does not stop passkeys.
@@ -57,7 +65,7 @@ final class AccountStore {
             lastError = error.localizedDescription
         }
         do {
-            let (loaded, skippedAccounts) = try keychain.loadAllCountingSkipped(OTPAccount.self, from: location)
+            let (loaded, skippedAccounts) = try keychain.loadAllCountingSkipped(from: location)
             // The display order is kept separately so a reorder is a single write.
             order = defaults.stringArray(forKey: Self.orderKey) ?? []
             let position = positions()
@@ -73,6 +81,10 @@ final class AccountStore {
             if let (loadedDetails, skippedDetails) = try? detailsKeychain.loadAllCountingSkipped(AccountDetails.self, from: location) {
                 details = Dictionary(loadedDetails.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
                 areDetailsUnavailable = skippedDetails > 0
+            }
+            if let (loadedMeta, skippedMeta) = try? metaKeychain.loadAllCountingSkipped(ItemMeta.self, from: location) {
+                meta = Dictionary(loadedMeta.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+                isMetaUnavailable = skippedMeta > 0
             }
             // Only a hint, so a failure here should not hide the accounts.
             iCloudAccountCount = isSyncEnabled ? 0
@@ -105,11 +117,62 @@ final class AccountStore {
         account.accountName = accountName
         account.cardColor = cardColor
         do {
+            account.kind = try latestKind(of: account)
             try keychain.save(account, to: location)
             accounts[index] = account
         } catch {
             lastError = error.localizedDescription
         }
+    }
+
+    /// Hands out the next code of a counter-based account. The advanced counter is
+    /// saved first, so no code is ever shown twice; nil when that fails.
+    func nextCode(for id: UUID) -> String? {
+        guard let index = accounts.firstIndex(where: { $0.id == id }) else { return nil }
+        var account = accounts[index]
+        do {
+            guard case .hotp(let counter) = try latestKind(of: account), counter < .max else { return nil }
+            account.kind = .hotp(counter: counter + 1)
+            try keychain.save(account, to: location)
+            accounts[index] = account
+            return TOTPGenerator.hotp(secret: account.secret, counter: counter, algorithm: account.algorithm, digits: account.digits)
+        } catch {
+            lastError = error.localizedDescription
+            return nil
+        }
+    }
+
+    /// The kind with the counter as far as it has got, here or on another device
+    /// since the list was read, so that saving never moves it back. Throws when the
+    /// stored card cannot be read or is gone, rather than trust an older copy.
+    func latestKind(of account: OTPAccount) throws -> OTPKind {
+        guard case .hotp = account.kind else { return account.kind }
+        guard let stored = try keychain.loadAll(from: location).first(where: { $0.id == account.id }) else {
+            throw CounterError.unavailable
+        }
+        return Self.later(account.kind, stored.kind)
+    }
+
+    /// Whether adding `account` would move the counter of the same card here forward.
+    func advancesCounter(_ account: OTPAccount) -> Bool {
+        guard let existing = accounts.first(where: { $0.generatesSameCodes(as: account) }) else { return false }
+        return Self.later(existing.kind, account.kind) != existing.kind
+    }
+
+    enum CounterError: LocalizedError {
+        case unavailable
+
+        var errorDescription: String? {
+            String(localized: "This card could not be read from the Keychain. Try again after restarting the app.")
+        }
+    }
+
+    /// Of two kinds of the same account, the one with the later counter.
+    static func later(_ kind: OTPKind, _ other: OTPKind) -> OTPKind {
+        if case .hotp(let counter) = kind, case .hotp(let otherCounter) = other, otherCounter > counter {
+            return other
+        }
+        return kind
     }
 
     func details(for id: UUID) -> AccountDetails {
@@ -154,6 +217,7 @@ final class AccountStore {
             details[id] = nil
             // The account is gone either way; a leftover is cleared if the identifier is reused.
             try detailsKeychain.delete(id: id, from: location)
+            deleteMeta(of: id)
         } catch {
             lastError = error.localizedDescription
         }
@@ -210,6 +274,7 @@ final class AccountStore {
             try passkeyVault.delete(passkey, syncEnabled: isSyncEnabled)
             passkeys.removeAll { $0.id == id }
             saveOrder()
+            deleteMeta(of: id)
         } catch {
             lastError = error.localizedDescription
         }
@@ -221,9 +286,11 @@ final class AccountStore {
         do {
             try keychain.deleteAll(from: location)
             try detailsKeychain.deleteAll(from: location)
+            try metaKeychain.deleteAll(from: location)
             if includingICloud, !isSyncEnabled {
                 try keychain.deleteAll(from: .iCloud)
                 try detailsKeychain.deleteAll(from: .iCloud)
+                try metaKeychain.deleteAll(from: .iCloud)
             }
             // Device-only passkeys go too; synced ones as far as the accounts do.
             try passkeyVault.deleteAll(includingICloud: isSyncEnabled || includingICloud)
@@ -241,17 +308,35 @@ final class AccountStore {
     }
 
     /// Adds accounts restored from a backup, skipping ones that are already here.
-    /// Websites and recovery codes are added to the matching card in either case.
-    func importAccounts(_ incoming: [OTPAccount], details incomingDetails: [AccountDetails] = []) -> ImportResult {
+    /// Websites, recovery codes, favorites and tags are added to the matching card
+    /// in either case.
+    func importAccounts(
+        _ incoming: [OTPAccount],
+        details incomingDetails: [AccountDetails] = [],
+        meta incomingMeta: [ItemMeta] = []
+    ) -> ImportResult {
         // Checks against the Keychain, not a list that iCloud may have changed since,
         // so an imported account never overwrites an existing item in place.
         load()
         let extras = Dictionary(incomingDetails.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let notes = Dictionary(incomingMeta.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         var added = 0
         for var account in incoming {
             let originalID = account.id
-            if let existing = accounts.first(where: { $0.generatesSameCodes(as: account) }) {
-                account.id = existing.id
+            if let index = accounts.firstIndex(where: { $0.generatesSameCodes(as: account) }) {
+                account.id = accounts[index].id
+                // Codes the restored copy has used must not be handed out again.
+                let later = Self.later(accounts[index].kind, account.kind)
+                if later != accounts[index].kind {
+                    var advanced = accounts[index]
+                    advanced.kind = later
+                    do {
+                        try keychain.save(advanced, to: location)
+                    } catch {
+                        return ImportResult(added: added, error: error.localizedDescription)
+                    }
+                    accounts[index] = advanced
+                }
             } else {
                 if accounts.contains(where: { $0.id == account.id }) {
                     account.id = UUID()
@@ -263,137 +348,19 @@ final class AccountStore {
                 }
                 added += 1
             }
-            if let extra = extras[originalID] {
-                do {
+            do {
+                if let extra = extras[originalID] {
                     try saveDetails(details(for: account.id).merging(extra))
-                } catch {
-                    return ImportResult(added: added, error: error.localizedDescription)
                 }
+                // Favorites and tags are a convenience, not worth failing the import for.
+                if let note = notes[originalID], !isMetaUnavailable {
+                    try saveMeta(meta(for: account.id).merging(note))
+                }
+            } catch {
+                return ImportResult(added: added, error: error.localizedDescription)
             }
         }
         return ImportResult(added: added, error: nil)
-    }
-
-    /// Moves every account between this device and iCloud Keychain.
-    ///
-    /// Turning sync on merges this device's accounts into iCloud Keychain. Turning it
-    /// off copies the accounts back onto this device; `removeFromICloud` also deletes
-    /// those iCloud copies, which removes them from the user's other devices.
-    ///
-    /// The setting is saved after the copies are written and before the originals are
-    /// deleted, so an interruption at any point leaves the setting pointing at a
-    /// complete set of accounts.
-    @discardableResult
-    func setSyncEnabled(_ enabled: Bool, removeFromICloud: Bool = false) -> Bool {
-        guard enabled != isSyncEnabled else { return true }
-        defer { load() }
-        do {
-            if enabled {
-                try moveToICloud()
-            } else {
-                try moveToDevice(removeFromICloud: removeFromICloud)
-            }
-            return true
-        } catch {
-            lastError = error.localizedDescription
-            return false
-        }
-    }
-
-    private func moveToICloud() throws {
-        // Read again rather than trusting `accounts`, which may be out of date.
-        let local = try keychain.loadAll(from: .device)
-        let synced = try keychain.loadAll(from: .iCloud)
-        let localDetails = try detailsByID(in: .device)
-        var syncedDetails = try detailsByID(in: .iCloud)
-        var created: [UUID] = []
-        var createdDetails: [UUID] = []
-        var createdPasskeys: [UUID] = []
-        var renamedIDs: [UUID: UUID] = [:]
-        do {
-            for var account in local {
-                let localID = account.id
-                var isMerged = false
-                if let match = synced.first(where: { $0.generatesSameCodes(as: account) }) {
-                    // The same key added separately on another device stays as one card.
-                    if match.id != account.id {
-                        renamedIDs[account.id] = match.id
-                        account.id = match.id
-                        isMerged = true
-                    }
-                } else if synced.contains(where: { $0.id == account.id }) {
-                    // Same identifier but a different key: keep both instead of overwriting.
-                    let newID = UUID()
-                    renamedIDs[account.id] = newID
-                    account.id = newID
-                }
-                if !isMerged {
-                    let isNew = !synced.contains { $0.id == account.id }
-                    try keychain.save(account, to: .iCloud)
-                    if isNew {
-                        created.append(account.id)
-                    }
-                }
-                if let extra = localDetails[localID] {
-                    var merged = (syncedDetails[account.id] ?? AccountDetails(id: account.id)).merging(extra)
-                    merged.id = account.id
-                    if syncedDetails[account.id] == nil {
-                        createdDetails.append(account.id)
-                    }
-                    try detailsKeychain.save(merged, to: .iCloud)
-                    // Another card here may merge into the same synced one.
-                    syncedDetails[account.id] = merged
-                }
-            }
-            try passkeyVault.copyToICloud(created: &createdPasskeys)
-        } catch {
-            // Takes back what this attempt added, so the keys do not linger in iCloud.
-            for id in created {
-                try? keychain.delete(id: id, from: .iCloud)
-            }
-            for id in createdDetails {
-                try? detailsKeychain.delete(id: id, from: .iCloud)
-            }
-            try? passkeyVault.deleteFromICloud(createdPasskeys)
-            throw error
-        }
-        replaceInOrder(renamedIDs)
-        saveSyncSetting(true)
-        // Anything left here is a redundant copy, cleared again when sync is turned off.
-        try? keychain.deleteAll(from: .device)
-        try? detailsKeychain.deleteAll(from: .device)
-        passkeyVault.removeSyncedCopiesFromDevice()
-    }
-
-    private func moveToDevice(removeFromICloud: Bool) throws {
-        let synced = try keychain.loadAll(from: .iCloud)
-        let syncedDetails = try detailsKeychain.loadAll(AccountDetails.self, from: .iCloud)
-        // While sync is on, items on this device are only leftovers of an interrupted switch.
-        try keychain.deleteAll(from: .device)
-        try detailsKeychain.deleteAll(from: .device)
-        for account in synced {
-            try keychain.save(account, to: .device)
-        }
-        for extra in syncedDetails {
-            try detailsKeychain.save(extra, to: .device)
-        }
-        let syncedPasskeys = try passkeyVault.copyToDevice()
-        saveSyncSetting(false)
-        if removeFromICloud {
-            // Only the items copied above, not ones that arrived in the meantime.
-            for account in synced {
-                try keychain.delete(id: account.id, from: .iCloud)
-            }
-            for extra in syncedDetails {
-                try detailsKeychain.delete(id: extra.id, from: .iCloud)
-            }
-            try passkeyVault.deleteFromICloud(syncedPasskeys.map(\.id))
-        }
-    }
-
-    private func detailsByID(in location: KeychainStore.Location) throws -> [UUID: AccountDetails] {
-        let loaded = try detailsKeychain.loadAll(AccountDetails.self, from: location)
-        return Dictionary(loaded.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
     }
 
     private func insert(_ account: OTPAccount) throws {
@@ -416,13 +383,13 @@ final class AccountStore {
         }
     }
 
-    private func saveSyncSetting(_ enabled: Bool) {
+    func saveSyncSetting(_ enabled: Bool) {
         isSyncEnabled = enabled
         defaults.set(enabled, forKey: Self.syncKey)
     }
 
     /// Keeps a card in place on this device when its identifier changes.
-    private func replaceInOrder(_ renamedIDs: [UUID: UUID]) {
+    func replaceInOrder(_ renamedIDs: [UUID: UUID]) {
         guard !renamedIDs.isEmpty, let order = defaults.stringArray(forKey: Self.orderKey) else { return }
         let renamed = Dictionary(uniqueKeysWithValues: renamedIDs.map { ($0.key.uuidString, $0.value.uuidString) })
         defaults.set(order.map { renamed[$0] ?? $0 }, forKey: Self.orderKey)

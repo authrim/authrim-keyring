@@ -1,6 +1,7 @@
 import Foundation
 
-/// Parser for `otpauth://totp/...` key URIs as produced by setup QR codes.
+/// Parser for `otpauth://totp/...` key URIs as produced by setup QR codes, and
+/// their `hotp` and `steam` variants.
 nonisolated enum OTPAuthURI {
     enum ParseError: LocalizedError, Equatable {
         case notOTPAuth
@@ -10,13 +11,14 @@ nonisolated enum OTPAuthURI {
         case unsupportedAlgorithm(String)
         case unsupportedDigits(String)
         case unsupportedPeriod(String)
+        case invalidCounter(String)
 
         var errorDescription: String? {
             switch self {
             case .notOTPAuth:
                 String(localized: "This QR code is not a two-factor authentication setup code.")
             case .unsupportedType(let type):
-                String(localized: "“\(type)” codes are not supported. Only time-based (TOTP) codes can be added.")
+                String(localized: "“\(type)” codes are not supported.")
             case .missingSecret:
                 String(localized: "The setup code does not contain a secret key.")
             case .invalidSecret:
@@ -27,6 +29,8 @@ nonisolated enum OTPAuthURI {
                 String(localized: "\(value)-digit codes are not supported.")
             case .unsupportedPeriod(let value):
                 String(localized: "A period of \(value) seconds is not supported.")
+            case .invalidCounter(let value):
+                String(localized: "The counter “\(value)” is not valid.")
             }
         }
     }
@@ -37,11 +41,25 @@ nonisolated enum OTPAuthURI {
               components.scheme?.lowercased() == "otpauth",
               let type = components.host?.lowercased()
         else { throw .notOTPAuth }
-        guard type == "totp" else { throw .unsupportedType(type.uppercased()) }
-
         var query: [String: String] = [:]
         for item in components.queryItems ?? [] {
             query[item.name.lowercased()] = item.value ?? ""
+        }
+
+        let kind: OTPKind
+        switch type {
+        case "totp":
+            // Some apps write Steam Guard keys as TOTP with an "encoder" parameter.
+            kind = query["encoder"]?.lowercased() == "steam" ? .steam : .totp
+        case "steam":
+            kind = .steam
+        case "hotp":
+            // Required by the key URI format, but treated as a fresh key when absent.
+            let value = query["counter"] ?? ""
+            guard let counter = value.isEmpty ? 0 : UInt64(value) else { throw .invalidCounter(value) }
+            kind = .hotp(counter: counter)
+        default:
+            throw .unsupportedType(type.uppercased())
         }
 
         guard let secretText = query["secret"], !secretText.isEmpty else { throw .missingSecret }
@@ -54,13 +72,13 @@ nonisolated enum OTPAuthURI {
         }
 
         var digits = 6
-        if let value = query["digits"], !value.isEmpty {
+        if kind != .steam, let value = query["digits"], !value.isEmpty {
             guard let parsed = Int(value), OTPAccount.supportedDigits.contains(parsed) else { throw .unsupportedDigits(value) }
             digits = parsed
         }
 
         var period = 30
-        if let value = query["period"], !value.isEmpty {
+        if kind == .totp, let value = query["period"], !value.isEmpty {
             guard let parsed = Int(value), OTPAccount.supportedPeriods.contains(parsed) else { throw .unsupportedPeriod(value) }
             period = parsed
         }
@@ -83,7 +101,8 @@ nonisolated enum OTPAuthURI {
             secret: secret,
             algorithm: algorithm,
             digits: digits,
-            period: period
+            period: period,
+            kind: kind
         )
     }
 }

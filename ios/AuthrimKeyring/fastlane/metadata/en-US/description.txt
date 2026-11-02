@@ -9,7 +9,7 @@ YOUR CODES, ONE TAP AWAY
 • Each account is a card. Tap it to see the current code and how long it stays valid.
 • Tap the code to copy it. Copied codes stay on this device and are cleared from the clipboard after 60 seconds.
 • Give each card its own color. The text switches between black and white to stay readable.
-• Search, reorder, and rename your accounts.
+• Star your favorites to keep them on top, tag cards to show only some of them, and search by name, website, or tag.
 
 FILLED IN FOR YOU
 • Turn on Keyring in Settings > General > AutoFill & Passwords, and the code is suggested above the keyboard on the websites you set for each card.
@@ -17,7 +17,8 @@ FILLED IN FOR YOU
 
 MOVE IN EASILY
 • Scan the transfer QR codes from Google Authenticator.
-• Import unencrypted exports from Aegis and 2FAS, or a list of otpauth:// links.
+• Import unencrypted exports from Aegis, 2FAS, Bitwarden, and Ente Auth, or a list of otpauth:// links.
+• On iOS 26, bring codes and passkeys over from apps that support the system's export, such as Passwords, and send them to another app the same way.
 
 RECOVERY CODES, KEPT WITH THEIR CARD
 • Paste the recovery codes a service gives you. They stay hidden until Face ID, and you can mark each one as used.
@@ -33,6 +34,6 @@ READY FOR A NEW DEVICE
 • Export an encrypted backup file protected by a password you choose, and restore it on any device.
 
 WORKS WITH YOUR SERVICES
-Keyring works with any service that supports authenticator apps for two-factor authentication (TOTP, RFC 6238). It supports SHA-1, SHA-256, and SHA-512, 6- to 8-digit codes, and 30- or 60-second periods.
+Keyring works with any service that supports authenticator apps for two-factor authentication (TOTP, RFC 6238). It supports SHA-1, SHA-256, and SHA-512, 6- to 8-digit codes, periods from 10 to 300 seconds, counter-based codes (HOTP, RFC 4226), and Steam Guard codes.
 
 Available in English and Japanese.

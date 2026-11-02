@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Lists accounts read from another app before they are added.
+/// Lists accounts and passkeys read from another app before they are added.
 struct ImportPreviewView: View {
     @Environment(AccountStore.self) private var store
 
@@ -8,6 +8,7 @@ struct ImportPreviewView: View {
     let onFinish: () -> Void
 
     @State private var excluded: Set<Int> = []
+    @State private var excludedPasskeys: Set<Int> = []
     @State private var resultMessage: String?
     @State private var isShowingResult = false
 
@@ -19,17 +20,39 @@ struct ImportPreviewView: View {
         newIndices.filter { !excluded.contains($0) }.map { imported.accounts[$0] }
     }
 
+    private var selectedPasskeys: [Passkey] {
+        imported.passkeys.indices
+            .filter { !excludedPasskeys.contains($0) && !store.containsPasskey(like: imported.passkeys[$0]) }
+            .map { imported.passkeys[$0] }
+    }
+
     var body: some View {
         Form {
-            Section {
-                ForEach(imported.accounts.indices, id: \.self) { index in
-                    row(index)
+            if !imported.accounts.isEmpty {
+                Section {
+                    ForEach(imported.accounts.indices, id: \.self) { index in
+                        row(index)
+                    }
+                } header: {
+                    Text("Accounts")
+                } footer: {
+                    if newIndices.count < imported.accounts.count {
+                        Text("Accounts that are already in Keyring are not added again.")
+                    }
                 }
-            } header: {
-                Text("Accounts")
-            } footer: {
-                if newIndices.count < imported.accounts.count {
-                    Text("Accounts that are already in Keyring are not added again.")
+            }
+            if !imported.passkeys.isEmpty {
+                Section("Passkeys") {
+                    ForEach(imported.passkeys.indices, id: \.self) { index in
+                        passkeyRow(index)
+                    }
+                }
+            }
+            if imported.otherCount > 0 {
+                Section {
+                    Label("Other items: \(imported.otherCount)", systemImage: "tray")
+                } footer: {
+                    Text("Keyring keeps only one-time codes and passkeys. Passwords and other items stay in the other app.")
                 }
             }
 
@@ -54,8 +77,8 @@ struct ImportPreviewView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button(String(localized: "Add \(selected.count)")) { add() }
-                    .disabled(selected.isEmpty)
+                Button(String(localized: "Add \(selected.count + selectedPasskeys.count)")) { add() }
+                    .disabled(selected.isEmpty && selectedPasskeys.isEmpty)
             }
         }
         .alert("Accounts Added", isPresented: $isShowingResult) {
@@ -103,12 +126,60 @@ struct ImportPreviewView: View {
         .accessibilityAddTraits(isIncluded ? .isSelected : [])
     }
 
+    private func passkeyRow(_ index: Int) -> some View {
+        let passkey = imported.passkeys[index]
+        let isDuplicate = store.containsPasskey(like: passkey)
+        let isIncluded = !isDuplicate && !excludedPasskeys.contains(index)
+        return Button {
+            guard !isDuplicate else { return }
+            if excludedPasskeys.contains(index) {
+                excludedPasskeys.remove(index)
+            } else {
+                excludedPasskeys.insert(index)
+            }
+        } label: {
+            HStack {
+                Image(systemName: isIncluded ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(isIncluded ? Color.accentColor : .secondary)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(passkey.displayTitle)
+                    if let subtitle = passkey.displaySubtitle {
+                        Text(subtitle)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Spacer()
+                if isDuplicate {
+                    Text("Already Added")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                } else if !passkey.isBackupEligible {
+                    Text("This iPhone Only")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .disabled(isDuplicate)
+        .accessibilityAddTraits(isIncluded ? .isSelected : [])
+    }
+
     private func add() {
-        let result = store.importAccounts(selected)
+        let passkeys = selectedPasskeys
+        var result = store.importAccounts(selected, details: imported.details, meta: imported.meta)
+        if result.error == nil, !passkeys.isEmpty {
+            let passkeyResult = store.importPasskeys(passkeys, meta: imported.meta)
+            result.added += passkeyResult.added
+            result.error = passkeyResult.error
+        }
         if let error = result.error {
-            resultMessage = String(localized: "Accounts added: \(result.added)") + "\n" + error
+            resultMessage = String(localized: "Added: \(result.added)") + "\n" + error
         } else {
-            resultMessage = String(localized: "Accounts added: \(result.added)")
+            resultMessage = String(localized: "Added: \(result.added)")
         }
         isShowingResult = true
     }

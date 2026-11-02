@@ -1,12 +1,12 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "“%@” codes are not supported. Only time-based (TOTP) codes can be added." : {
+    "“%@” codes are not supported." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "「%@」コードには対応していません。追加できるのは時間ベース（TOTP）のコードだけです。"
+            "value" : "「%@」コードには対応していません。"
           }
         }
       }
@@ -103,6 +103,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "バックアップファイルは自分で決めたパスワードで保護され、iCloudがなくてもどのデバイスにでも復元できます。"
+          }
+        }
+      }
+    },
+    "A backup file is protected by a password you choose and can be restored on any device, even without iCloud. Export to Another App moves your codes and passkeys to an app that supports it, such as Passwords." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バックアップファイルは自分で決めたパスワードで保護され、iCloudがなくても、どのデバイスにでも復元できます。「ほかのアプリへ書き出す」では、コードとパスキーを「パスワード」など対応するアプリへ移せます。"
           }
         }
       }
@@ -327,12 +337,42 @@
         }
       }
     },
+    "Add Tag" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タグを追加"
+          }
+        }
+      }
+    },
+    "Add to Favorites" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "お気に入りに追加"
+          }
+        }
+      }
+    },
     "Add Website" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "ウェブサイトを追加"
+          }
+        }
+      }
+    },
+    "Added: %lld" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "追加した数: %lld"
           }
         }
       }
@@ -363,6 +403,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "アルゴリズム"
+          }
+        }
+      }
+    },
+    "All Cards" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべてのカード"
           }
         }
       }
@@ -503,6 +553,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ブラス"
+          }
+        }
+      }
+    },
+    "By Name" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名前順"
           }
         }
       }
@@ -677,6 +737,16 @@
         }
       }
     },
+    "Code %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コード %@"
+          }
+        }
+      }
+    },
     "Code %@, %lld seconds left" : {
       "localizations" : {
         "ja" : {
@@ -747,12 +817,42 @@
         }
       }
     },
-    "Counter-based (HOTP) codes are not supported." : {
+    "Copy Next Code" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "カウンターベース（HOTP）のコードには対応していません。"
+            "value" : "次のコードをコピー"
+          }
+        }
+      }
+    },
+    "Could Not Import" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取り込めませんでした"
+          }
+        }
+      }
+    },
+    "Counter" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カウンター"
+          }
+        }
+      }
+    },
+    "Counter-Based (HOTP)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カウンターベース（HOTP）"
           }
         }
       }
@@ -967,6 +1067,16 @@
         }
       }
     },
+    "Each code works once. Show the next one when the service asks for it." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コードは1回ずつしか使えません。サービスに求められたときに次のコードを表示してください。"
+          }
+        }
+      }
+    },
     "Edit" : {
       "localizations" : {
         "ja" : {
@@ -1067,12 +1177,82 @@
         }
       }
     },
+    "Export to Another App" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ほかのアプリへ書き出す"
+          }
+        }
+      }
+    },
+    "Export your accounts and passkeys to another app." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウントとパスキーをほかのアプリへ書き出します。"
+          }
+        }
+      }
+    },
+    "Exported: %lld" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "書き出した数: %lld"
+          }
+        }
+      }
+    },
     "Face ID" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Face ID"
+          }
+        }
+      }
+    },
+    "Favorite" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "お気に入り"
+          }
+        }
+      }
+    },
+    "Favorites" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "お気に入り"
+          }
+        }
+      }
+    },
+    "Favorites and tags could not be read from the Keychain. Try again after restarting the app." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "お気に入りとタグをキーチェーンから読み込めませんでした。アプリを再起動してからもう一度お試しください。"
+          }
+        }
+      }
+    },
+    "Favorites come first on the home screen. Tags let you show only some cards." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "お気に入りはホーム画面の先頭に表示されます。タグを付けると、一部のカードだけを表示できます。"
           }
         }
       }
@@ -1257,6 +1437,16 @@
         }
       }
     },
+    "Keyring keeps only one-time codes and passkeys. Passwords and other items stay in the other app." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keyringが保存するのはワンタイムコードとパスキーだけです。パスワードなどはほかのアプリに残ります。"
+          }
+        }
+      }
+    },
     "Keyring keeps the passkey on this iPhone only. It is not synced or included in backups, and cannot be moved later. If you lose this iPhone, sign in another way." : {
       "localizations" : {
         "ja" : {
@@ -1377,12 +1567,12 @@
         }
       }
     },
-    "Most services use SHA1, 6 digits and 30 seconds. Change these only if the service tells you to." : {
+    "Most services use time-based codes with SHA1, 6 digits and 30 seconds. Change these only if the service tells you to." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ほとんどのサービスはSHA1・6桁・30秒です。サービスから指示があった場合だけ変更してください。"
+            "value" : "ほとんどのサービスは時間ベース・SHA1・6桁・30秒です。サービスから指示があった場合だけ変更してください。"
           }
         }
       }
@@ -1447,6 +1637,26 @@
         }
       }
     },
+    "Next code" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次のコード"
+          }
+        }
+      }
+    },
+    "Next Counter" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次のカウンター"
+          }
+        }
+      }
+    },
     "Night" : {
       "localizations" : {
         "ja" : {
@@ -1463,6 +1673,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "アカウントがありません"
+          }
+        }
+      }
+    },
+    "No Cards Tagged “%@”" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」のタグが付いたカードはありません"
+          }
+        }
+      }
+    },
+    "No Favorites" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "お気に入りはありません"
           }
         }
       }
@@ -1517,6 +1747,16 @@
         }
       }
     },
+    "Not exported: %lld. Counter-based and Steam codes cannot be moved this way, and passkeys kept on this iPhone only stay on it." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "書き出さなかった数: %lld。カウンターベースとSteamのコードはこの方法では移せず、このiPhoneだけに保存したパスキーはこのiPhoneに残ります。"
+          }
+        }
+      }
+    },
     "Not Now" : {
       "localizations" : {
         "ja" : {
@@ -1533,6 +1773,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "まだ使われていません。ウェブサイトでこのパスキーの設定が完了しなかった場合は、削除してかまいません。"
+          }
+        }
+      }
+    },
+    "Nothing to Add" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "追加できるものはありません"
           }
         }
       }
@@ -1633,12 +1883,32 @@
         }
       }
     },
+    "Organize" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "整理"
+          }
+        }
+      }
+    },
     "Other Accounts" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "ほかのアカウント"
+          }
+        }
+      }
+    },
+    "Other items: %lld" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "その他の項目: %lld"
           }
         }
       }
@@ -1663,12 +1933,32 @@
         }
       }
     },
+    "Passkeys" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "パスキー"
+          }
+        }
+      }
+    },
     "Passkeys are not included in backup files. Passkeys kept on this iPhone only cannot be moved to another device." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "パスキーはバックアップファイルに含まれません。このiPhoneだけに保存したパスキーは、ほかのデバイスに移せません。"
+          }
+        }
+      }
+    },
+    "Passkeys could not be read from the Keychain. Try again after restarting the app." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "パスキーをキーチェーンから読み込めませんでした。アプリを再起動してからもう一度お試しください。"
           }
         }
       }
@@ -1793,6 +2083,16 @@
         }
       }
     },
+    "Recently Added" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "追加した順"
+          }
+        }
+      }
+    },
     "Recovery Codes" : {
       "localizations" : {
         "ja" : {
@@ -1819,6 +2119,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "リカバリーコード: 残り%lld"
+          }
+        }
+      }
+    },
+    "Remove from Favorites" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "お気に入りから外す"
           }
         }
       }
@@ -1859,6 +2169,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "並べ替え"
+          }
+        }
+      }
+    },
+    "Reorder…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手動で並べ替え…"
           }
         }
       }
@@ -2059,6 +2379,16 @@
         }
       }
     },
+    "Show" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表示"
+          }
+        }
+      }
+    },
     "Show a Code" : {
       "localizations" : {
         "ja" : {
@@ -2069,12 +2399,32 @@
         }
       }
     },
+    "Show All Cards" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべてのカードを表示"
+          }
+        }
+      }
+    },
     "Show Codes" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "コードを表示"
+          }
+        }
+      }
+    },
+    "Show Next Code" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次のコードを表示"
           }
         }
       }
@@ -2159,6 +2509,16 @@
         }
       }
     },
+    "Some cards on this device could not be read, so sync was not turned on. Try again after restarting the app." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このiPhoneにある一部のカードを読み込めなかったため、同期をオンにしませんでした。アプリを再起動してからもう一度お試しください。"
+          }
+        }
+      }
+    },
     "Something went wrong" : {
       "localizations" : {
         "ja" : {
@@ -2169,12 +2529,42 @@
         }
       }
     },
+    "Sort and Filter" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "並び順と表示"
+          }
+        }
+      }
+    },
+    "Sort By" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "並び順"
+          }
+        }
+      }
+    },
     "Start Over" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "最初から"
+          }
+        }
+      }
+    },
+    "Steam Guard" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steam Guard"
           }
         }
       }
@@ -2329,6 +2719,26 @@
         }
       }
     },
+    "The counter “%@” is not valid." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カウンター「%@」は正しくありません。"
+          }
+        }
+      }
+    },
+    "The counter is not valid." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カウンターが正しくありません。"
+          }
+        }
+      }
+    },
     "The export could not be read. It may be damaged." : {
       "localizations" : {
         "ja" : {
@@ -2355,6 +2765,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ファイルが大きすぎます。"
+          }
+        }
+      }
+    },
+    "The other app sent no one-time codes or passkeys." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ほかのアプリからワンタイムコードもパスキーも送られてきませんでした。"
           }
         }
       }
@@ -2509,6 +2929,16 @@
         }
       }
     },
+    "This card could not be read from the Keychain. Try again after restarting the app." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このカードをキーチェーンから読み込めませんでした。アプリを再起動してからもう一度お試しください。"
+          }
+        }
+      }
+    },
     "This code is from a different transfer. Tap Start Over to scan a new transfer." : {
       "localizations" : {
         "ja" : {
@@ -2539,12 +2969,32 @@
         }
       }
     },
+    "This iPhone Only" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このiPhoneだけ"
+          }
+        }
+      }
+    },
     "This kind of code is not supported." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "この種類のコードには対応していません。"
+          }
+        }
+      }
+    },
+    "This kind of passkey is not supported." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この種類のパスキーには対応していません。"
           }
         }
       }
@@ -2575,6 +3025,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "このQRコードは2段階認証のセットアップコードではありません。"
+          }
+        }
+      }
+    },
+    "Time-Based (TOTP)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "時間ベース（TOTP）"
+          }
+        }
+      }
+    },
+    "Touch and hold a card to add it to your favorites." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カードを長押しすると、お気に入りに追加できます。"
           }
         }
       }
@@ -2895,6 +3365,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "アカウントはこのデバイスに残ります。iCloudから削除すると、同期を使っているほかのデバイスからも削除されます。"
+          }
+        }
+      }
+    },
+    "Your Order" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自分で並べた順"
           }
         }
       }

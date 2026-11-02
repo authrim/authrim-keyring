@@ -11,6 +11,9 @@ struct EditAccountView: View {
     /// Loaded when the sheet appears, since the store is not available in `init`.
     @State private var websites: [String]?
     @State private var newSite = ""
+    @State private var isFavorite = false
+    @State private var tags: [String] = []
+    @State private var newTag = ""
 
     init(account: OTPAccount) {
         self.account = account
@@ -47,6 +50,7 @@ struct EditAccountView: View {
                         title: edited.displayTitle,
                         subtitle: edited.displaySubtitle,
                         kind: "2FA",
+                        isFavorite: isFavorite,
                         isExpanded: false,
                         isDetailVisible: false,
                         onToggle: {}
@@ -83,6 +87,9 @@ struct EditAccountView: View {
                 } footer: {
                     Text("Changes to recovery codes are saved right away.")
                 }
+                if !store.isMetaUnavailable {
+                    OrganizeSection(isFavorite: $isFavorite, tags: $tags, newTag: $newTag)
+                }
                 CardColorSection(
                     selection: $cardColor,
                     automatic: .automatic(for: edited.displayTitle)
@@ -92,6 +99,8 @@ struct EditAccountView: View {
             .onAppear {
                 if websites == nil {
                     websites = store.details(for: account.id).websites
+                    isFavorite = store.meta(for: account.id).isFavorite
+                    tags = store.meta(for: account.id).tags
                 }
             }
             .navigationTitle("Edit Card")
@@ -103,6 +112,9 @@ struct EditAccountView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
                         store.update(account.id, issuer: issuer.trimmed, accountName: accountName.trimmed, cardColor: cardColor)
+                        if !store.isMetaUnavailable {
+                            store.setOrganization(isFavorite: isFavorite, tags: OrganizeSection.adding(newTag, to: tags), for: account.id)
+                        }
                         // A site typed without tapping Add is kept as well.
                         if var typed = websites, !newSite.trimmed.isEmpty {
                             _ = WebsitesSection.add(newSite, to: &typed)
@@ -130,11 +142,20 @@ struct AccountParametersSection: View {
 
     var body: some View {
         Section("Code Settings") {
-            LabeledContent("Type", value: "TOTP")
-            LabeledContent("Algorithm", value: account.algorithm.rawValue)
-            LabeledContent("Digits", value: "\(account.digits)")
-            LabeledContent("Period") {
-                Text("\(account.period) seconds")
+            LabeledContent("Type", value: account.kind.name)
+            if account.kind != .steam {
+                LabeledContent("Algorithm", value: account.algorithm.rawValue)
+                LabeledContent("Digits", value: "\(account.digits)")
+            }
+            switch account.kind {
+            case .totp:
+                LabeledContent("Period") {
+                    Text("\(account.period) seconds")
+                }
+            case .hotp(let counter):
+                LabeledContent("Next Counter", value: "\(counter)")
+            case .steam:
+                EmptyView()
             }
         }
     }

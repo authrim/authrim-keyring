@@ -151,7 +151,11 @@ final class CredentialProviderViewController: ASCredentialProviderViewController
                 await CredentialIdentitySync.replace(with: identities)
             }
             guard beginFinishing() else { return }
-            let code = TOTPGenerator.code(for: account, at: .now).value
+            // Only now, as a counter-based code is used up by making it.
+            guard let code = TOTPGenerator.code(for: account)?.value ?? store.nextCode(for: account.id) else {
+                let error = NSError(domain: ASExtensionErrorDomain, code: ASExtensionError.Code.failed.rawValue)
+                return extensionContext.cancelRequest(withError: error)
+            }
             _ = await extensionContext.completeOneTimeCodeRequest(using: ASOneTimeCodeCredential(code: code))
         }
     }

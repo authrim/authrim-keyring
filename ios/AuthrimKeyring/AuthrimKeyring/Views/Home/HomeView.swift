@@ -28,6 +28,8 @@ struct HomeView: View {
     @State private var copiedAccountID: UUID?
     @State private var copyFeedbackTask: Task<Void, Never>?
     @State private var searchText = ""
+    @AppStorage("homeSort") private var sort = HomeSort.custom
+    @AppStorage("homeFilter") private var filter = HomeFilter.all
     @AppStorage("hasSeenTutorial") private var hasSeenTutorial = false
     /// Index of the tutorial step on screen, nil when the tutorial is not running.
     @State private var tutorialIndex: Int?
@@ -38,9 +40,13 @@ struct HomeView: View {
     @State private var titleScroll = HomeTitleScroll()
 
     private var filteredItems: [KeyringItem] {
-        let query = searchText.trimmingCharacters(in: .whitespaces)
-        guard !query.isEmpty else { return store.items }
-        return store.items.filter { $0.matches(query) }
+        store.arrangedItems(search: searchText, sort: sort, filter: effectiveFilter)
+    }
+
+    /// The chosen filter, unless its tag has since gone from every card.
+    private var effectiveFilter: HomeFilter {
+        if case .tag(let tag) = filter, !store.allTags.contains(tag) { return .all }
+        return filter
     }
 
     var body: some View {
@@ -135,7 +141,7 @@ struct HomeView: View {
         if store.items.isEmpty {
             VStack(spacing: 0) {
                 HomeTitle(scroll: titleScroll)
-                emptyState
+                HomeEmptyState { isAdding = true }
             }
             .background { WallpaperFill().ignoresSafeArea() }
             // Nothing scrolls here: not pulled, and the title is in view.
@@ -145,7 +151,9 @@ struct HomeView: View {
                 VStack(spacing: 0) {
                     HomeTitle(scroll: titleScroll)
                     Group {
-                        if columnCount > 1 && !isVoiceOverEnabled {
+                        if numberedItems.isEmpty {
+                            NoMatchingCards(search: searchText, filter: effectiveFilter) { filter = .all }
+                        } else if columnCount > 1 && !isVoiceOverEnabled {
                             // Each column stacks on its own, so opening a card moves only
                             // the cards below it. Cards go left and right in turn.
                             HStack(alignment: .top, spacing: 12) {
@@ -184,28 +192,6 @@ struct HomeView: View {
         }
     }
 
-    private var emptyState: some View {
-        ContentUnavailableView {
-            Label("No Accounts", systemImage: "key.horizontal")
-        } description: {
-            if store.iCloudAccountCount > 0 {
-                Text("Accounts were found in iCloud Keychain. Turn on sync to use them on this device.")
-            } else {
-                Text("Scan the QR code shown when you turn on two-factor authentication for a service.")
-            }
-        } actions: {
-            if store.iCloudAccountCount > 0 {
-                Button("Turn On iCloud Sync") { Task { await store.enableSync(confirmingWith: appLock) } }
-                    .buttonStyle(.borderedProminent)
-                Button("Add Account") { isAdding = true }
-            } else {
-                Button("Add Account") { isAdding = true }
-                    .buttonStyle(.borderedProminent)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
     /// The items with their place in the list.
     private var numberedItems: [(offset: Int, element: KeyringItem)] {
         Array(filteredItems.enumerated())
@@ -236,6 +222,7 @@ struct HomeView: View {
             title: passkey.displayTitle,
             subtitle: passkey.displaySubtitle,
             kind: "Passkey",
+            isFavorite: store.meta(for: passkey.id).isFavorite,
             isExpanded: expandedID == passkey.id,
             isDetailVisible: revealedID == passkey.id,
             onToggle: { toggle(passkey.id) }
@@ -243,6 +230,7 @@ struct HomeView: View {
             PasskeyPanel(passkey: passkey, isSyncEnabled: store.isSyncEnabled)
         }
         .contextMenu {
+            FavoriteButton(id: passkey.id)
             Button("Edit", systemImage: "pencil") { editingPasskey = passkey }
             Button("Delete", systemImage: "trash", role: .destructive) { pendingPasskeyDeletion = passkey }
         }
@@ -257,6 +245,7 @@ struct HomeView: View {
             title: account.displayTitle,
             subtitle: account.displaySubtitle,
             kind: "2FA",
+            isFavorite: store.meta(for: account.id).isFavorite,
             isExpanded: expandedID == account.id,
             isDetailVisible: revealedID == account.id,
             onToggle: { toggle(account.id) }
@@ -266,11 +255,12 @@ struct HomeView: View {
                 recoveryCodesLeft: store.details[account.id].flatMap { $0.recoveryCodes.isEmpty ? nil : $0.unusedRecoveryCodeCount },
                 isCopied: copiedAccountID == account.id
             ) {
-                copy(account)
+                copy($0, of: account.id)
             }
         }
         .contextMenu {
-            Button("Copy Code", systemImage: "doc.on.doc") { copy(account) }
+            Button(account.kind.isTimeBased ? "Copy Code" : "Copy Next Code", systemImage: "doc.on.doc") { copy(account) }
+            FavoriteButton(id: account.id)
             Button("Edit", systemImage: "pencil") { editing = account }
             Button("Delete", systemImage: "trash", role: .destructive) { pendingDeletion = account }
         }
@@ -291,9 +281,12 @@ struct HomeView: View {
         ToolbarItem(placement: .topBarLeading) {
             Button("Settings", systemImage: "gearshape") { isShowingSettings = true }
         }
-        if store.items.count > 1 {
+        // Between Settings and Add, which the tutorial points at as the outermost buttons.
+        if store.items.count > 1 || effectiveFilter != .all {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Reorder", systemImage: "arrow.up.arrow.down") { isReordering = true }
+                HomeArrangeMenu(sort: $sort, filter: $filter, tags: store.allTags, canReorder: store.items.count > 1) {
+                    isReordering = true
+                }
             }
         }
         ToolbarItem(placement: .topBarTrailing) {
@@ -385,9 +378,14 @@ struct HomeView: View {
     }
 
     private func copy(_ account: OTPAccount) {
-        let code = TOTPGenerator.code(for: account, at: .now)
-        Pasteboard.copySensitive(code.value, expiresAfter: 60)
-        copiedAccountID = account.id
+        if let code = TOTPGenerator.code(for: account)?.value ?? store.nextCode(for: account.id) {
+            copy(code, of: account.id)
+        }
+    }
+
+    private func copy(_ code: String, of id: UUID) {
+        Pasteboard.copySensitive(code, expiresAfter: 60)
+        copiedAccountID = id
         // A newer copy restarts the feedback instead of being cut short by the older timer.
         copyFeedbackTask?.cancel()
         copyFeedbackTask = Task {

@@ -33,16 +33,13 @@ nonisolated enum KeyringItem: Identifiable, Hashable, Sendable {
         }
     }
 
-    /// Whether a search typed on the home screen finds this card.
-    func matches(_ query: String) -> Bool {
-        switch self {
-        case .account(let account):
-            account.issuer.localizedCaseInsensitiveContains(query)
-                || account.accountName.localizedCaseInsensitiveContains(query)
-        case .passkey(let passkey):
-            passkey.displayTitle.localizedCaseInsensitiveContains(query)
-                || passkey.relyingParty.localizedCaseInsensitiveContains(query)
-                || passkey.userName.localizedCaseInsensitiveContains(query)
+    /// Whether a search typed on the home screen finds this card, by its names,
+    /// the websites set for it, or its tags.
+    func matches(_ query: String, websites: [String] = [], tags: [String] = []) -> Bool {
+        let names = switch self {
+        case .account(let account): [account.issuer, account.accountName]
+        case .passkey(let passkey): [passkey.displayTitle, passkey.relyingParty, passkey.userName]
         }
+        return (names + websites + tags).contains { $0.localizedCaseInsensitiveContains(query) }
     }
 }

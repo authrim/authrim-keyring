@@ -70,6 +70,8 @@ platform :ios do
             sh("xcrun", "simctl", "launch", udid, BUNDLE_ID,
                "-screenshotDemo", "YES", "-screenshotScene", scene,
                "-appLockEnabled", "YES", "-hasCompletedOnboarding", "YES", "-hasSeenTutorial", "YES",
+               # Every card in the order arranged, whatever was last chosen on the simulator.
+               "-homeSort", "custom", "-homeFilter", "",
                "-AppleLanguages", "(#{language})", "-AppleLocale", locale, log: false)
             sleep(wait)
             path = File.join(folder, "#{size}-#{order}-#{scene}.png")

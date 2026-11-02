@@ -1,7 +1,8 @@
 import Foundation
 
 /// Reads accounts exported by other authenticator apps: a list of `otpauth://`
-/// key URIs, or an unencrypted Aegis or 2FAS file.
+/// key URIs (as Ente Auth and others export), or an unencrypted Aegis, 2FAS or
+/// Bitwarden file.
 nonisolated enum AppExportReader {
     static let maximumFileSize = 5 * 1024 * 1024
 
@@ -13,6 +14,9 @@ nonisolated enum AppExportReader {
             }
             if object["services"] != nil || object["servicesEncrypted"] != nil {
                 return try readTwoFAS(object)
+            }
+            if object["items"] != nil || object["encrypted"] as? Bool == true {
+                return try readBitwarden(object)
             }
             throw .unrecognized
         }
@@ -75,7 +79,7 @@ nonisolated enum AppExportReader {
                 to: &result,
                 issuer: issuer,
                 accountName: name,
-                isTOTP: type == "totp",
+                kind: kind(type, counter: info["counter"]),
                 typeName: type.uppercased(),
                 secret: info["secret"] as? String,
                 algorithm: info["algo"] as? String,
@@ -101,7 +105,7 @@ nonisolated enum AppExportReader {
                 to: &result,
                 issuer: otp["issuer"] as? String ?? service["name"] as? String ?? "",
                 accountName: otp["account"] as? String ?? otp["label"] as? String ?? "",
-                isTOTP: type == "TOTP",
+                kind: kind(type, counter: otp["counter"]),
                 typeName: type,
                 secret: service["secret"] as? String,
                 algorithm: otp["algorithm"] as? String,
@@ -112,20 +116,100 @@ nonisolated enum AppExportReader {
         return result
     }
 
+    /// Bitwarden keeps a key URI, a bare Base32 key, or `steam://` and a key with
+    /// each login; the login's own addresses become the card's websites.
+    private static func readBitwarden(_ object: [String: Any]) throws(ImportError) -> ImportedAccounts {
+        if object["encrypted"] as? Bool == true { throw .encrypted(app: "Bitwarden") }
+        guard let items = object["items"] as? [[String: Any]] else { throw .damaged }
+        guard items.count <= ImportedAccounts.maximumEntries else { throw .tooLarge }
+        var result = ImportedAccounts()
+        for item in items {
+            guard let login = item["login"] as? [String: Any],
+                  let totp = (login["totp"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !totp.isEmpty
+            else { continue }
+            let issuer = item["name"] as? String ?? ""
+            let accountName = login["username"] as? String ?? ""
+            let before = result.accounts.count
+            if totp.lowercased().hasPrefix("otpauth:") {
+                do {
+                    var account = try OTPAuthURI.parse(totp)
+                    // The login's name is what the user knows it by.
+                    if !issuer.isEmpty { account.issuer = issuer }
+                    if account.accountName.isEmpty { account.accountName = accountName }
+                    result.add(account, label: entryLabel(issuer, accountName))
+                } catch {
+                    result.skip(entryLabel(issuer, accountName), reason: error.localizedDescription)
+                }
+            } else {
+                let isSteam = totp.lowercased().hasPrefix("steam://")
+                addEntry(
+                    to: &result,
+                    issuer: issuer,
+                    accountName: accountName,
+                    kind: isSteam ? .steam : .totp,
+                    typeName: "",
+                    secret: isSteam ? String(totp.dropFirst("steam://".count)) : totp,
+                    algorithm: nil,
+                    digits: nil,
+                    period: nil
+                )
+            }
+            guard result.accounts.count > before, let account = result.accounts.last else { continue }
+            let uris = (login["uris"] as? [[String: Any]] ?? []).compactMap { $0["uri"] as? String }
+            var websites: [String] = []
+            for uri in uris {
+                // Only web addresses; Bitwarden also keeps app identifiers here.
+                let components = URLComponents(string: uri)
+                guard ["http", "https", nil].contains(components?.scheme?.lowercased()) else { continue }
+                if let site = Website.normalized(components?.host ?? uri), !websites.contains(site), websites.count < Website.maximumPerAccount {
+                    websites.append(site)
+                }
+            }
+            if !websites.isEmpty {
+                result.details.append(AccountDetails(id: account.id, websites: websites))
+            }
+        }
+        return result
+    }
+
+    /// The kind an export names, or nil when it is not one this app supports or
+    /// its counter is not a whole number from zero up.
+    private static func kind(_ type: String, counter: Any?) -> OTPKind? {
+        switch type.lowercased() {
+        case "totp": return .totp
+        case "steam": return .steam
+        case "hotp":
+            if counter == nil { return .hotp(counter: 0) }
+            // JSON numbers arrive as NSNumber; reading them through their text keeps
+            // a negative or fractional value from turning into a different counter.
+            guard let number = counter as? NSNumber, let value = UInt64(number.stringValue) else { return nil }
+            return .hotp(counter: value)
+        default: return nil
+        }
+    }
+
+    private static func entryLabel(_ issuer: String, _ accountName: String) -> String {
+        [issuer, accountName].filter { !$0.isEmpty }.joined(separator: " – ")
+    }
+
     private static func addEntry(
         to result: inout ImportedAccounts,
         issuer: String,
         accountName: String,
-        isTOTP: Bool,
+        kind: OTPKind?,
         typeName: String,
         secret: String?,
         algorithm: String?,
         digits: Int?,
         period: Int?
     ) {
-        let label = [issuer, accountName].filter { !$0.isEmpty }.joined(separator: " – ")
-        guard isTOTP else {
-            result.skip(label, reason: String(localized: "“\(typeName)” codes are not supported. Only time-based (TOTP) codes can be added."))
+        let label = entryLabel(issuer, accountName)
+        guard let kind else {
+            let reason = typeName.uppercased() == "HOTP"
+                ? String(localized: "The counter is not valid.")
+                : String(localized: "“\(typeName)” codes are not supported.")
+            result.skip(label, reason: reason)
             return
         }
         guard let secret, let key = Base32.decode(secret), !key.isEmpty else {
@@ -142,7 +226,8 @@ nonisolated enum AppExportReader {
             secret: key,
             algorithm: parsedAlgorithm,
             digits: digits ?? 6,
-            period: period ?? 30
+            period: period ?? 30,
+            kind: kind
         )
         result.add(account, label: label)
     }

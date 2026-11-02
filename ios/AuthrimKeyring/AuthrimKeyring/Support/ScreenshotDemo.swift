@@ -55,6 +55,13 @@ enum ScreenshotDemo {
             // Third, so the home screen shows a passkey among the codes.
             store.move(fromOffsets: IndexSet(integer: store.items.count - 1), toOffset: 2)
         }
+        // The first card is a favorite, already first; the star shows on it.
+        if let first = store.items.first {
+            store.setFavorite(true, for: first.id)
+        }
+        for account in store.accounts where ["Acme Cloud", "Pixel Forge"].contains(account.issuer) {
+            store.setTags(["Work"], for: account.id)
+        }
         return store
     }
 

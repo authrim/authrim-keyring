@@ -13,6 +13,20 @@ struct ManualEntryView: View {
     @State private var algorithm = OTPAlgorithm.sha1
     @State private var digits = 6
     @State private var period = 30
+    @State private var kind = KindChoice.totp
+    @State private var counter: UInt64 = 0
+
+    private enum KindChoice: Hashable, CaseIterable {
+        case totp, hotp, steam
+
+        var label: LocalizedStringKey {
+            switch self {
+            case .totp: "Time-Based (TOTP)"
+            case .hotp: "Counter-Based (HOTP)"
+            case .steam: "Steam Guard"
+            }
+        }
+    }
 
     private var decodedSecret: Data? {
         Base32.decode(secret)
@@ -34,8 +48,17 @@ struct ManualEntryView: View {
             secret: decodedSecret,
             algorithm: algorithm,
             digits: digits,
-            period: period
+            period: period,
+            kind: chosenKind
         )
+    }
+
+    private var chosenKind: OTPKind {
+        switch kind {
+        case .totp: .totp
+        case .hotp: .hotp(counter: counter)
+        case .steam: .steam
+        }
     }
 
     var body: some View {
@@ -81,19 +104,33 @@ struct ManualEntryView: View {
                 }
             }
             Section {
-                Picker("Algorithm", selection: $algorithm) {
-                    ForEach(OTPAlgorithm.allCases) { Text($0.rawValue).tag($0) }
+                Picker("Type", selection: $kind) {
+                    ForEach(KindChoice.allCases, id: \.self) { Text($0.label).tag($0) }
                 }
-                Picker("Digits", selection: $digits) {
-                    ForEach(OTPAccount.supportedDigits, id: \.self) { Text("\($0)").tag($0) }
+                if kind != .steam {
+                    Picker("Algorithm", selection: $algorithm) {
+                        ForEach(OTPAlgorithm.allCases) { Text($0.rawValue).tag($0) }
+                    }
+                    Picker("Digits", selection: $digits) {
+                        ForEach(OTPAccount.supportedDigits, id: \.self) { Text("\($0)").tag($0) }
+                    }
                 }
-                Picker("Period", selection: $period) {
-                    ForEach(OTPAccount.supportedPeriods, id: \.self) { Text("\($0) seconds").tag($0) }
+                if kind == .totp {
+                    Picker("Period", selection: $period) {
+                        ForEach(OTPAccount.commonPeriods, id: \.self) { Text("\($0) seconds").tag($0) }
+                    }
+                }
+                if kind == .hotp {
+                    LabeledContent("Counter") {
+                        TextField("Counter", value: $counter, format: .number.grouping(.never))
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                    }
                 }
             } header: {
                 Text("Advanced")
             } footer: {
-                Text("Most services use SHA1, 6 digits and 30 seconds. Change these only if the service tells you to.")
+                Text("Most services use time-based codes with SHA1, 6 digits and 30 seconds. Change these only if the service tells you to.")
             }
             if let candidate, store.containsDuplicate(of: candidate) {
                 Section {

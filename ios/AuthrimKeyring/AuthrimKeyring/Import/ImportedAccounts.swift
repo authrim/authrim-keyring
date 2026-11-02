@@ -9,12 +9,26 @@ nonisolated struct ImportedAccounts: Sendable {
 
     var accounts: [OTPAccount] = []
     var skipped: [Skipped] = []
+    /// Websites that came with accounts, by account.
+    var details: [AccountDetails] = []
+    /// Passkeys, which only the system's credential exchange carries.
+    var passkeys: [Passkey] = []
+    /// Favorites and tags, by account or passkey.
+    var meta: [ItemMeta] = []
+    /// Passwords and other things Keyring does not keep, left in the other app.
+    var otherCount = 0
+
+    var isEmpty: Bool { accounts.isEmpty && passkeys.isEmpty && skipped.isEmpty }
 
     static let maximumEntries = 1_000
 
     mutating func append(contentsOf other: ImportedAccounts) {
         accounts += other.accounts
         skipped += other.skipped
+        details += other.details
+        passkeys += other.passkeys
+        meta += other.meta
+        otherCount += other.otherCount
     }
 
     /// Keeps a usable account, or records why it cannot be used.
@@ -34,10 +48,10 @@ nonisolated struct ImportedAccounts: Sendable {
         if account.secret.isEmpty {
             return String(localized: "No secret key")
         }
-        if !OTPAccount.supportedDigits.contains(account.digits) {
+        if account.kind != .steam, !OTPAccount.supportedDigits.contains(account.digits) {
             return String(localized: "\(account.digits)-digit codes are not supported.")
         }
-        if !OTPAccount.supportedPeriods.contains(account.period) {
+        if account.kind == .totp, !OTPAccount.supportedPeriods.contains(account.period) {
             return String(localized: "A period of \(account.period) seconds is not supported.")
         }
         return nil

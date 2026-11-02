@@ -8,6 +8,8 @@ struct RootView: View {
     @Environment(AppLock.self) private var appLock
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    /// Credentials another app offered, shown once the app is unlocked.
+    @State private var credentialImport: CredentialImportRequest?
 
     /// Offered once, and only when there is a lock to turn on.
     private var needsUnlockSetup: Bool {
@@ -36,6 +38,14 @@ struct RootView: View {
             }
         }
         .background(CoverWindowInstaller(isCovered: appLock.isLocked || scenePhase != .active))
+        .onContinueUserActivity("ASCredentialExchangeActivity") { activity in
+            credentialImport = CredentialImportRequest(activity)
+        }
+        .sheet(item: unlockedCredentialImport) { request in
+            if #available(iOS 26, *) {
+                CredentialImportView(token: request.id) { credentialImport = nil }
+            }
+        }
         .onChange(of: scenePhase) { _, phase in
             switch phase {
             case .background:
@@ -48,6 +58,14 @@ struct RootView: View {
                 break
             }
         }
+    }
+
+    /// The pending import, but only while the codes may be shown.
+    private var unlockedCredentialImport: Binding<CredentialImportRequest?> {
+        Binding(
+            get: { appLock.isLocked || needsUnlockSetup ? nil : credentialImport },
+            set: { credentialImport = $0 }
+        )
     }
 }
 

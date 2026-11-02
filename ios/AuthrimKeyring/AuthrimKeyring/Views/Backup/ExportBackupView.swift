@@ -107,7 +107,16 @@ struct ExportBackupView: View {
             errorMessage = AccountStore.StoreError.detailsUnavailable.localizedDescription
             return
         }
-        let contents = EncryptedBackup.Contents(accounts: store.accounts, details: Array(store.details.values))
+        // Likewise the favorites and tags.
+        guard !store.isMetaUnavailable else {
+            errorMessage = AccountStore.MetaError.unavailable.localizedDescription
+            return
+        }
+        let contents = EncryptedBackup.Contents(
+            accounts: store.accounts,
+            details: Array(store.details.values),
+            meta: Array(store.meta.values)
+        )
         let password = password
         do {
             let data = try await Task.detached(priority: .userInitiated) {

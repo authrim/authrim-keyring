@@ -76,9 +76,16 @@ struct OneTimeCodePickerView: View {
                     }
                 }
                 Spacer()
-                TimelineView(.periodic(from: .now, by: 1)) { timeline in
-                    Text(TOTPGenerator.formatted(TOTPGenerator.code(for: account, at: timeline.date).value))
-                        .font(.body.monospaced())
+                if account.kind.isTimeBased {
+                    TimelineView(.periodic(from: .now, by: 1)) { timeline in
+                        Text(TOTPGenerator.formatted(TOTPGenerator.code(for: account, at: timeline.date)?.value ?? ""))
+                            .font(.body.monospaced())
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    // Making one uses it up, so it is made only once picked.
+                    Text("Next code")
+                        .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
             }

@@ -67,6 +67,7 @@ nonisolated enum GoogleAuthMigration {
         var algorithm: UInt64 = 0
         var digits: UInt64 = 0
         var type: UInt64 = 0
+        var counter: UInt64 = 0
         while let (field, value) = try reader.next() {
             switch (field, value) {
             case (1, .bytes(let bytes)): secret = bytes
@@ -75,6 +76,7 @@ nonisolated enum GoogleAuthMigration {
             case (4, .varint(let value)): algorithm = value
             case (5, .varint(let value)): digits = value
             case (6, .varint(let value)): type = value
+            case (7, .varint(let value)): counter = value
             default: continue
             }
         }
@@ -90,13 +92,13 @@ nonisolated enum GoogleAuthMigration {
         }
         let label = [issuer, accountName].filter { !$0.isEmpty }.joined(separator: " – ")
 
-        // 1 is HOTP, which needs a counter this app does not keep; 0 is unspecified.
+        // 1 is HOTP, 2 TOTP, and 0 unspecified.
+        let kind: OTPKind
         switch type {
         case 0, 2:
-            break
+            kind = .totp
         case 1:
-            result.skip(label, reason: String(localized: "Counter-based (HOTP) codes are not supported."))
-            return
+            kind = .hotp(counter: counter)
         default:
             result.skip(label, reason: String(localized: "This kind of code is not supported."))
             return
@@ -122,7 +124,8 @@ nonisolated enum GoogleAuthMigration {
             algorithm: parsedAlgorithm,
             // 2 is eight digits; 0 and 1 are six.
             digits: digits == 2 ? 8 : 6,
-            period: 30
+            period: 30,
+            kind: kind
         )
         result.add(account, label: label)
     }

@@ -38,7 +38,7 @@ struct PasskeyPanel: View {
     }
 }
 
-/// Renaming and recoloring a passkey card.
+/// Renaming, recoloring, and deleting a passkey card.
 struct EditPasskeyView: View {
     @Environment(AccountStore.self) private var store
     @Environment(\.dismiss) private var dismiss
@@ -75,6 +75,22 @@ struct EditPasskeyView: View {
                     OrganizeSection(isFavorite: $isFavorite, tags: $tags, newTag: $newTag)
                 }
                 CardColorSection(selection: $cardColor, automatic: .automatic(for: passkey.relyingParty))
+                DeleteCardSection(
+                    label: "Delete Passkey",
+                    title: String(localized: "Delete the passkey for “\(passkey.displayTitle)”?"),
+                    message: Text("You will no longer be able to sign in to \(passkey.relyingParty) with this passkey. Also remove it in the website’s account settings. This cannot be undone.")
+                ) {
+                    store.deletePasskey(passkey.id)
+                    // On failure the card and the edits stay, so it can be tried again.
+                    guard store.passkeys.contains(where: { $0.id == passkey.id }) else {
+                        dismiss()
+                        return nil
+                    }
+                    // Taken from the store, so the home screen does not show it again later.
+                    let error = store.lastError
+                    store.lastError = nil
+                    return error ?? ""
+                }
             }
             .onAppear {
                 guard !hasLoaded else { return }

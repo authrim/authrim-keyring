@@ -95,6 +95,22 @@ struct EditAccountView: View {
                     automatic: .automatic(for: edited.displayTitle)
                 )
                 AccountParametersSection(account: account)
+                DeleteCardSection(
+                    label: "Delete Card",
+                    title: String(localized: "Delete “\(account.displayTitle)”?"),
+                    message: Text("Make sure two-factor authentication is turned off for this account or that you have another way to sign in. This cannot be undone.")
+                ) {
+                    store.delete(account.id)
+                    // On failure the card and the edits stay, so it can be tried again.
+                    guard store.accounts.contains(where: { $0.id == account.id }) else {
+                        dismiss()
+                        return nil
+                    }
+                    // Taken from the store, so the home screen does not show it again later.
+                    let error = store.lastError
+                    store.lastError = nil
+                    return error ?? ""
+                }
             }
             .onAppear {
                 if websites == nil {

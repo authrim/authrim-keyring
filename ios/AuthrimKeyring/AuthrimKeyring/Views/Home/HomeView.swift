@@ -17,9 +17,7 @@ struct HomeView: View {
     #endif
     @State private var isReordering = false
     @State private var editing: OTPAccount?
-    @State private var pendingDeletion: OTPAccount?
     @State private var editingPasskey: Passkey?
-    @State private var pendingPasskeyDeletion: Passkey?
     /// The card the user wants open. `expandedID` (sized open) and `revealedID`
     /// (details shown) catch up with it one animated step at a time.
     @State private var requestedID: UUID?
@@ -89,26 +87,6 @@ struct HomeView: View {
         .sheet(item: $screenshotSheet) { ScreenshotSceneSheet(scene: $0) }
         .task { await openScreenshotScene() }
         #endif
-        .confirmationDialog(
-            deletionTitle,
-            isPresented: isConfirmingDeletion,
-            titleVisibility: .visible,
-            presenting: pendingDeletion
-        ) { account in
-            Button("Delete", role: .destructive) { store.delete(account.id) }
-        } message: { _ in
-            Text("Make sure two-factor authentication is turned off for this account or that you have another way to sign in. This cannot be undone.")
-        }
-        .confirmationDialog(
-            passkeyDeletionTitle,
-            isPresented: isConfirmingPasskeyDeletion,
-            titleVisibility: .visible,
-            presenting: pendingPasskeyDeletion
-        ) { passkey in
-            Button("Delete", role: .destructive) { store.deletePasskey(passkey.id) }
-        } message: { passkey in
-            Text("You will no longer be able to sign in to \(passkey.relyingParty) with this passkey. Also remove it in the website’s account settings. This cannot be undone.")
-        }
         .alert("Something went wrong", isPresented: hasError) {
             Button("OK") { store.lastError = nil }
         } message: {
@@ -258,8 +236,8 @@ struct HomeView: View {
         }
         .contextMenu {
             FavoriteButton(id: passkey.id)
+            // Deleting is at the bottom of the edit screen, away from a quick touch and hold.
             Button("Edit", systemImage: "pencil") { editingPasskey = passkey }
-            Button("Delete", systemImage: "trash", role: .destructive) { pendingPasskeyDeletion = passkey }
         }
     }
 
@@ -288,8 +266,8 @@ struct HomeView: View {
         .contextMenu {
             Button(account.kind.isTimeBased ? "Copy Code" : "Copy Next Code", systemImage: "doc.on.doc") { copy(account) }
             FavoriteButton(id: account.id)
+            // Deleting is at the bottom of the edit screen, away from a quick touch and hold.
             Button("Edit", systemImage: "pencil") { editing = account }
-            Button("Delete", systemImage: "trash", role: .destructive) { pendingDeletion = account }
         }
     }
 
@@ -319,24 +297,6 @@ struct HomeView: View {
         ToolbarItem(placement: .topBarTrailing) {
             Button("Add Account", systemImage: "plus") { isAdding = true }
         }
-    }
-
-    private var deletionTitle: String {
-        guard let account = pendingDeletion else { return "" }
-        return String(localized: "Delete “\(account.displayTitle)”?")
-    }
-
-    private var isConfirmingDeletion: Binding<Bool> {
-        Binding(get: { pendingDeletion != nil }, set: { if !$0 { pendingDeletion = nil } })
-    }
-
-    private var passkeyDeletionTitle: String {
-        guard let passkey = pendingPasskeyDeletion else { return "" }
-        return String(localized: "Delete the passkey for “\(passkey.displayTitle)”?")
-    }
-
-    private var isConfirmingPasskeyDeletion: Binding<Bool> {
-        Binding(get: { pendingPasskeyDeletion != nil }, set: { if !$0 { pendingPasskeyDeletion = nil } })
     }
 
     private var hasWalletLoadError: Binding<Bool> {

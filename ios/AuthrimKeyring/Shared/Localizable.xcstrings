@@ -1127,6 +1127,26 @@
         }
       }
     },
+    "Delete Card" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カードを削除"
+          }
+        }
+      }
+    },
+    "Delete Passkey" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "パスキーを削除"
+          }
+        }
+      }
+    },
     "Delete the passkey for “%@”?" : {
       "localizations" : {
         "ja" : {

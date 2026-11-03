@@ -127,6 +127,16 @@
         }
       }
     },
+    "A new offer is needed." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しいオファーが必要です。"
+          }
+        }
+      }
+    },
     "A period of %@ seconds is not supported." : {
       "localizations" : {
         "ja" : {
@@ -567,6 +577,16 @@
         }
       }
     },
+    "Calls itself “%@”" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自称「%@」"
+          }
+        }
+      }
+    },
     "Cancel" : {
       "localizations" : {
         "ja" : {
@@ -677,12 +697,42 @@
         }
       }
     },
+    "Check that the admin console shows the same code." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理コンソールに同じコードが表示されていることを確認してください。"
+          }
+        }
+      }
+    },
     "Check that the service matches the site where you are turning on two-factor authentication." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "2段階認証を設定しているサイトと、サービス名が一致しているか確認してください。"
+          }
+        }
+      }
+    },
+    "Check your connection and try again." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "接続を確認して、もう一度お試しください。"
+          }
+        }
+      }
+    },
+    "Checking the offer…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オファーを確認しています…"
           }
         }
       }
@@ -737,6 +787,26 @@
         }
       }
     },
+    "Claims" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クレーム"
+          }
+        }
+      }
+    },
+    "Close" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "閉じる"
+          }
+        }
+      }
+    },
     "Code %@" : {
       "localizations" : {
         "ja" : {
@@ -783,6 +853,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "パスワード（確認）"
+          }
+        }
+      }
+    },
+    "Confirmation code" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認コード"
+          }
+        }
+      }
+    },
+    "Confirmation Code" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認コード"
           }
         }
       }
@@ -837,6 +927,16 @@
         }
       }
     },
+    "Could Not Reach the Issuer" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "発行元に接続できません"
+          }
+        }
+      }
+    },
     "Counter" : {
       "localizations" : {
         "ja" : {
@@ -873,6 +973,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "作成日 %@"
+          }
+        }
+      }
+    },
+    "Credential" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "資格情報"
+          }
+        }
+      }
+    },
+    "Credential Received" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "資格情報を受け取りました"
+          }
+        }
+      }
+    },
+    "Credentials" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "資格情報"
           }
         }
       }
@@ -1037,6 +1167,16 @@
         }
       }
     },
+    "Double-tap to show the credential." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダブルタップして資格情報を表示します。"
+          }
+        }
+      }
+    },
     "Double-tap to show the details." : {
       "localizations" : {
         "ja" : {
@@ -1117,6 +1257,36 @@
         }
       }
     },
+    "Enter the %lld-character code shown in the admin console." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理コンソールに表示された%lld文字のコードを入力してください。"
+          }
+        }
+      }
+    },
+    "Enter the %lld-digit code shown in the admin console." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理コンソールに表示された%lld桁のコードを入力してください。"
+          }
+        }
+      }
+    },
+    "Enter the code shown in the admin console." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理コンソールに表示されたコードを入力してください。"
+          }
+        }
+      }
+    },
     "Enter the key shown under the QR code. Spaces are ignored." : {
       "localizations" : {
         "ja" : {
@@ -1133,6 +1303,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "バックアップを書き出したときに設定したパスワードを入力してください。"
+          }
+        }
+      }
+    },
+    "Enter the Transaction Code" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トランザクションコードを入力してください"
+          }
+        }
+      }
+    },
+    "Expired" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "期限切れ"
+          }
+        }
+      }
+    },
+    "Expires" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有効期限"
+          }
+        }
+      }
+    },
+    "Expires %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有効期限 %@"
           }
         }
       }
@@ -1213,6 +1423,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Face ID"
+          }
+        }
+      }
+    },
+    "Face ID or the passcode was cancelled, or the Secure Enclave is not available. Try again." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Face IDまたはパスコードがキャンセルされたか、Secure Enclaveを使用できません。もう一度お試しください。"
           }
         }
       }
@@ -1307,6 +1527,16 @@
         }
       }
     },
+    "If the code differs, or the console shows no credential, someone else may have used the offer. Revoke the credential in the admin console." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コードが異なる場合や、コンソールに資格情報が表示されない場合は、別の人がオファーを使用した可能性があります。管理コンソールで資格情報を失効させてください。"
+          }
+        }
+      }
+    },
     "Import" : {
       "localizations" : {
         "ja" : {
@@ -1377,6 +1607,36 @@
         }
       }
     },
+    "Issued" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "発行日"
+          }
+        }
+      }
+    },
+    "Issuer" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "発行元"
+          }
+        }
+      }
+    },
+    "Issuer address %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "発行元のアドレス %@"
+          }
+        }
+      }
+    },
     "Keep Copies in iCloud" : {
       "localizations" : {
         "ja" : {
@@ -1423,6 +1683,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Keyring"
+          }
+        }
+      }
+    },
+    "Keyring creates a key for this credential in the Secure Enclave of this device. You will be asked for Face ID, Touch ID or your passcode." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keyringは、この資格情報用の鍵をこのデバイスのSecure Enclaveに作成します。Face ID、Touch ID、またはパスコードの入力が求められます。"
           }
         }
       }
@@ -1687,6 +1957,16 @@
         }
       }
     },
+    "No claims" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クレームはありません"
+          }
+        }
+      }
+    },
     "No Favorites" : {
       "localizations" : {
         "ja" : {
@@ -1859,6 +2139,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "このGoogle Authenticatorの移行は%2$lld枚中%1$lld枚しか見つかりませんでした。"
+          }
+        }
+      }
+    },
+    "Only receive a credential from an issuer you recognize. Keyring cannot confirm who runs it." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "見覚えのある発行元の資格情報だけを受け取ってください。Keyringは発行元の運営者を確認できません。"
           }
         }
       }
@@ -2083,6 +2373,26 @@
         }
       }
     },
+    "Receive" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "受け取る"
+          }
+        }
+      }
+    },
+    "Receive Credential" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "資格情報を受け取る"
+          }
+        }
+      }
+    },
     "Recently Added" : {
       "localizations" : {
         "ja" : {
@@ -2123,6 +2433,26 @@
         }
       }
     },
+    "Remove" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "削除"
+          }
+        }
+      }
+    },
+    "Remove “%@”?" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」を削除しますか？"
+          }
+        }
+      }
+    },
     "Remove from Favorites" : {
       "localizations" : {
         "ja" : {
@@ -2139,6 +2469,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "iCloudから削除"
+          }
+        }
+      }
+    },
+    "Remove from Keyring" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keyringから削除"
           }
         }
       }
@@ -2669,6 +3009,16 @@
         }
       }
     },
+    "The admin console shows the same code for this credential." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理コンソールには、この資格情報について同じコードが表示されます。"
+          }
+        }
+      }
+    },
     "The algorithm “%@” is not supported." : {
       "localizations" : {
         "ja" : {
@@ -2719,6 +3069,16 @@
         }
       }
     },
+    "The code or link does not contain a credential offer. Ask your administrator for a new one." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このコードまたはリンクには資格情報のオファーが含まれていません。管理者に新しいものを依頼してください。"
+          }
+        }
+      }
+    },
     "The counter “%@” is not valid." : {
       "localizations" : {
         "ja" : {
@@ -2735,6 +3095,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "カウンターが正しくありません。"
+          }
+        }
+      }
+    },
+    "The credential could not be removed." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "資格情報を削除できませんでした。"
+          }
+        }
+      }
+    },
+    "The Credential Could Not Be Saved" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "資格情報を保存できません"
+          }
+        }
+      }
+    },
+    "The Credential Was Not Accepted" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "資格情報を受け付けられませんでした"
+          }
+        }
+      }
+    },
+    "The credentials could not be read." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "資格情報を読み込めませんでした。"
           }
         }
       }
@@ -2765,6 +3165,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ファイルが大きすぎます。"
+          }
+        }
+      }
+    },
+    "The issued credential failed verification, so it was not saved. Create a new offer in the admin console and scan it again." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "発行された資格情報の検証に失敗したため、保存されませんでした。管理コンソールで新しいオファーを作成し、もう一度読み取ってください。"
+          }
+        }
+      }
+    },
+    "The Issuer Could Not Be Verified" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "発行元を確認できません"
+          }
+        }
+      }
+    },
+    "The issuer’s information is inconsistent, so Keyring stopped. Nothing was saved. Create a new offer or contact your administrator." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "発行元の情報に矛盾があるため、Keyringは処理を中止しました。何も保存されていません。新しいオファーを作成するか、管理者に連絡してください。"
+          }
+        }
+      }
+    },
+    "The Offer Was Rejected" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オファーが拒否されました"
           }
         }
       }
@@ -2849,6 +3289,16 @@
         }
       }
     },
+    "The Secure Key Could Not Be Used" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "セキュアな鍵を使用できません"
+          }
+        }
+      }
+    },
     "The setup code does not contain a secret key." : {
       "localizations" : {
         "ja" : {
@@ -2875,6 +3325,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "このサイトが求める種類のパスキーは、Keyringでは作成できません。"
+          }
+        }
+      }
+    },
+    "The transaction code was wrong or the offer has expired. Create a new offer in the admin console and scan it again." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トランザクションコードが誤っているか、オファーの有効期限が切れています。管理コンソールで新しいオファーを作成し、もう一度読み取ってください。"
           }
         }
       }
@@ -2949,6 +3409,16 @@
         }
       }
     },
+    "This device’s key for the credential is deleted, so it can no longer be presented. Also revoke it in the admin console. This cannot be undone." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この資格情報用のこのデバイス上の鍵が削除されるため、資格情報を提示できなくなります。管理コンソールでも失効させてください。この操作は取り消せません。"
+          }
+        }
+      }
+    },
     "This file is not a Keyring backup." : {
       "localizations" : {
         "ja" : {
@@ -2979,6 +3449,16 @@
         }
       }
     },
+    "This Is Not a Credential Offer" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "資格情報のオファーではありません"
+          }
+        }
+      }
+    },
     "This kind of code is not supported." : {
       "localizations" : {
         "ja" : {
@@ -3005,6 +3485,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "この桁数には対応していません。"
+          }
+        }
+      }
+    },
+    "This offer needs the transaction code shown in the admin console." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このオファーには、管理コンソールに表示されるトランザクションコードが必要です。"
           }
         }
       }
@@ -3069,12 +3559,52 @@
         }
       }
     },
+    "Transaction code" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トランザクションコード"
+          }
+        }
+      }
+    },
+    "Transaction Code" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トランザクションコード"
+          }
+        }
+      }
+    },
     "Transparency" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "透明度"
+          }
+        }
+      }
+    },
+    "Try Again" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "もう一度試す"
+          }
+        }
+      }
+    },
+    "Try again. If it still fails, create a new offer in the admin console." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "もう一度お試しください。それでも失敗する場合は、管理コンソールで新しいオファーを作成してください。"
           }
         }
       }
@@ -3199,6 +3729,16 @@
         }
       }
     },
+    "Unverified issuer" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未確認の発行元"
+          }
+        }
+      }
+    },
     "Use %@" : {
       "localizations" : {
         "ja" : {
@@ -3225,6 +3765,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用済み"
+          }
+        }
+      }
+    },
+    "Validity" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有効期間"
           }
         }
       }
@@ -3375,6 +3925,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "自分で並べた順"
+          }
+        }
+      }
+    },
+    "The Offer Can No Longer Be Used" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このオファーはもう使えません"
+          }
+        }
+      }
+    },
+    "The one-time code was already used, but the credential could not be completed. Nothing was saved. Create a new code in the admin console and scan it again." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ワンタイムコードはすでに使用されましたが、資格情報を完了できませんでした。何も保存されていません。管理コンソールで新しいコードを作成し、もう一度読み取ってください。"
           }
         }
       }

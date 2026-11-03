@@ -58,7 +58,7 @@
         "INFOPLIST_KEY_CFBundleDisplayName": "Keyring",
         "INFOPLIST_KEY_ITSAppUsesNonExemptEncryption": "NO",
         "INFOPLIST_KEY_LSApplicationCategoryType": "public.app-category.utilities",
-        "INFOPLIST_KEY_NSCameraUsageDescription": "The camera is used to scan two-factor authentication QR codes.",
+        "INFOPLIST_KEY_NSCameraUsageDescription": "The camera is used to scan two-factor authentication and credential QR codes.",
         "INFOPLIST_KEY_NSFaceIDUsageDescription": "Face ID is used to unlock Authrim Keyring when the app lock is on.",
         "INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]": "YES",
         "INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]": "YES",

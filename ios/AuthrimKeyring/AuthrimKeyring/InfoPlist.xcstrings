@@ -38,13 +38,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "The camera is used to scan two-factor authentication QR codes."
+            "value" : "The camera is used to scan two-factor authentication and credential QR codes."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "2段階認証のQRコードを読み取るためにカメラを使用します。"
+            "value" : "2段階認証や資格情報のQRコードを読み取るためにカメラを使用します。"
           }
         }
       }

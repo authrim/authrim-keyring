@@ -5,6 +5,7 @@ struct AuthrimKeyringApp: App {
     @State private var store: AccountStore
     @State private var appLock: AppLock
     @State private var wallpaper: WallpaperStore
+    @State private var wallet: WalletModel
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -16,12 +17,20 @@ struct AuthrimKeyringApp: App {
             _store = State(initialValue: ScreenshotDemo.makeStore())
             _appLock = State(initialValue: ScreenshotDemo.makeAppLock())
             _wallpaper = State(initialValue: ScreenshotDemo.makeWallpaper())
+            _wallet = State(initialValue: Self.makeWallet())
             return
         }
         #endif
         _store = State(initialValue: AccountStore())
         _appLock = State(initialValue: AppLock())
         _wallpaper = State(initialValue: WallpaperStore())
+        _wallet = State(initialValue: Self.makeWallet())
+    }
+
+    /// The one place the wallet screens get their real services.
+    private static func makeWallet() -> WalletModel {
+        let store = KeychainCredentialStore()
+        return WalletModel(issuance: OpenID4VCIClient(store: store), store: store)
     }
 
     /// Whether the cards are the screenshots' fictional ones, which must not
@@ -45,7 +54,11 @@ struct AuthrimKeyringApp: App {
                 .environment(store)
                 .environment(appLock)
                 .environment(wallpaper)
-                .task { store.load() }
+                .environment(wallet)
+                .task {
+                    store.load()
+                    wallet.load()
+                }
                 // Keeps AutoFill suggestions in step with the cards, including changes
                 // that arrive through iCloud. Also runs on each return to the app, in
                 // case AutoFill was turned on in Settings meanwhile.

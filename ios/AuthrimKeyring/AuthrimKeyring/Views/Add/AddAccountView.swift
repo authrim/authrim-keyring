@@ -9,6 +9,8 @@ struct AddAccountView: View {
     @Environment(\.scenePhase) private var scenePhase
 
     @State private var candidate: OTPAccount?
+    /// A credential offer the camera found; handed to the wallet instead of the one-time code flow.
+    @State private var credentialOffer: IncomingOffer?
     @State private var isEnteringManually = false
     @State private var photoItem: PhotosPickerItem?
     @State private var isPickingPhoto = false
@@ -81,6 +83,9 @@ struct AddAccountView: View {
             }
             .navigationDestination(item: $candidate) { account in
                 ConfirmAccountView(candidate: account) { dismiss() }
+            }
+            .navigationDestination(item: $credentialOffer) { offer in
+                CredentialOfferView(offer: offer.text) { dismiss() }
             }
             .navigationDestination(isPresented: $isEnteringManually) {
                 ManualEntryView { dismiss() }
@@ -176,7 +181,7 @@ struct AddAccountView: View {
 
     /// Scanning pauses while another screen, alert or photo import is in progress.
     private var isScanning: Bool {
-        candidate == nil && !isEnteringManually && errorMessage == nil
+        candidate == nil && credentialOffer == nil && !isEnteringManually && errorMessage == nil
             && !isPickingPhoto && !isImportingPhoto && !isShowingImported && !isChoosingFile && !isReadingImport
     }
 
@@ -198,7 +203,11 @@ struct AddAccountView: View {
     }
 
     private func handle(_ payload: String) {
-        guard candidate == nil, !isEnteringManually, errorMessage == nil, !isShowingImported else { return }
+        guard candidate == nil, credentialOffer == nil, !isEnteringManually, errorMessage == nil, !isShowingImported else { return }
+        if CredentialOfferLink.isOffer(payload) {
+            credentialOffer = IncomingOffer(text: payload)
+            return
+        }
         if GoogleAuthMigration.isMigrationURI(payload) {
             handleMigration(payload)
             return
@@ -295,7 +304,7 @@ struct AddAccountView: View {
             QRCodeDecoder.payloads(in: data)
         }.value
         // Prefer a setup code if the image contains several QR codes.
-        if let payload = payloads.first(where: { $0.lowercased().hasPrefix("otpauth") }) ?? payloads.first {
+        if let payload = payloads.first(where: { $0.lowercased().hasPrefix("otpauth") }) ?? payloads.first(where: CredentialOfferLink.isOffer) ?? payloads.first {
             handle(payload)
         } else {
             errorMessage = String(localized: "No QR code was found in the photo.")

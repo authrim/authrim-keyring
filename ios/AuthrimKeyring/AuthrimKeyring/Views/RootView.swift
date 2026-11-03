@@ -6,6 +6,7 @@ import UIKit
 struct RootView: View {
     @Environment(AccountStore.self) private var store
     @Environment(AppLock.self) private var appLock
+    @Environment(WalletModel.self) private var wallet
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     /// Credentials another app offered, shown once the app is unlocked.
@@ -41,6 +42,9 @@ struct RootView: View {
         .onContinueUserActivity("ASCredentialExchangeActivity") { activity in
             credentialImport = CredentialImportRequest(activity)
         }
+        // A credential offer opened from a link waits here until the app is unlocked.
+        .onOpenURL { wallet.handle(url: $0) }
+        .sheet(item: unlockedOffer) { CredentialOfferSheet(offer: $0.text) }
         .sheet(item: unlockedCredentialImport) { request in
             if #available(iOS 26, *) {
                 CredentialImportView(token: request.id) { credentialImport = nil }
@@ -53,11 +57,20 @@ struct RootView: View {
             case .active:
                 // Picks up accounts that iCloud Keychain synced while the app was away.
                 store.load()
+                wallet.load()
                 Task { await appLock.unlockOnActivation() }
             default:
                 break
             }
         }
+    }
+
+    /// The pending credential offer, but only while the app is unlocked.
+    private var unlockedOffer: Binding<IncomingOffer?> {
+        Binding(
+            get: { appLock.isLocked || needsUnlockSetup ? nil : wallet.incomingOffer },
+            set: { wallet.incomingOffer = $0 }
+        )
     }
 
     /// The pending import, but only while the codes may be shown.

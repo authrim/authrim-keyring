@@ -5,6 +5,7 @@ struct HomeView: View {
     @Environment(AccountStore.self) private var store
     @Environment(AppLock.self) private var appLock
     @Environment(WallpaperStore.self) private var wallpaper
+    @Environment(WalletModel.self) private var wallet
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -69,6 +70,21 @@ struct HomeView: View {
         .sheet(isPresented: $isReordering) { ReorderAccountsView() }
         .sheet(item: $editing) { EditAccountView(account: $0) }
         .sheet(item: $editingPasskey) { EditPasskeyView(passkey: $0) }
+        .sheet(item: Bindable(wallet).detail) { CredentialDetailView(credential: $0) }
+        // A credential offer opened from a link is presented by RootView, which cannot cover one
+        // of these sheets: close them so the offer shows instead of waiting unseen.
+        .onChange(of: wallet.incomingOffer?.id) { _, offer in
+            guard offer != nil else { return }
+            isAdding = false
+            isShowingSettings = false
+            isReordering = false
+            editing = nil
+            editingPasskey = nil
+            wallet.detail = nil
+            #if DEBUG
+            screenshotSheet = nil
+            #endif
+        }
         #if DEBUG
         .sheet(item: $screenshotSheet) { ScreenshotSceneSheet(scene: $0) }
         .task { await openScreenshotScene() }
@@ -97,6 +113,12 @@ struct HomeView: View {
             Button("OK") { store.lastError = nil }
         } message: {
             Text(store.lastError ?? "")
+        }
+        .alert("Something went wrong", isPresented: hasWalletLoadError) {
+            Button("Try Again") { wallet.load() }
+            Button("OK", role: .cancel) { wallet.loadError = nil }
+        } message: {
+            Text(wallet.loadError ?? "")
         }
         .onChange(of: scenePhase) { _, phase in
             // Don't leave a code on screen for the next time the app is opened.
@@ -138,7 +160,7 @@ struct HomeView: View {
 
     @ViewBuilder
     private var content: some View {
-        if store.items.isEmpty {
+        if store.items.isEmpty && wallet.credentials.isEmpty {
             VStack(spacing: 0) {
                 HomeTitle(scroll: titleScroll)
                 HomeEmptyState { isAdding = true }
@@ -150,9 +172,14 @@ struct HomeView: View {
             ScrollView {
                 VStack(spacing: 0) {
                     HomeTitle(scroll: titleScroll)
+                    if effectiveFilter == .all {
+                        HomeCredentialsSection(search: searchText).padding(.horizontal).padding(.top, 8)
+                    }
                     Group {
                         if numberedItems.isEmpty {
-                            NoMatchingCards(search: searchText, filter: effectiveFilter) { filter = .all }
+                            if !store.items.isEmpty {
+                                NoMatchingCards(search: searchText, filter: effectiveFilter) { filter = .all }
+                            }
                         } else if columnCount > 1 && !isVoiceOverEnabled {
                             // Each column stacks on its own, so opening a card moves only
                             // the cards below it. Cards go left and right in turn.
@@ -310,6 +337,10 @@ struct HomeView: View {
 
     private var isConfirmingPasskeyDeletion: Binding<Bool> {
         Binding(get: { pendingPasskeyDeletion != nil }, set: { if !$0 { pendingPasskeyDeletion = nil } })
+    }
+
+    private var hasWalletLoadError: Binding<Bool> {
+        Binding(get: { wallet.loadError != nil }, set: { if !$0 { wallet.loadError = nil } })
     }
 
     private var hasError: Binding<Bool> {

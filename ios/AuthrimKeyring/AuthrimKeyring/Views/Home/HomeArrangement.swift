@@ -18,41 +18,83 @@ enum HomeSort: String, CaseIterable, Identifiable {
     }
 }
 
-/// Which cards the home screen shows.
-enum HomeFilter: Hashable, RawRepresentable {
-    case all
+/// What swiping sideways on the home screen moves between. Both loop around.
+enum HomePaging: String, CaseIterable, Identifiable {
+    /// Favorites, then every other card.
     case favorites
-    case tag(String)
+    /// Credentials, passkeys, then two-factor codes.
+    case kinds
 
-    init?(rawValue: String) {
-        switch rawValue {
-        case "": self = .all
-        case "favorites": self = .favorites
-        case let value where value.hasPrefix("tag:"): self = .tag(String(value.dropFirst(4)))
-        default: return nil
+    var id: String { rawValue }
+
+    var label: LocalizedStringKey {
+        switch self {
+        case .favorites: "Favorites and Others"
+        case .kinds: "By Kind"
         }
     }
 
-    var rawValue: String {
+    var pages: [HomePage] {
         switch self {
-        case .all: ""
-        case .favorites: "favorites"
-        case .tag(let tag): "tag:" + tag
+        case .favorites: [.favorites, .others]
+        case .kinds: [.credentials, .passkeys, .codes]
+        }
+    }
+
+    /// The page to show: the one last shown (its raw value), or else the first that has cards.
+    func page(shown: String, hasCards: (HomePage) -> Bool) -> HomePage {
+        if let page = HomePage(rawValue: shown), pages.contains(page) { return page }
+        return pages.first(where: hasCards) ?? pages[0]
+    }
+
+    /// The page `step` pages along from `page`, wrapping around at either end.
+    func page(from page: HomePage, by step: Int) -> HomePage {
+        guard let index = pages.firstIndex(of: page) else { return pages[0] }
+        let count = pages.count
+        return pages[((index + step) % count + count) % count]
+    }
+}
+
+/// One page of cards on the home screen.
+enum HomePage: String, Identifiable {
+    case favorites
+    case others
+    case credentials
+    case passkeys
+    case codes
+
+    var id: String { rawValue }
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .favorites: "Favorites"
+        case .others: "Others"
+        case .credentials: "Credentials"
+        case .passkeys: "Passkeys"
+        case .codes: "2FA"
+        }
+    }
+
+    /// Whether wallet credentials, which cannot be favorites, show on this page.
+    var showsCredentials: Bool { self == .others || self == .credentials }
+
+    func contains(_ item: KeyringItem, isFavorite: Bool) -> Bool {
+        switch (self, item) {
+        case (.favorites, _): isFavorite
+        case (.others, _): !isFavorite
+        case (.passkeys, .passkey), (.codes, .account): true
+        default: false
         }
     }
 }
 
 extension AccountStore {
-    /// The cards the home screen shows, in the order it shows them.
-    func arrangedItems(search: String, sort: HomeSort, filter: HomeFilter) -> [KeyringItem] {
+    /// The cards the home screen shows, in the order it shows them. Without a page, every card.
+    func arrangedItems(search: String, sort: HomeSort, page: HomePage?) -> [KeyringItem] {
         let query = search.trimmingCharacters(in: .whitespaces)
         var result = items.filter { item in
             let note = meta(for: item.id)
-            switch filter {
-            case .all: break
-            case .favorites: guard note.isFavorite else { return false }
-            case .tag(let tag): guard note.tags.contains(where: { $0.caseInsensitiveCompare(tag) == .orderedSame }) else { return false }
-            }
+            if let page, !page.contains(item, isFavorite: note.isFavorite) { return false }
             return query.isEmpty || item.matches(query, websites: details[item.id]?.websites ?? [], tags: note.tags)
         }
         switch sort {
@@ -67,41 +109,6 @@ extension AccountStore {
         let favorites = result.filter { meta(for: $0.id).isFavorite }
         let others = result.filter { !meta(for: $0.id).isFavorite }
         return favorites + others
-    }
-}
-
-/// The toolbar menu that sorts and filters the cards, and opens manual reordering.
-struct HomeArrangeMenu: View {
-    @Binding var sort: HomeSort
-    @Binding var filter: HomeFilter
-    let tags: [String]
-    let canReorder: Bool
-    let onReorder: () -> Void
-
-    var body: some View {
-        Menu {
-            Section("Sort By") {
-                Picker("Sort By", selection: $sort) {
-                    ForEach(HomeSort.allCases) { Text($0.label).tag($0) }
-                }
-            }
-            Section("Show") {
-                Picker("Show", selection: $filter) {
-                    Label("All Cards", systemImage: "rectangle.stack").tag(HomeFilter.all)
-                    Label("Favorites", systemImage: "star").tag(HomeFilter.favorites)
-                    ForEach(tags, id: \.self) { tag in
-                        Label(tag, systemImage: "tag").tag(HomeFilter.tag(tag))
-                    }
-                }
-            }
-            if sort == .custom, canReorder {
-                Section {
-                    Button("Reorder…", systemImage: "arrow.up.arrow.down", action: onReorder)
-                }
-            }
-        } label: {
-            Label("Sort and Filter", systemImage: filter == .all ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill")
-        }
     }
 }
 

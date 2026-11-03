@@ -34,6 +34,12 @@ struct TutorialStep: Identifiable {
         ),
         TutorialStep(
             id: 3,
+            target: .cards,
+            title: "Swipe Between Pages",
+            message: "Swipe left or right to switch between your favorites and the other cards. In Settings you can switch by kind instead, and change the order."
+        ),
+        TutorialStep(
+            id: 4,
             target: .settings,
             title: "Lock, Sync and Back Up",
             message: "In Settings you can turn on the app lock, sync with iCloud Keychain, and export an encrypted backup."
@@ -49,10 +55,12 @@ struct TutorialStep: Identifiable {
 /// the top, or a column down the side as on a closed iPhone Duo.
 @MainActor
 final class TutorialAnchors {
-    /// Which end of the navigation bar a toolbar button sits at.
+    /// Which end of the navigation bar, or of the bottom bar, a toolbar button sits at.
     enum BarEdge {
         case leading
         case trailing
+        case bottomLeading
+        case bottomTrailing
     }
 
     private final class WeakView {
@@ -92,6 +100,16 @@ final class TutorialAnchors {
             .compactMap(Self.windowFrame(of:))
             .filter { $0.width <= Self.maximumIconSize && $0.height <= Self.maximumIconSize }
             .filter { window.bounds.contains(CGPoint(x: $0.midX, y: $0.midY)) }
+        let isRightToLeft = host.effectiveUserInterfaceLayoutDirection == .rightToLeft
+
+        // The bottom bar: the lowest row, in the bottom half of the screen.
+        if edge == .bottomLeading || edge == .bottomTrailing {
+            guard let lowest = buttons.max(by: { $0.maxY < $1.maxY }), lowest.midY > window.bounds.midY else { return nil }
+            let row = buttons.filter { abs($0.midY - lowest.midY) < lowest.height / 2 }
+            let wantsLeft = (edge == .bottomLeading) != isRightToLeft
+            return wantsLeft ? row.min(by: { $0.minX < $1.minX }) : row.max(by: { $0.maxX < $1.maxX })
+        }
+
         guard let first = buttons.min(by: { $0.minY < $1.minY }) else { return nil }
 
         // A column down the side, as on a closed iPhone Duo: two or more buttons
@@ -115,7 +133,6 @@ final class TutorialAnchors {
         guard let leftmost = row.min(by: { $0.minX < $1.minX }),
               let rightmost = row.max(by: { $0.maxX < $1.maxX })
         else { return nil }
-        let isRightToLeft = host.effectiveUserInterfaceLayoutDirection == .rightToLeft
         return (edge == .leading) != isRightToLeft ? leftmost : rightmost
     }
 

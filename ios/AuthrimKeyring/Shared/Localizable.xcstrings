@@ -567,6 +567,16 @@
         }
       }
     },
+    "By Kind" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "種類ごと"
+          }
+        }
+      }
+    },
     "By Name" : {
       "localizations" : {
         "ja" : {
@@ -1391,6 +1401,16 @@
         }
       }
     },
+    "Every card is in your favorites." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべてのカードがお気に入りに入っています。"
+          }
+        }
+      }
+    },
     "Expired" : {
       "localizations" : {
         "ja" : {
@@ -1531,12 +1551,32 @@
         }
       }
     },
+    "Favorites and Others" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "お気に入りとその他"
+          }
+        }
+      }
+    },
     "Favorites and tags could not be read from the Keychain. Try again after restarting the app." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "お気に入りとタグをキーチェーンから読み込めませんでした。アプリを再起動してからもう一度お試しください。"
+          }
+        }
+      }
+    },
+    "Favorites come first in every order." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "どの並び順でも、お気に入りが先頭に表示されます。"
           }
         }
       }
@@ -1587,6 +1627,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "セットアップキーを隠す"
+          }
+        }
+      }
+    },
+    "Home Screen" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ホーム画面"
           }
         }
       }
@@ -2041,12 +2091,32 @@
         }
       }
     },
+    "No Credentials" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "資格情報はありません"
+          }
+        }
+      }
+    },
     "No Favorites" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "お気に入りはありません"
+          }
+        }
+      }
+    },
+    "No Other Cards" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ほかのカードはありません"
           }
         }
       }
@@ -2087,6 +2157,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "秘密鍵がありません"
+          }
+        }
+      }
+    },
+    "No Two-Factor Codes" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2段階認証のコードはありません"
           }
         }
       }
@@ -2273,6 +2353,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "その他の項目: %lld"
+          }
+        }
+      }
+    },
+    "Others" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "その他"
           }
         }
       }
@@ -3023,6 +3113,56 @@
         }
       }
     },
+    "Swipe Between" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スワイプで切り替える表示"
+          }
+        }
+      }
+    },
+    "Swipe Between Pages" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スワイプで切り替え"
+          }
+        }
+      }
+    },
+    "Swipe left or right on the home screen to switch between credentials, passkeys and two-factor codes." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ホーム画面で左右にスワイプすると、資格情報、パスキー、2段階認証のコードを切り替えます。"
+          }
+        }
+      }
+    },
+    "Swipe left or right on the home screen to switch between your favorites and the other cards." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ホーム画面で左右にスワイプすると、お気に入りとそれ以外のカードを切り替えます。"
+          }
+        }
+      }
+    },
+    "Swipe left or right to switch between your favorites and the other cards. In Settings you can switch by kind instead, and change the order." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "左右にスワイプすると、お気に入りとそれ以外のカードを切り替えられます。設定では、種類ごとの切り替えや、並び順も変えられます。"
+          }
+        }
+      }
+    },
     "Sync" : {
       "localizations" : {
         "ja" : {
@@ -3049,6 +3189,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "iCloudキーチェーンで同期"
+          }
+        }
+      }
+    },
+    "Tap + and scan a credential offer to receive one." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "＋をタップして資格情報のオファーを読み取ると、受け取れます。"
+          }
+        }
+      }
+    },
+    "Tap + to add an account." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "＋をタップしてアカウントを追加してください。"
           }
         }
       }
@@ -3979,6 +4139,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ウェブサイト"
+          }
+        }
+      }
+    },
+    "When a website offers to create a passkey, choose Keyring to keep it here." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Webサイトでパスキーを作成するときにKeyringを選ぶと、ここに保存されます。"
           }
         }
       }

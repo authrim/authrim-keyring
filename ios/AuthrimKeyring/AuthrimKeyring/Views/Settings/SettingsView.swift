@@ -35,6 +35,11 @@ struct SettingsView: View {
 
                 Section("Appearance") {
                     NavigationLink {
+                        HomeScreenSettingsView()
+                    } label: {
+                        Label("Home Screen", systemImage: "rectangle.stack")
+                    }
+                    NavigationLink {
                         WallpaperSettingsView()
                     } label: {
                         LabeledContent {

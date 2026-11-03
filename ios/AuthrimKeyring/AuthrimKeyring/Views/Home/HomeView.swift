@@ -15,20 +15,18 @@ struct HomeView: View {
     #if DEBUG
     @State private var screenshotSheet: ScreenshotScene?
     #endif
-    @State private var isReordering = false
     @State private var editing: OTPAccount?
     @State private var editingPasskey: Passkey?
-    /// The card the user wants open. `expandedID` (sized open) and `revealedID`
-    /// (details shown) catch up with it one animated step at a time.
-    @State private var requestedID: UUID?
-    @State private var expandedID: UUID?
-    @State private var revealedID: UUID?
-    @State private var isTransitioning = false
+    @State private var expansion = CardExpansion()
     @State private var copiedAccountID: UUID?
     @State private var copyFeedbackTask: Task<Void, Never>?
     @State private var searchText = ""
     @AppStorage("homeSort") private var sort = HomeSort.custom
-    @AppStorage("homeFilter") private var filter = HomeFilter.all
+    @AppStorage("homePaging") private var paging = HomePaging.favorites
+    /// The page last shown, so the app opens where it was left.
+    @AppStorage("homePage") private var shownPage = ""
+    /// The side the incoming page slides in from.
+    @State private var pageEdge = Edge.trailing
     @AppStorage("hasSeenTutorial") private var hasSeenTutorial = false
     /// Index of the tutorial step on screen, nil when the tutorial is not running.
     @State private var tutorialIndex: Int?
@@ -39,13 +37,32 @@ struct HomeView: View {
     @State private var titleScroll = HomeTitleScroll()
 
     private var filteredItems: [KeyringItem] {
-        store.arrangedItems(search: searchText, sort: sort, filter: effectiveFilter)
+        store.arrangedItems(search: searchText, sort: sort, page: isSearching ? nil : page)
     }
 
-    /// The chosen filter, unless its tag has since gone from every card.
-    private var effectiveFilter: HomeFilter {
-        if case .tag(let tag) = filter, !store.allTags.contains(tag) { return .all }
-        return filter
+    /// A search looks through every page.
+    private var isSearching: Bool {
+        !searchText.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    private var page: HomePage {
+        paging.page(shown: shownPage) { page in
+            (page.showsCredentials && !wallet.credentials.isEmpty)
+                || store.items.contains { page.contains($0, isFavorite: store.meta(for: $0.id).isFavorite) }
+        }
+    }
+
+    /// Whether credentials are listed above the cards.
+    private var showsCredentials: Bool {
+        (isSearching || page.showsCredentials) && wallet.credentials.contains { $0.matches(search: searchText) }
+    }
+
+    private func show(_ newPage: HomePage, from edge: Edge) {
+        guard newPage != page else { return }
+        pageEdge = edge
+        withAnimation(reduceMotion ? .easeInOut(duration: 0.15) : .smooth(duration: 0.3)) {
+            shownPage = newPage.rawValue
+        }
     }
 
     var body: some View {
@@ -65,7 +82,6 @@ struct HomeView: View {
         .environment(\.colorScheme, wallpaper.colorScheme ?? colorScheme)
         .sheet(isPresented: $isAdding) { AddAccountView() }
         .sheet(isPresented: $isShowingSettings) { SettingsView() }
-        .sheet(isPresented: $isReordering) { ReorderAccountsView() }
         .sheet(item: $editing) { EditAccountView(account: $0) }
         .sheet(item: $editingPasskey) { EditPasskeyView(passkey: $0) }
         .sheet(item: Bindable(wallet).detail) { CredentialDetailView(credential: $0) }
@@ -75,7 +91,6 @@ struct HomeView: View {
             guard offer != nil else { return }
             isAdding = false
             isShowingSettings = false
-            isReordering = false
             editing = nil
             editingPasskey = nil
             wallet.detail = nil
@@ -101,9 +116,17 @@ struct HomeView: View {
         .onChange(of: scenePhase) { _, phase in
             // Don't leave a code on screen for the next time the app is opened.
             if phase == .background {
-                requestedID = nil
-                expandedID = nil
-                revealedID = nil
+                expansion.closeAll()
+            }
+        }
+        // However the page changed (a swipe, Settings, a card moving): a card left open
+        // would show its code again on coming back to it.
+        .onChange(of: page, initial: true) { _, newPage in
+            expansion.closeAll()
+            // Keeps a page picked by default once there are cards, so favoriting one later
+            // does not move the screen to another page.
+            if shownPage != newPage.rawValue, !store.items.isEmpty || !wallet.credentials.isEmpty {
+                shownPage = newPage.rawValue
             }
         }
         .overlay {
@@ -123,8 +146,8 @@ struct HomeView: View {
         .task(id: hasSeenTutorial) {
             guard !hasSeenTutorial else { return }
             // Where the toolbar below puts these buttons.
-            tutorialAnchors.setBarEdge(.trailing, for: .add)
-            tutorialAnchors.setBarEdge(.leading, for: .settings)
+            tutorialAnchors.setBarEdge(.bottomTrailing, for: .add)
+            tutorialAnchors.setBarEdge(.bottomLeading, for: .settings)
             // Lets a closing sheet finish and the screen settle before measuring it.
             try? await Task.sleep(for: .seconds(0.6))
             withAnimation(.easeOut(duration: 0.25)) { tutorialIndex = 0 }
@@ -150,38 +173,26 @@ struct HomeView: View {
             ScrollView {
                 VStack(spacing: 0) {
                     HomeTitle(scroll: titleScroll)
-                    if effectiveFilter == .all {
-                        HomeCredentialsSection(search: searchText).padding(.horizontal).padding(.top, 8)
-                    }
-                    Group {
-                        if numberedItems.isEmpty {
-                            if !store.items.isEmpty {
-                                NoMatchingCards(search: searchText, filter: effectiveFilter) { filter = .all }
-                            }
-                        } else if columnCount > 1 && !isVoiceOverEnabled {
-                            // Each column stacks on its own, so opening a card moves only
-                            // the cards below it. Cards go left and right in turn.
-                            HStack(alignment: .top, spacing: 12) {
-                                ForEach(0..<columnCount, id: \.self) { column in
-                                    LazyVStack(spacing: 12) {
-                                        cards(numberedItems.filter { $0.offset % columnCount == column })
-                                    }
-                                }
-                            }
-                        } else if columnCount > 1 {
-                            // Rows, which VoiceOver reads in the list's order; separate
-                            // columns would be read one column after the other.
-                            LazyVGrid(
-                                columns: Array(repeating: GridItem(.flexible(), spacing: 12, alignment: .top), count: columnCount),
-                                spacing: 12
-                            ) { cards(numberedItems) }
-                        } else {
-                            LazyVStack(spacing: 12) { cards(numberedItems) }
+                    if !isSearching {
+                        HomePageBar(pages: paging.pages, current: page) { newPage in
+                            let pages = paging.pages
+                            let isAhead = (pages.firstIndex(of: newPage) ?? 0) > (pages.firstIndex(of: page) ?? 0)
+                            show(newPage, from: isAhead ? .trailing : .leading)
                         }
+                        .padding(.horizontal)
+                        .padding(.top, 4)
                     }
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
+                    pageContent
+                        // A new page slides in from the side it was swiped from.
+                        .id(isSearching ? "search" : page.rawValue)
+                        .transition(reduceMotion ? .opacity : .asymmetric(
+                            insertion: .move(edge: pageEdge),
+                            removal: .move(edge: pageEdge == .trailing ? .leading : .trailing)
+                        ))
                 }
+            }
+            .onPageSwipe(isEnabled: !isSearching) { step in
+                show(paging.page(from: page, by: step), from: step > 0 ? .trailing : .leading)
             }
             .trackingHomeTitle(titleScroll)
             .background {
@@ -194,6 +205,43 @@ struct HomeView: View {
                     } action: { columnCount = $0 }
             }
             .searchable(text: $searchText, prompt: "Search accounts")
+        }
+    }
+
+    /// The credentials and cards of the page on screen, or of every page while searching.
+    private var pageContent: some View {
+        VStack(spacing: 0) {
+            if showsCredentials {
+                HomeCredentialsSection(search: searchText).padding(.horizontal).padding(.top, 8)
+            }
+            Group {
+                if numberedItems.isEmpty {
+                    if !showsCredentials {
+                        NoMatchingCards(search: searchText, page: isSearching ? nil : page)
+                    }
+                } else if columnCount > 1 && !isVoiceOverEnabled {
+                    // Each column stacks on its own, so opening a card moves only
+                    // the cards below it. Cards go left and right in turn.
+                    HStack(alignment: .top, spacing: 12) {
+                        ForEach(0..<columnCount, id: \.self) { column in
+                            LazyVStack(spacing: 12) {
+                                cards(numberedItems.filter { $0.offset % columnCount == column })
+                            }
+                        }
+                    }
+                } else if columnCount > 1 {
+                    // Rows, which VoiceOver reads in the list's order; separate
+                    // columns would be read one column after the other.
+                    LazyVGrid(
+                        columns: Array(repeating: GridItem(.flexible(), spacing: 12, alignment: .top), count: columnCount),
+                        spacing: 12
+                    ) { cards(numberedItems) }
+                } else {
+                    LazyVStack(spacing: 12) { cards(numberedItems) }
+                }
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 8)
         }
     }
 
@@ -222,14 +270,14 @@ struct HomeView: View {
         KeyringCardView(
             appearance: CardAppearance(
                 base: passkey.effectiveCardColor,
-                glass: wallpaper.cardGlass(in: wallpaper.colorScheme ?? colorScheme, isOpen: expandedID == passkey.id)
+                glass: wallpaper.cardGlass(in: wallpaper.colorScheme ?? colorScheme, isOpen: expansion.expandedID == passkey.id)
             ),
             title: passkey.displayTitle,
             subtitle: passkey.displaySubtitle,
             kind: "Passkey",
             isFavorite: store.meta(for: passkey.id).isFavorite,
-            isExpanded: expandedID == passkey.id,
-            isDetailVisible: revealedID == passkey.id,
+            isExpanded: expansion.expandedID == passkey.id,
+            isDetailVisible: expansion.revealedID == passkey.id,
             onToggle: { toggle(passkey.id) }
         ) {
             PasskeyPanel(passkey: passkey, isSyncEnabled: store.isSyncEnabled)
@@ -245,14 +293,14 @@ struct HomeView: View {
         KeyringCardView(
             appearance: CardAppearance(
                 base: account.effectiveCardColor,
-                glass: wallpaper.cardGlass(in: wallpaper.colorScheme ?? colorScheme, isOpen: expandedID == account.id)
+                glass: wallpaper.cardGlass(in: wallpaper.colorScheme ?? colorScheme, isOpen: expansion.expandedID == account.id)
             ),
             title: account.displayTitle,
             subtitle: account.displaySubtitle,
             kind: "2FA",
             isFavorite: store.meta(for: account.id).isFavorite,
-            isExpanded: expandedID == account.id,
-            isDetailVisible: revealedID == account.id,
+            isExpanded: expansion.expandedID == account.id,
+            isDetailVisible: expansion.revealedID == account.id,
             onToggle: { toggle(account.id) }
         ) {
             TOTPCodePanel(
@@ -283,18 +331,19 @@ struct HomeView: View {
                     .accessibilityHidden(!titleScroll.isUnderBar)
             }
         }
-        ToolbarItem(placement: .topBarLeading) {
+        // Settings and Add sit at the bottom corners, within reach of the thumb; from iOS 26
+        // the search field is between them.
+        ToolbarItem(placement: .bottomBar) {
             Button("Settings", systemImage: "gearshape") { isShowingSettings = true }
         }
-        // Between Settings and Add, which the tutorial points at as the outermost buttons.
-        if store.items.count > 1 || effectiveFilter != .all {
-            ToolbarItem(placement: .topBarTrailing) {
-                HomeArrangeMenu(sort: $sort, filter: $filter, tags: store.allTags, canReorder: store.items.count > 1) {
-                    isReordering = true
-                }
-            }
+        if #available(iOS 26, *) {
+            ToolbarSpacer(.fixed, placement: .bottomBar)
+            DefaultToolbarItem(kind: .search, placement: .bottomBar)
+            ToolbarSpacer(.fixed, placement: .bottomBar)
+        } else {
+            ToolbarItem(placement: .bottomBar) { Spacer() }
         }
-        ToolbarItem(placement: .topBarTrailing) {
+        ToolbarItem(placement: .bottomBar) {
             Button("Add Account", systemImage: "plus") { isAdding = true }
         }
     }
@@ -317,55 +366,31 @@ struct HomeView: View {
             break
         case .code:
             if let account = store.accounts.first(where: { $0.issuer == ScreenshotDemo.codeIssuer }) {
-                toggle(account.id)
+                await open(.account(account))
             }
         case .passkey:
-            if let passkey = store.passkeys.first { toggle(passkey.id) }
+            if let passkey = store.passkeys.first { await open(.passkey(passkey)) }
         case .settings:
             isShowingSettings = true
         case .importAccounts, .recoveryCodes, .wallpaper:
             screenshotSheet = scene
         }
     }
+
+    /// Opens a card on the page that holds it.
+    private func open(_ item: KeyringItem) async {
+        let isFavorite = store.meta(for: item.id).isFavorite
+        if let holder = paging.pages.first(where: { $0.contains(item, isFavorite: isFavorite) }) {
+            shownPage = holder.rawValue
+        }
+        // After the page change has closed every card.
+        try? await Task.sleep(for: .seconds(0.3))
+        toggle(item.id)
+    }
     #endif
 
     private func toggle(_ id: UUID) {
-        requestedID = requestedID == id ? nil : id
-        guard !isTransitioning else { return }
-        Task { await settleCards() }
-    }
-
-    /// Moves the cards toward `requestedID`, one step at a time: details fade out,
-    /// a short pause, the card resizes, a short pause, details fade in. Taps during a
-    /// transition only change `requestedID`, so every step still runs in order. The
-    /// steps follow a fixed schedule because animation completion callbacks can arrive late.
-    private func settleCards() async {
-        isTransitioning = true
-        defer { isTransitioning = false }
-
-        let resizeDuration = reduceMotion ? 0.12 : 0.2
-        // No bounce, so the card is at rest by the time the details fade in.
-        let resizeAnimation: Animation = reduceMotion
-            ? .easeInOut(duration: resizeDuration)
-            : .smooth(duration: resizeDuration)
-        let fadeInDuration = 0.14
-        let fadeOutDuration = 0.08
-        let pause = 0.05
-
-        while expandedID != requestedID || revealedID != requestedID {
-            if revealedID != nil, revealedID != requestedID {
-                withAnimation(.easeIn(duration: fadeOutDuration)) { revealedID = nil }
-                try? await Task.sleep(for: .seconds(fadeOutDuration + pause))
-            } else if expandedID != requestedID {
-                withAnimation(resizeAnimation) { expandedID = requestedID }
-                if requestedID != nil {
-                    try? await Task.sleep(for: .seconds(resizeDuration + pause))
-                }
-            } else {
-                withAnimation(.easeOut(duration: fadeInDuration)) { revealedID = requestedID }
-                try? await Task.sleep(for: .seconds(fadeInDuration))
-            }
-        }
+        expansion.toggle(id, reduceMotion: reduceMotion)
     }
 
     private func copy(_ account: OTPAccount) {

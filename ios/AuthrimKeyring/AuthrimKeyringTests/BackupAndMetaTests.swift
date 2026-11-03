@@ -62,10 +62,31 @@ struct ItemMetaTests {
         #expect(meta.isEmpty)
     }
 
-    @Test func homeFilterRawValues() {
-        for filter in [HomeFilter.all, .favorites, .tag("Work: Team")] {
-            #expect(HomeFilter(rawValue: filter.rawValue) == filter)
+    @Test func homePagesSplitTheCards() throws {
+        let account = KeyringItem.account(try OTPAuthURI.parse("otpauth://totp/Example:alex?secret=JBSWY3DPEHPK3PXP"))
+        #expect(HomePaging.favorites.pages == [.favorites, .others])
+        #expect(HomePaging.kinds.pages == [.credentials, .passkeys, .codes])
+        // Each card is on exactly one page of either pattern.
+        for isFavorite in [true, false] {
+            for paging in HomePaging.allCases {
+                #expect(paging.pages.filter { $0.contains(account, isFavorite: isFavorite) }.count == 1)
+            }
         }
+        #expect(HomePage.codes.contains(account, isFavorite: true))
+        #expect(!HomePage.passkeys.contains(account, isFavorite: false))
+        #expect(HomePage.others.showsCredentials && HomePage.credentials.showsCredentials && !HomePage.favorites.showsCredentials)
+    }
+
+    @Test func homePagesLoopAndFallBack() {
+        let kinds = HomePaging.kinds
+        #expect(kinds.page(from: .codes, by: 1) == .credentials)
+        #expect(kinds.page(from: .credentials, by: -1) == .codes)
+        #expect(kinds.page(from: .passkeys, by: 4) == .codes)
+        #expect(HomePaging.favorites.page(from: .others, by: 1) == .favorites)
+        // A page from the other pattern, or none yet, gives the first page with cards.
+        #expect(kinds.page(shown: "favorites") { $0 == .codes } == .codes)
+        #expect(kinds.page(shown: "") { _ in false } == .credentials)
+        #expect(kinds.page(shown: "passkeys") { _ in false } == .passkeys)
     }
 
     @Test func searchFindsWebsitesAndTags() {

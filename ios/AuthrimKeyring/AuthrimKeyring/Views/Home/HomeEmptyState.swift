@@ -30,29 +30,34 @@ struct HomeEmptyState: View {
     }
 }
 
-/// What the home screen shows when a search or filter leaves no card.
+/// What the home screen shows when a search or a page has no card.
 struct NoMatchingCards: View {
     let search: String
-    let filter: HomeFilter
-    let onShowAll: () -> Void
+    /// Nil while searching, which covers every page.
+    let page: HomePage?
 
     var body: some View {
         Group {
-            if !search.trimmingCharacters(in: .whitespaces).isEmpty {
-                ContentUnavailableView.search(text: search)
-            } else {
+            if let page {
                 ContentUnavailableView {
-                    switch filter {
-                    case .tag(let tag): Label("No Cards Tagged “\(tag)”", systemImage: "tag")
-                    default: Label("No Favorites", systemImage: "star")
+                    switch page {
+                    case .favorites: Label("No Favorites", systemImage: "star")
+                    case .others: Label("No Other Cards", systemImage: "rectangle.stack")
+                    case .credentials: Label("No Credentials", systemImage: "person.text.rectangle")
+                    case .passkeys: Label("No Passkeys", systemImage: "person.badge.key")
+                    case .codes: Label("No Two-Factor Codes", systemImage: "key.horizontal")
                     }
                 } description: {
-                    if filter == .favorites {
-                        Text("Touch and hold a card to add it to your favorites.")
+                    switch page {
+                    case .favorites: Text("Touch and hold a card to add it to your favorites.")
+                    case .others: Text("Every card is in your favorites.")
+                    case .credentials: Text("Tap + and scan a credential offer to receive one.")
+                    case .passkeys: Text("When a website offers to create a passkey, choose Keyring to keep it here.")
+                    case .codes: Text("Tap + to add an account.")
                     }
-                } actions: {
-                    Button("Show All Cards", action: onShowAll)
                 }
+            } else {
+                ContentUnavailableView.search(text: search)
             }
         }
         .readableOverWallpaper()

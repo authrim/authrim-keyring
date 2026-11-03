@@ -8,10 +8,12 @@ struct CredentialDetailView: View {
     @State private var isConfirmingRemoval = false
 
     var body: some View {
+        // The stored copy, so a confirmation made here shows at once.
+        let credential = wallet.credentials.first { $0.id == self.credential.id } ?? self.credential
         NavigationStack {
             Form {
                 Section("Issuer") {
-                    IssuerLabel(issuer: credential.issuer, displayName: credential.issuerDisplayName)
+                    IssuerLabel(issuer: credential.issuer, displayName: credential.issuerDisplayName, trust: wallet.trust(for: credential.issuer))
                 }
                 Section("Credential") {
                     LabeledContent("Name", value: credential.credentialName)
@@ -42,6 +44,10 @@ struct CredentialDetailView: View {
                 Section {
                     ConfirmationCodeText(code: credential.confirmationCode, font: .system(.title, design: .monospaced, weight: .semibold))
                         .frame(maxWidth: .infinity)
+                    if credential.confirmedAt == nil {
+                        Button("Codes Match") { wallet.confirm(credential) }
+                            .frame(maxWidth: .infinity)
+                    }
                 } header: {
                     Text("Confirmation Code")
                 } footer: {

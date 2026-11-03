@@ -42,6 +42,8 @@ struct StoredCredential: Codable, Identifiable, Sendable, Equatable {
     let confirmationCode: String
     /// The SD-JWT VC as issued (issuer JWT, disclosures, trailing `~`).
     let sdJwt: String
+    /// When the user said the admin console shows the same confirmation code; nil until then.
+    var confirmedAt: Date? = nil
 }
 
 enum WalletError: Error, Equatable, Sendable {

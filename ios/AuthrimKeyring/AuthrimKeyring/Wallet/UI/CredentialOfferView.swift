@@ -58,9 +58,10 @@ private struct CredentialOfferForm: View {
     @FocusState private var isCodeFocused: Bool
 
     var body: some View {
+        let trust = wallet.trust(for: preview.issuer)
         Form {
             Section("Issuer") {
-                IssuerLabel(issuer: preview.issuer, displayName: preview.issuerDisplayName)
+                IssuerLabel(issuer: preview.issuer, displayName: preview.issuerDisplayName, trust: trust)
             }
             Section {
                 Text(preview.credentialName)
@@ -72,7 +73,13 @@ private struct CredentialOfferForm: View {
             } header: {
                 Text("Credential")
             } footer: {
-                Text("Only receive a credential from an issuer you recognize. Keyring cannot confirm who runs it.")
+                switch trust {
+                case .verified: EmptyView()
+                case .confirmedByUser:
+                    Text("You confirmed this issuer when you compared a confirmation code. Keyring itself does not vouch for who runs it.")
+                case .unconfirmed:
+                    Text("Only receive a credential from an issuer you recognize. Keyring cannot confirm who runs it.")
+                }
             }
             if let requirement = preview.transactionCode {
                 codeSection(requirement)

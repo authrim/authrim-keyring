@@ -1,7 +1,9 @@
 import SwiftUI
 
-/// Shown after the credential is stored: the code to compare with the admin console.
+/// Shown after the credential is stored: the code to compare with the admin console. Saying the codes
+/// match is what lets Keyring show the issuer as confirmed by the user.
 struct CredentialIssuedView: View {
+    @Environment(WalletModel.self) private var wallet
     let credential: StoredCredential
     let onDone: () -> Void
 
@@ -31,6 +33,11 @@ struct CredentialIssuedView: View {
                     Text("Check that the admin console shows the same code.")
                         .font(.callout)
                         .multilineTextAlignment(.center)
+                    // The code only proves the console saw this key, so the console's own address matters too.
+                    Text("Use the console you signed in to yourself at \(credential.issuer.walletHost). If the codes match, Keyring shows this issuer as confirmed by you.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
                 }
                 .padding()
                 .frame(maxWidth: .infinity)
@@ -44,14 +51,31 @@ struct CredentialIssuedView: View {
             .padding()
         }
         .safeAreaInset(edge: .bottom) {
-            Button(action: onDone) {
-                Text("Done").frame(maxWidth: .infinity, minHeight: 32)
+            VStack(spacing: 8) {
+                Button {
+                    if wallet.confirm(credential) { onDone() }
+                } label: {
+                    Text("Codes Match").frame(maxWidth: .infinity, minHeight: 32)
+                }
+                .buttonStyle(.borderedProminent)
+                // Leaves the issuer unconfirmed; the codes can still be compared from the credential's details.
+                Button(action: onDone) {
+                    Text("Check Later").frame(maxWidth: .infinity, minHeight: 32)
+                }
             }
-            .buttonStyle(.borderedProminent)
             .controlSize(.large)
             .padding()
             .background(.bar)
         }
+        .alert("Something went wrong", isPresented: hasError) {
+            Button("OK") { wallet.lastError = nil }
+        } message: {
+            Text(wallet.lastError ?? "")
+        }
+    }
+
+    private var hasError: Binding<Bool> {
+        Binding(get: { wallet.lastError != nil }, set: { if !$0 { wallet.lastError = nil } })
     }
 }
 
@@ -94,6 +118,7 @@ struct CredentialFailureView: View {
 #if DEBUG
 #Preview("Issued") {
     CredentialIssuedView(credential: .previewSample, onDone: {})
+        .environment(WalletModel.preview(credentials: [.previewSample]))
 }
 
 #Preview("Failure") {

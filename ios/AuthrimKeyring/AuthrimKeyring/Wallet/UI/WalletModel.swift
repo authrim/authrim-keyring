@@ -13,6 +13,7 @@ struct IncomingOffer: Identifiable, Hashable {
 final class WalletModel {
     let issuance: any CredentialIssuanceService
     private let store: any CredentialStore
+    private let trustedIssuers: [TrustedIssuer]
 
     /// Newest first.
     private(set) var credentials: [StoredCredential] = []
@@ -24,9 +25,32 @@ final class WalletModel {
     /// Set while the stored credentials cannot be read; Home offers a retry. Cleared by the next successful load.
     var loadError: String?
 
-    init(issuance: any CredentialIssuanceService, store: any CredentialStore) {
+    init(issuance: any CredentialIssuanceService, store: any CredentialStore, trustedIssuers: [TrustedIssuer] = TrustedIssuer.all) {
         self.issuance = issuance
         self.store = store
+        self.trustedIssuers = trustedIssuers
+    }
+
+    func trust(for issuer: URL) -> IssuerTrust {
+        IssuerTrust.of(issuer, trusted: trustedIssuers, credentials: credentials)
+    }
+
+    /// Records that the admin console shows the same confirmation code. Returns false when that failed.
+    @discardableResult
+    func confirm(_ credential: StoredCredential) -> Bool {
+        var confirmed = credential
+        confirmed.confirmedAt = .now
+        do {
+            try store.save(confirmed)
+        } catch {
+            lastError = String(localized: "The confirmation could not be saved.")
+            return false
+        }
+        // Added when missing too: the list is stale if reading it failed right after the credential was issued.
+        credentials.removeAll { $0.id == credential.id }
+        credentials.append(confirmed)
+        credentials.sort { $0.issuedAt > $1.issuedAt }
+        return true
     }
 
     func load() {

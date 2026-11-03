@@ -697,6 +697,16 @@
         }
       }
     },
+    "Check Later" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "あとで確認"
+          }
+        }
+      }
+    },
     "Check that the admin console shows the same code." : {
       "localizations" : {
         "ja" : {
@@ -857,6 +867,16 @@
         }
       }
     },
+    "Codes Match" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コードが一致しました"
+          }
+        }
+      }
+    },
     "Confirm Account" : {
       "localizations" : {
         "ja" : {
@@ -893,6 +913,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "確認コード"
+          }
+        }
+      }
+    },
+    "Confirmed by you on %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@にあなたが確認済み"
           }
         }
       }
@@ -3133,6 +3163,16 @@
         }
       }
     },
+    "The confirmation could not be saved." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認を保存できませんでした。"
+          }
+        }
+      }
+    },
     "The counter “%@” is not valid." : {
       "localizations" : {
         "ja" : {
@@ -3843,6 +3883,16 @@
         }
       }
     },
+    "Use the console you signed in to yourself at %@. If the codes match, Keyring shows this issuer as confirmed by you." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自分でサインインした %@ の管理コンソールで確かめてください。コードが一致すれば、この発行元は「あなたが確認済み」と表示されます。"
+          }
+        }
+      }
+    },
     "Used" : {
       "localizations" : {
         "ja" : {
@@ -3859,6 +3909,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "有効期間"
+          }
+        }
+      }
+    },
+    "Verified by %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@が確認済み"
           }
         }
       }
@@ -3969,6 +4029,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "この設定は、あとから「設定」でいつでも変更できます。"
+          }
+        }
+      }
+    },
+    "You confirmed this issuer when you compared a confirmation code. Keyring itself does not vouch for who runs it." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この発行元は、確認コードを照らし合わせてあなたが確認しました。発行元の運営者をKeyringが保証するものではありません。"
           }
         }
       }

@@ -33,7 +33,10 @@ final class PreviewCredentialStore: CredentialStore, @unchecked Sendable {
     }
 
     func loadAll() throws -> [StoredCredential] { credentials }
-    func save(_ credential: StoredCredential) throws { credentials.append(credential) }
+    func save(_ credential: StoredCredential) throws {
+        credentials.removeAll { $0.id == credential.id }
+        credentials.append(credential)
+    }
     func delete(_ credential: StoredCredential) throws { credentials.removeAll { $0.id == credential.id } }
 }
 

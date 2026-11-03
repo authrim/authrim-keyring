@@ -10,76 +10,76 @@ struct CredentialDetailView: View {
     var body: some View {
         // The stored copy, so a confirmation made here shows at once.
         let credential = wallet.credentials.first { $0.id == self.credential.id } ?? self.credential
-        NavigationStack {
-            Form {
-                Section("Issuer") {
-                    IssuerLabel(issuer: credential.issuer, displayName: credential.issuerDisplayName, trust: wallet.trust(for: credential.issuer))
+        Form {
+            // The card itself first, to show to someone in person.
+            Section {
+                CredentialFaceView(credential: credential, trust: wallet.trust(for: credential.issuer))
+                    .frame(maxWidth: .infinity)
+                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+                    .listRowBackground(Color.clear)
+            }
+            Section("Issuer") {
+                IssuerLabel(issuer: credential.issuer, displayName: credential.issuerDisplayName, trust: wallet.trust(for: credential.issuer))
+            }
+            Section("Credential") {
+                LabeledContent("Name", value: credential.credentialName)
+                LabeledContent("Type", value: credential.vct)
+            }
+            Section("Claims") {
+                if credential.claims.isEmpty {
+                    Text("No claims").foregroundStyle(.secondary)
                 }
-                Section("Credential") {
-                    LabeledContent("Name", value: credential.credentialName)
-                    LabeledContent("Type", value: credential.vct)
+                ForEach(credential.sortedClaims, id: \.name) { claim in
+                    LabeledContent(claim.name, value: claim.value)
                 }
-                Section("Claims") {
-                    if credential.claims.isEmpty {
-                        Text("No claims").foregroundStyle(.secondary)
-                    }
-                    ForEach(credential.sortedClaims, id: \.name) { claim in
-                        LabeledContent(claim.name, value: claim.value)
-                    }
+            }
+            Section("Validity") {
+                LabeledContent("Issued") {
+                    Text(credential.issuedAt, format: .dateTime.year().month().day())
                 }
-                Section("Validity") {
-                    LabeledContent("Issued") {
-                        Text(credential.issuedAt, format: .dateTime.year().month().day())
+                if let expiresAt = credential.expiresAt {
+                    LabeledContent("Expires") {
+                        Text(expiresAt, format: .dateTime.year().month().day())
                     }
-                    if let expiresAt = credential.expiresAt {
-                        LabeledContent("Expires") {
-                            Text(expiresAt, format: .dateTime.year().month().day())
-                        }
-                        if credential.isExpired {
-                            Label("Expired", systemImage: "exclamationmark.circle.fill")
-                                .foregroundStyle(.red)
-                        }
+                    if credential.isExpired {
+                        Label("Expired", systemImage: "exclamationmark.circle.fill")
+                            .foregroundStyle(.red)
                     }
                 }
-                Section {
-                    ConfirmationCodeText(code: credential.confirmationCode, font: .system(.title, design: .monospaced, weight: .semibold))
+            }
+            Section {
+                ConfirmationCodeText(code: credential.confirmationCode, font: .system(.title, design: .monospaced, weight: .semibold))
+                    .frame(maxWidth: .infinity)
+                if credential.confirmedAt == nil {
+                    Button("Codes Match") { wallet.confirm(credential) }
                         .frame(maxWidth: .infinity)
-                    if credential.confirmedAt == nil {
-                        Button("Codes Match") { wallet.confirm(credential) }
-                            .frame(maxWidth: .infinity)
-                    }
-                } header: {
-                    Text("Confirmation Code")
-                } footer: {
-                    Text("The admin console shows the same code for this credential.")
                 }
-                Section {
-                    Button("Remove from Keyring", role: .destructive) { isConfirmingRemoval = true }
-                }
+            } header: {
+                Text("Confirmation Code")
+            } footer: {
+                Text("The admin console shows the same code for this credential.")
             }
-            .navigationTitle(credential.credentialName)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
-                }
+            Section {
+                Button("Remove from Keyring", role: .destructive) { isConfirmingRemoval = true }
             }
-            .confirmationDialog(
-                "Remove “\(credential.credentialName)”?",
-                isPresented: $isConfirmingRemoval,
-                titleVisibility: .visible
-            ) {
-                Button("Remove", role: .destructive) {
-                    if wallet.remove(credential) { dismiss() }
-                }
-            } message: {
-                Text("This device’s key for the credential is deleted, so it can no longer be presented. Also revoke it in the admin console. This cannot be undone.")
+        }
+        .navigationTitle(credential.credentialName)
+        .navigationBarTitleDisplayMode(.inline)
+        .confirmationDialog(
+            "Remove “\(credential.credentialName)”?",
+            isPresented: $isConfirmingRemoval,
+            titleVisibility: .visible
+        ) {
+            Button("Remove", role: .destructive) {
+                if wallet.remove(credential) { dismiss() }
             }
-            .alert("Something went wrong", isPresented: hasError) {
-                Button("OK") { wallet.lastError = nil }
-            } message: {
-                Text(wallet.lastError ?? "")
-            }
+        } message: {
+            Text("This device’s key for the credential is deleted, so it can no longer be presented. Also revoke it in the admin console. This cannot be undone.")
+        }
+        .alert("Something went wrong", isPresented: hasError) {
+            Button("OK") { wallet.lastError = nil }
+        } message: {
+            Text(wallet.lastError ?? "")
         }
     }
 
@@ -90,7 +90,9 @@ struct CredentialDetailView: View {
 
 #if DEBUG
 #Preview {
-    CredentialDetailView(credential: .previewSample)
-        .environment(WalletModel.preview(credentials: [.previewSample]))
+    NavigationStack {
+        CredentialDetailView(credential: .previewSample)
+    }
+    .environment(WalletModel.preview(credentials: [.previewSample]))
 }
 #endif

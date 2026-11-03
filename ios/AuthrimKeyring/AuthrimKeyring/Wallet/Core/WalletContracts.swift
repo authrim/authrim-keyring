@@ -24,7 +24,7 @@ struct TransactionCodeRequirement: Sendable, Equatable {
 
 /// A credential held by the wallet. The holder key lives in the Secure Enclave under `keyTag`;
 /// the credential itself is stored as a device-only Keychain item, never synced or exported.
-struct StoredCredential: Codable, Identifiable, Sendable, Equatable {
+struct StoredCredential: Codable, Identifiable, Sendable, Hashable {
     let id: UUID
     let issuer: URL
     let issuerDisplayName: String?

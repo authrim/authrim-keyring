@@ -5,13 +5,14 @@ struct CredentialCardView: View {
     let appearance: CardAppearance
     let credential: StoredCredential
     let onOpen: () -> Void
+    @Environment(\.isPageSwiping) private var isPageSwiping
 
     private let cornerRadius: CGFloat = 18
 
     var body: some View {
-        Button(action: onOpen) {
+        Button { if !isPageSwiping { onOpen() } } label: {
             HStack(alignment: .top, spacing: 12) {
-                // No kind badge: the card itself reads as a credential, under its heading.
+                // No kind badge or heading: the card itself reads as a credential.
                 VStack(alignment: .leading, spacing: 4) {
                     Text(credential.credentialName)
                         .font(.headline)
@@ -71,7 +72,7 @@ struct CredentialCardView: View {
     }
 }
 
-/// The "Credentials" part of the home list. Draws nothing without credentials.
+/// The credentials at the top of the home list. Draws nothing without credentials.
 struct HomeCredentialsSection: View {
     @Environment(WalletModel.self) private var wallet
     @Environment(WallpaperStore.self) private var wallpaper
@@ -88,22 +89,14 @@ struct HomeCredentialsSection: View {
                 base: CardColor.presets[5],
                 glass: wallpaper.cardGlass(in: wallpaper.colorScheme ?? colorScheme)
             )
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Credentials")
-                    .font(.footnote.weight(.semibold))
-                    .textCase(.uppercase)
-                    .foregroundStyle(.secondary)
-                    .accessibilityAddTraits(.isHeader)
-                    .padding(.horizontal, 4)
-                LazyVStack(spacing: 12) {
-                    ForEach(visible) { credential in
-                        CredentialCardView(appearance: appearance, credential: credential) {
-                            wallet.detail = credential
-                        }
+            LazyVStack(spacing: 12) {
+                ForEach(visible) { credential in
+                    CredentialCardView(appearance: appearance, credential: credential) {
+                        wallet.detail = credential
                     }
                 }
             }
-            .padding(.bottom, 8)
+            .padding(.bottom, 4)
         }
     }
 }

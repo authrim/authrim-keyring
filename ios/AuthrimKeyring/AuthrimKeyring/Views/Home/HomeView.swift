@@ -87,6 +87,8 @@ struct HomeView: View {
                 .toolbar { toolbar }
                 // Its buttons are in the bottom bar, so the bar along the top would stand empty.
                 .hidingTopBar()
+                // Pushed, so it reads as part of the keyring rather than a separate task.
+                .navigationDestination(item: Bindable(wallet).detail) { CredentialDetailView(credential: $0) }
         }
         // Light or dark text to suit the wallpaper. Sheets and alerts are attached
         // after this, so they keep following the system appearance.
@@ -98,7 +100,6 @@ struct HomeView: View {
         .sheet(isPresented: $isShowingSettings) { SettingsView() }
         .sheet(item: $editing) { EditAccountView(account: $0) }
         .sheet(item: $editingPasskey) { EditPasskeyView(passkey: $0) }
-        .sheet(item: Bindable(wallet).detail) { CredentialDetailView(credential: $0) }
         // A credential offer opened from a link is presented by RootView, which cannot cover one
         // of these sheets: close them so the offer shows instead of waiting unseen.
         .onChange(of: wallet.incomingOffer?.id) { _, offer in
@@ -107,7 +108,6 @@ struct HomeView: View {
             isShowingSettings = false
             editing = nil
             editingPasskey = nil
-            wallet.detail = nil
             #if DEBUG
             screenshotSheet = nil
             #endif
@@ -210,6 +210,7 @@ struct HomeView: View {
                     }
                     .coordinateSpace(.named(Self.listSpace))
                 }
+                .fadingAboveBottomBars()
                 .onPageSwipe(isEnabled: !isSearching) { across in
                     if !reduceMotion { pageTurn.drag(across, from: page, in: paging, lift: neighborLift) }
                 } onEnd: { step in
@@ -221,7 +222,7 @@ struct HomeView: View {
                 }
                 .trackingHomeTitle(titleScroll)
                 // Above the bottom bar, within reach of the thumb that swipes.
-                .safeAreaInset(edge: .bottom) {
+                .pageBar {
                     if !isSearching {
                         HomePageBar(pages: paging.pages, current: pageTurn.markedPage(page)) { newPage in
                             let pages = paging.pages

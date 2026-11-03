@@ -42,6 +42,37 @@ struct HomePageBar: View {
     }
 }
 
+extension View {
+    /// Puts `bar` above the bottom bar. From iOS 26 it is a bar of its own, so the cards
+    /// fade out beneath it as they do beneath the bottom bar.
+    @ViewBuilder
+    func pageBar(@ViewBuilder _ bar: () -> some View) -> some View {
+        if #available(iOS 26, *) {
+            safeAreaBar(edge: .bottom, content: bar)
+        } else {
+            safeAreaInset(edge: .bottom, content: bar)
+        }
+    }
+}
+
+extension View {
+    /// Fades the scrolling cards out as they near the bars at the bottom, which then
+    /// stand on the wallpaper alone. Above, the cards run on under the status bar. The
+    /// list ends one fade further down, so its last card can come fully into view.
+    func fadingAboveBottomBars() -> some View {
+        let fade: CGFloat = 56
+        return contentMargins(.bottom, fade, for: .scrollContent)
+            .mask {
+                VStack(spacing: 0) {
+                    Color.black
+                    LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
+                        .frame(height: fade)
+                }
+                .ignoresSafeArea(edges: .top)
+            }
+    }
+}
+
 private extension View {
     /// Liquid Glass from iOS 26, frosted material before it, so the names stay legible over the cards.
     @ViewBuilder
@@ -73,6 +104,12 @@ private struct PageSwipe: ViewModifier {
     @State private var direction: (start: CGPoint, isSideways: Bool)?
     /// Goes back to false however the drag stops, including when the system cancels it.
     @GestureState private var isDragging = false
+    /// The finger has moved sideways further than a tap's wobble.
+    @GestureState private var isMoving = false
+    /// Taps on the cards are ignored while this is on: a finger lifted at the end of a
+    /// swipe would otherwise open the card it ends on. Stays on a moment after the drag
+    /// stops, as the card's tap and the drag's end come with the same lift of the finger.
+    @State private var holdsTaps = false
     @Environment(\.layoutDirection) private var layoutDirection
 
     /// A drag's sideways distance toward the trailing side. The finger moves on the screen,
@@ -82,7 +119,16 @@ private struct PageSwipe: ViewModifier {
     }
 
     func body(content: Content) -> some View {
-        content.simultaneousGesture(
+        content
+            .environment(\.isPageSwiping, holdsTaps)
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 10).updating($isMoving) { value, isMoving, _ in
+                    // An upright drag scrolls, and the scroll view already cancels taps for it.
+                    if abs(value.translation.width) >= abs(value.translation.height) { isMoving = true }
+                },
+                isEnabled: isEnabled
+            )
+            .simultaneousGesture(
             DragGesture(minimumDistance: 24)
                 .updating($isDragging) { _, isDragging, _ in isDragging = true }
                 .onChanged { value in
@@ -109,10 +155,24 @@ private struct PageSwipe: ViewModifier {
         .onChange(of: isDragging) { _, isDragging in
             if !isDragging { onEnd(0) }
         }
+        .task(id: isMoving) {
+            if isMoving {
+                holdsTaps = true
+            } else if holdsTaps {
+                try? await Task.sleep(for: .seconds(0.15))
+                // Unless a new drag cancelled the wait.
+                if !Task.isCancelled { holdsTaps = false }
+            }
+        }
         // Searching turns the swipe off, perhaps in the middle of one.
         .onChange(of: isEnabled) { _, _ in
             direction = nil
             onEnd(0)
         }
     }
+}
+
+extension EnvironmentValues {
+    /// A finger is swiping across the cards, so a tap they get is part of the swipe.
+    @Entry var isPageSwiping = false
 }

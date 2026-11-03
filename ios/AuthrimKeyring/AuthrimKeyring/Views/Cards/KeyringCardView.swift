@@ -78,12 +78,13 @@ struct KeyringCardView<Detail: View>: View {
     @ViewBuilder let detail: () -> Detail
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.isPageSwiping) private var isPageSwiping
 
     private let cornerRadius: CGFloat = 18
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Button(action: onToggle) { header }
+            Button { if !isPageSwiping { onToggle() } } label: { header }
                 .buttonStyle(.plain)
                 .accessibilityElement(children: .combine)
                 .accessibilityHint(isExpanded ? Text("Double-tap to hide the details.") : Text("Double-tap to show the details."))

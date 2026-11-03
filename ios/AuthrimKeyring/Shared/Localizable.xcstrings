@@ -1802,6 +1802,16 @@
         }
       }
     },
+    "Issuer confirmed by you" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "あなたが確認した発行元"
+          }
+        }
+      }
+    },
     "Keep Copies in iCloud" : {
       "localizations" : {
         "ja" : {
@@ -2318,7 +2328,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "このiPhoneに保存（iCloud同期をオンにすると同期）"
+            "value" : "このiPhoneに保存\n（iCloud同期をオンにすると同期）"
           }
         }
       }
@@ -4144,6 +4154,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@が確認済み"
+          }
+        }
+      }
+    },
+    "Verified issuer" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認済みの発行元"
           }
         }
       }

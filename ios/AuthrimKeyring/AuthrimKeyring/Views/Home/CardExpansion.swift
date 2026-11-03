@@ -23,31 +23,33 @@ final class CardExpansion {
         revealedID = nil
     }
 
-    /// Moves the cards toward `requestedID`, one step at a time: details fade out,
-    /// a short pause, the card resizes, a short pause, details fade in. Taps during a
-    /// transition only change `requestedID`, so every step still runs in order. The
-    /// steps follow a fixed schedule because animation completion callbacks can arrive late.
+    /// Moves the cards toward `requestedID`, one step at a time: details fade out, the
+    /// card resizes, and details fade in as it settles. Taps during a transition only
+    /// change `requestedID`, so every step still runs in order. The steps follow a fixed
+    /// schedule because animation completion callbacks can arrive late.
     private func settle(reduceMotion: Bool) async {
         isTransitioning = true
         defer { isTransitioning = false }
 
-        let resizeDuration = reduceMotion ? 0.12 : 0.2
-        // No bounce, so the card is at rest by the time the details fade in.
+        let resizeDuration = reduceMotion ? 0.12 : 0.34
+        // No bounce, so the card is at rest by the time the details are fully in.
         let resizeAnimation: Animation = reduceMotion
             ? .easeInOut(duration: resizeDuration)
             : .smooth(duration: resizeDuration)
-        let fadeInDuration = 0.14
-        let fadeOutDuration = 0.08
-        let pause = 0.05
+        let fadeInDuration = reduceMotion ? 0.14 : 0.26
+        let fadeOutDuration = reduceMotion ? 0.08 : 0.14
+        // The details start to fade in as the card slows to its full size, so opening
+        // reads as one movement rather than two.
+        let fadeInLead = reduceMotion ? 0 : resizeDuration * 0.35
 
         while expandedID != requestedID || revealedID != requestedID {
             if revealedID != nil, revealedID != requestedID {
                 withAnimation(.easeIn(duration: fadeOutDuration)) { revealedID = nil }
-                try? await Task.sleep(for: .seconds(fadeOutDuration + pause))
+                try? await Task.sleep(for: .seconds(fadeOutDuration))
             } else if expandedID != requestedID {
                 withAnimation(resizeAnimation) { expandedID = requestedID }
                 if requestedID != nil {
-                    try? await Task.sleep(for: .seconds(resizeDuration + pause))
+                    try? await Task.sleep(for: .seconds(resizeDuration - fadeInLead))
                 }
             } else {
                 withAnimation(.easeOut(duration: fadeInDuration)) { revealedID = requestedID }

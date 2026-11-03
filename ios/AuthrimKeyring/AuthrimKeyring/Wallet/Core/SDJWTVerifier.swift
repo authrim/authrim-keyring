@@ -30,6 +30,8 @@ nonisolated enum SDJWTVerifier {
     static let hiddenClaims: Set<String> = ["_sd", "_sd_alg", "cnf", "status", "iss", "vct", "iat", "exp"]
     static let maxIssuedAtSkew: TimeInterval = 300
     static let maxDisclosures = 64
+    static let maxDisplayedClaims = 64
+    static let maxClaimValueLength = 1_000
     /// Claims that must stay in the signed payload and never be selectively disclosed (SD-JWT VC 3.2.2.2).
     static let neverDisclosed: Set<String> = ["iss", "nbf", "exp", "iat", "cnf", "vct", "status", "_sd", "_sd_alg", "..."]
 
@@ -82,11 +84,16 @@ nonisolated enum SDJWTVerifier {
         if payload["_sd_alg"] != nil, !(payload["_sd_alg"] is String) { throw fail("Unsupported disclosure digest algorithm.") }
 
         let disclosed = try disclosedClaims(parsed.disclosures, payload: payload)
+        // Names and values are shown on screen: strip control and format characters (bidi overrides
+        // included) and bound their length and count, the same way issuer metadata text is treated.
         var claims: [String: String] = [:]
-        for (name, value) in payload where !hiddenClaims.contains(name) { claims[name] = display(value) }
-        for (name, value) in disclosed {
-            guard claims[name] == nil, !hiddenClaims.contains(name) else { throw fail("A disclosure repeats a claim.") }
-            claims[name] = display(value)
+        let shown = payload.filter { !hiddenClaims.contains($0.key) }.map { ($0.key, $0.value) }
+        for (rawName, value) in shown + disclosed {
+            guard !hiddenClaims.contains(rawName) else { throw fail("A disclosure repeats a claim.") }
+            guard let name = IssuerMetadata.sanitize(rawName) else { throw fail("A claim has no displayable name.") }
+            guard claims[name] == nil else { throw fail("A disclosure repeats a claim.") }
+            guard claims.count < maxDisplayedClaims else { throw fail("The credential has too many claims.") }
+            claims[name] = displayText(value)
         }
         return VerifiedCredential(issuedAt: issuedAt, expiresAt: Date(timeIntervalSince1970: exp), claims: claims)
     }
@@ -150,6 +157,12 @@ nonisolated enum SDJWTVerifier {
     private static func number(_ value: Any?) -> TimeInterval? {
         guard let number = value as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID() else { return nil }
         return number.doubleValue
+    }
+
+    /// `display` without control or format characters, bounded for the screen.
+    static func displayText(_ value: Any) -> String {
+        let text = String(display(value).unicodeScalars.filter { !CharacterSet.controlCharacters.contains($0) })
+        return String(text.prefix(maxClaimValueLength))
     }
 
     /// A claim value as text for the card: strings as they are, other JSON as compact JSON.

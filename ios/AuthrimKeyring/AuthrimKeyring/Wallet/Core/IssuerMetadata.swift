@@ -22,21 +22,34 @@ nonisolated enum IssuerMetadata {
     /// Inserts `/.well-known/<suffix>` between host and path (RFC 8615, OpenID4VCI 12.2.2, RFC 8414 3.1).
     static func wellKnownURL(for identifier: URL, suffix: String) -> URL? {
         guard var components = URLComponents(url: identifier, resolvingAgainstBaseURL: false) else { return nil }
-        var path = components.path
+        // Keep the identifier's encoding: `%3A` and `:` need not name the same resource (RFC 3986 2.2).
+        var path = components.percentEncodedPath
         if path == "/" { path = "" }
-        components.path = "/.well-known/\(suffix)" + path
+        components.percentEncodedPath = "/.well-known/\(suffix)" + path
         components.query = nil
         components.fragment = nil
         return components.url
     }
 
-    /// The issuer identifier must be an https URL without query, fragment or user info.
+    /// The issuer identifier must be an https URL without query, fragment or user info, and its path
+    /// must already be normalized (no empty, `.` or `..` segments, encoded or not), so the well-known
+    /// URL built from it names the same path the identifier does.
     static func issuerURL(_ text: String) throws -> URL {
         guard let url = URL(string: text), let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
               components.query == nil, components.fragment == nil,
-              (try? WalletHTTP.requireHTTPS(url, "The issuer")) != nil
+              (try? WalletHTTP.requireHTTPS(url, "The issuer")) != nil,
+              isNormalizedPath(components.percentEncodedPath)
         else { throw WalletError.invalidIssuer("The credential issuer is not a valid https identifier.") }
         return url
+    }
+
+    private static func isNormalizedPath(_ path: String) -> Bool {
+        if path.isEmpty || path == "/" { return true }
+        guard path.hasPrefix("/") else { return false }
+        return path.dropFirst().split(separator: "/", omittingEmptySubsequences: false).allSatisfy { segment in
+            let decoded = segment.removingPercentEncoding ?? String(segment)
+            return !decoded.isEmpty && decoded != "." && decoded != ".." && !decoded.contains("/")
+        }
     }
 
     /// Fetches and validates everything the wallet needs for the offer. `preferredLanguages` orders display names.
@@ -110,7 +123,9 @@ nonisolated enum IssuerMetadata {
 
     /// nil when the configuration is not dc+sd-jwt / ES256 / jwk binding.
     private static func configuration(id: String, raw: [String: Any], languages: [String]) -> VerifiedConfiguration? {
-        guard (raw["format"] as? String) == "dc+sd-jwt", let vct = raw["vct"] as? String, !vct.isEmpty,
+        // vct is shown verbatim on the detail screen, so it must already be clean display text.
+        guard (raw["format"] as? String) == "dc+sd-jwt", let vct = raw["vct"] as? String,
+              sanitize(vct, maxLength: 512) == vct,
               (raw["cryptographic_binding_methods_supported"] as? [String])?.contains("jwk") == true,
               (raw["credential_signing_alg_values_supported"] as? [Any])?.contains(where: { ($0 as? String) == "ES256" }) == true,
               let proofTypes = raw["proof_types_supported"] as? [String: Any],
@@ -149,9 +164,11 @@ nonisolated enum IssuerMetadata {
     }
 
     /// Issuer-supplied text is shown to the user: drop control characters, cap the length.
-    static func sanitize(_ text: String) -> String? {
+    static func sanitize(_ text: String) -> String? { sanitize(text, maxLength: 120) }
+
+    static func sanitize(_ text: String, maxLength: Int) -> String? {
         let cleaned = String(text.unicodeScalars.filter { !CharacterSet.controlCharacters.contains($0) })
             .trimmingCharacters(in: .whitespaces)
-        return cleaned.isEmpty ? nil : String(cleaned.prefix(120))
+        return cleaned.isEmpty ? nil : String(cleaned.prefix(maxLength))
     }
 }

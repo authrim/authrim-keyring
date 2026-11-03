@@ -26,6 +26,26 @@ struct WalletSDJWTTests {
         #expect(try SDJWTVerifier.keyID(of: ParsedSDJWT(issuer.sdJwt(holder: holder.publicJWK))) == "key-1")
     }
 
+    @Test func claimTextIsSanitizedForDisplay() throws {
+        var options = TestIssuer.Options()
+        options.extraPayload = ["role": "admin\u{202E}nimda\u{0007}", "note": String(repeating: "x", count: 5_000)]
+        let result = try verify(try issuer.sdJwt(holder: holder.publicJWK, options))
+        #expect(result.claims["role"] == "adminnimda")
+        #expect(result.claims["note"]?.count == SDJWTVerifier.maxClaimValueLength)
+    }
+
+    @Test func claimNamesThatCollideAfterSanitizingAreRejected() throws {
+        var options = TestIssuer.Options()
+        options.extraPayload = ["sub\u{200B}": "other"]
+        rejects(try issuer.sdJwt(holder: holder.publicJWK, options))
+    }
+
+    @Test func tooManyClaimsAreRejected() throws {
+        var options = TestIssuer.Options()
+        options.extraPayload = Dictionary(uniqueKeysWithValues: (0..<SDJWTVerifier.maxDisplayedClaims).map { ("c\($0)", "v") })
+        rejects(try issuer.sdJwt(holder: holder.publicJWK, options))
+    }
+
     @Test func badSignature() throws {
         var options = TestIssuer.Options()
         options.signWith = P256.Signing.PrivateKey()

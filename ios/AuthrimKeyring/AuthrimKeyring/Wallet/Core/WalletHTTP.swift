@@ -45,12 +45,52 @@ nonisolated final class WalletHTTP: Sendable {
 
     // MARK: URL rules
 
-    /// https, a host, no user info; returns the validated URL.
+    /// https, a public host, no user info; returns the validated URL. Offers arrive from links and QR
+    /// codes, so a hostile offer must not make the phone call into its local network.
     static func requireHTTPS(_ url: URL, _ what: String) throws -> URL {
         guard url.scheme?.lowercased() == "https", let host = url.host, !host.isEmpty,
               url.user == nil, url.password == nil
         else { throw WalletError.network("\(what) must be an https URL.") }
+        guard isPublicHost(host) else { throw WalletError.network("\(what) must be a public host.") }
         return url
+    }
+
+    /// False for local names and for loopback, private, link-local, CGNAT, unique-local and
+    /// unspecified IP literals (IPv4-mapped IPv6 included).
+    static func isPublicHost(_ host: String) -> Bool {
+        let name = host.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "[]."))
+        if name == "localhost" || [".localhost", ".local", ".internal", ".home.arpa"].contains(where: name.hasSuffix) {
+            return false
+        }
+        if let v4 = ipv4(name) { return isPublicIPv4(v4) }
+        guard name.contains(":") else { return true }
+        var address = in6_addr()
+        guard inet_pton(AF_INET6, name, &address) == 1 else { return false }
+        let bytes = withUnsafeBytes(of: &address) { Array($0) }
+        if bytes[0..<10].allSatisfy({ $0 == 0 }), bytes[10] == 0xff, bytes[11] == 0xff {
+            return isPublicIPv4(Array(bytes[12..<16]))
+        }
+        if bytes[0..<15].allSatisfy({ $0 == 0 }) { return false }  // :: and ::1
+        if bytes[0] & 0xfe == 0xfc { return false }  // fc00::/7
+        if bytes[0] == 0xfe, bytes[1] & 0xc0 == 0x80 { return false }  // fe80::/10
+        return true
+    }
+
+    private static func ipv4(_ name: String) -> [UInt8]? {
+        // inet_aton also takes the short and numeric forms ("127.1", "2130706433") resolvers accept.
+        var address = in_addr()
+        guard inet_aton(name, &address) == 1 else { return nil }
+        return withUnsafeBytes(of: &address) { Array($0) }
+    }
+
+    private static func isPublicIPv4(_ b: [UInt8]) -> Bool {
+        switch (b[0], b[1]) {
+        case (0, _), (10, _), (127, _): return false
+        case (100, 64...127): return false
+        case (169, 254), (192, 168): return false
+        case (172, 16...31): return false
+        default: return true
+        }
     }
 
     /// Scheme, host (case-insensitive) and effective port all match.

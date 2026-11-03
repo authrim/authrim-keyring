@@ -59,6 +59,8 @@ struct WalletIssuanceTests {
         "openid-credential-offer://?credential_offer_uri=http%3A%2F%2Fissuer.example.com%2Foffer",
         "openid-credential-offer://?credential_offer_uri=https%3A%2F%2Fa.example%2Fo&credential_offer=%7B%7D",
         "haip-vci://?credential_offer_uri=https%3A%2F%2Fa.example%2Fo",
+        "openid-credential-offer://?credential_offer_uri=https%3A%2F%2F192.168.1.10%2Fo",
+        "openid-credential-offer://?credential_offer_uri=https%3A%2F%2Frouter.local%2Fo",
         "",
     ])
     func invalidOffers(text: String) {
@@ -96,10 +98,36 @@ struct WalletIssuanceTests {
         #expect(preview.transactionCode == nil)
     }
 
+    @Test(arguments: [
+        "localhost", "printer.local", "db.internal", "127.0.0.1", "127.1", "2130706433", "10.0.0.8",
+        "172.20.1.1", "192.168.0.1", "169.254.169.254", "100.64.0.1", "0.0.0.0", "[::1]", "[fe80::1]",
+        "[fd00::1]", "[::ffff:192.168.0.1]",
+    ])
+    func rejectsNonPublicHosts(host: String) {
+        #expect(throws: WalletError.self) { try WalletHTTP.requireHTTPS(URL(string: "https://\(host)/x")!, "The URL") }
+    }
+
+    @Test func acceptsPublicHosts() throws {
+        for host in ["issuer.example.com", "8.8.8.8", "[2001:db8::1]", "172.32.0.1"] {
+            _ = try WalletHTTP.requireHTTPS(URL(string: "https://\(host)/x")!, "The URL")
+        }
+    }
+
+    @Test(arguments: [
+        "https://host.example/a/../b", "https://host.example/a/./b", "https://host.example/a//b",
+        "https://host.example/a/%2e%2e/b", "https://host.example/a/", "https://host.example/a%2Fb",
+    ])
+    func rejectsNonNormalizedIssuerPaths(identifier: String) {
+        #expect(throws: WalletError.self) { try IssuerMetadata.issuerURL(identifier) }
+    }
+
     @Test func pathInsertedWellKnown() {
         let url = URL(string: "https://host.example/tenant/a")!
         #expect(IssuerMetadata.wellKnownURL(for: url, suffix: "openid-credential-issuer")?.absoluteString == "https://host.example/.well-known/openid-credential-issuer/tenant/a")
         #expect(IssuerMetadata.wellKnownURL(for: URL(string: "https://host.example")!, suffix: "jwt-vc-issuer")?.absoluteString == "https://host.example/.well-known/jwt-vc-issuer")
+        #expect(IssuerMetadata.wellKnownURL(for: URL(string: "https://host.example/a%3Ab")!, suffix: "openid-credential-issuer")?.absoluteString == "https://host.example/.well-known/openid-credential-issuer/a%3Ab")
+        let longVct = "https://issuer.example.com/vct/" + String(repeating: "a", count: 200)
+        #expect(IssuerMetadata.sanitize(longVct, maxLength: 512) == longVct)
     }
 
     @Test func rejectsIssuerMismatch() async {

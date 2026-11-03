@@ -15,8 +15,9 @@ extension StoredCredential {
     /// The name and email, when the credential has them, for the one-line summary on a card.
     var summary: String? {
         let wanted = ["name", "email"]
+        // In a fixed order, so a credential with both "Name" and "name" shows the same one each time.
         let values = wanted.compactMap { key in
-            claims.first { $0.key.lowercased() == key }?.value
+            sortedClaims.first { $0.name.lowercased() == key }?.value
         }
         return values.isEmpty ? nil : values.joined(separator: " · ")
     }

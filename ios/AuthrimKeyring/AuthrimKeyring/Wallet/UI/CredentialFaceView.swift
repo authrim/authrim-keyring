@@ -81,14 +81,18 @@ struct CredentialFaceView: View {
         }
     }
 
-    /// The holder's name, which leads the card as it does on an ID card.
-    private var holder: String? {
-        credential.claims.first { $0.key.lowercased() == "name" }?.value
+    /// The holder's name, which leads the card as it does on an ID card. Picked the same
+    /// way each time, and left among the other claims when there are several to choose from.
+    private var holderClaim: (name: String, value: String)? {
+        let names = credential.sortedClaims.filter { $0.name.lowercased() == "name" }
+        return names.count == 1 ? names[0] : nil
     }
+
+    private var holder: String? { holderClaim?.value }
 
     /// The claims below the name; the full list is further down the screen.
     private var otherClaims: [(name: String, value: String)] {
-        Array(credential.sortedClaims.filter { $0.name.lowercased() != "name" }.prefix(3))
+        Array(credential.sortedClaims.filter { $0.name != holderClaim?.name }.prefix(3))
     }
 
     @ViewBuilder

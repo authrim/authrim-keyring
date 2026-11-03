@@ -50,6 +50,7 @@ struct EditAccountView: View {
                         title: edited.displayTitle,
                         subtitle: edited.displaySubtitle,
                         kind: "2FA",
+                        kindSymbol: edited.kind.isTimeBased ? "clock" : "number",
                         isFavorite: isFavorite,
                         isExpanded: false,
                         isDetailVisible: false,

@@ -9,6 +9,7 @@ struct RootView: View {
     @Environment(WalletModel.self) private var wallet
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @AppStorage(DemoMode.key) private var isDemoModeOn = false
     /// Credentials another app offered, shown once the app is unlocked.
     @State private var credentialImport: CredentialImportRequest?
 
@@ -44,9 +45,14 @@ struct RootView: View {
         }
         // A credential offer opened from a link waits here until the app is unlocked.
         .onOpenURL { wallet.handle(url: $0) }
-        .sheet(item: unlockedOffer) { CredentialOfferSheet(offer: $0.text) }
+        // In Demo Mode what arrives would go with the made-up cards, so it is not taken.
+        .sheet(item: unlockedOffer) { offer in
+            if isDemoModeOn { DemoModeAddNotice() } else { CredentialOfferSheet(offer: offer.text) }
+        }
         .sheet(item: unlockedCredentialImport) { request in
-            if #available(iOS 26, *) {
+            if isDemoModeOn {
+                DemoModeAddNotice()
+            } else if #available(iOS 26, *) {
                 CredentialImportView(token: request.id) { credentialImport = nil }
             }
         }

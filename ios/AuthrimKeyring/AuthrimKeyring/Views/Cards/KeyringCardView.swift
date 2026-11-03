@@ -69,6 +69,8 @@ struct KeyringCardView<Detail: View>: View {
     let title: String
     let subtitle: String?
     let kind: LocalizedStringKey
+    /// The SF Symbol that stands for `kind` on the monogram.
+    let kindSymbol: String
     var isFavorite = false
     let isExpanded: Bool
     let isDetailVisible: Bool
@@ -147,10 +149,11 @@ struct KeyringCardView<Detail: View>: View {
                 }
             } else {
                 HStack(spacing: 12) {
-                    Monogram(text: title, outline: appearance.foreground.opacity(0.5))
+                    // The kind is a small mark on the monogram, so the names get the width.
+                    Monogram(text: title, outline: appearance.foreground.opacity(0.5), symbol: kindSymbol)
+                        .accessibilityLabel(Text(kind))
                     names(lineLimit: 1)
                     Spacer(minLength: 8)
-                    badge
                     chevron
                 }
             }
@@ -228,17 +231,37 @@ struct GlassCardFace<S: InsettableShape>: View {
     }
 }
 
+/// The first letter in a circle, with the kind of card as a symbol at its lower corner.
 private struct Monogram: View {
     let text: String
     let outline: Color
+    let symbol: String
     /// Grows with the letter inside it.
     @ScaledMetric(relativeTo: .headline) private var diameter: CGFloat = 40
+    @ScaledMetric(relativeTo: .headline) private var markSize: CGFloat = 22
 
     var body: some View {
         Text(text.first.map { String($0).uppercased() } ?? "?")
             .font(.headline)
             .frame(width: diameter, height: diameter)
-            .overlay { Circle().strokeBorder(outline, lineWidth: 1.5) }
-            .accessibilityHidden(true)
+            .overlay {
+                // Broken where the symbol sits, which then stands on the card itself.
+                Circle().strokeBorder(outline, lineWidth: 1.5)
+                    .mask {
+                        Rectangle()
+                            .overlay(alignment: .bottomTrailing) { mark { Circle().blendMode(.destinationOut) } }
+                            .compositingGroup()
+                    }
+            }
+            .overlay(alignment: .bottomTrailing) {
+                mark { Image(systemName: symbol).font(.system(size: markSize * 0.72, weight: .regular)) }
+            }
+    }
+
+    /// Places `content` over the lower corner of the circle.
+    private func mark(@ViewBuilder _ content: () -> some View) -> some View {
+        content()
+            .frame(width: markSize, height: markSize)
+            .offset(x: markSize * 0.25, y: markSize * 0.25)
     }
 }

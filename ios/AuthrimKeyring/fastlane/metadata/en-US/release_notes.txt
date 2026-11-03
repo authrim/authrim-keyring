@@ -1,5 +1,6 @@
-- Favorites and tags: star the cards you use most to keep them on top, and swipe the home screen to switch between your favorites and the other cards. Sort by name or by when you added them.
+- Favorites and tags: star the cards you use most to keep them on top, and swipe the home screen to switch between credentials, passkeys and two-factor codes, or between your favorites and the rest. Sort by name or by when you added them.
 - Search now finds cards by their websites and tags too.
 - Counter-based (HOTP) and Steam Guard codes, and periods other than 30 or 60 seconds.
 - Move in more easily: on iOS 26, import codes and passkeys from apps that support the system's export, such as Passwords. Bitwarden and Ente Auth export files work too.
 - Move out just as easily: export your codes and passkeys to another app on iOS 26.
+- Demo Mode: show the app to someone with made-up cards instead of your own.

@@ -418,6 +418,7 @@
       }
     },
     "All Cards" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -1197,6 +1198,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "「%@」のパスキーを削除しますか？"
+          }
+        }
+      }
+    },
+    "Demo" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デモ"
+          }
+        }
+      }
+    },
+    "Demo Mode" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デモモード"
+          }
+        }
+      }
+    },
+    "Demo Mode Is On" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デモモードがオンです"
+          }
+        }
+      }
+    },
+    "Demo Mode is on. Turn it off in Settings to receive credentials." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デモモードがオンです。資格情報を受け取るには、設定でオフにしてください。"
           }
         }
       }
@@ -2072,6 +2113,7 @@
       }
     },
     "No Cards Tagged “%@”" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -2894,6 +2936,7 @@
       }
     },
     "Show" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -2914,6 +2957,7 @@
       }
     },
     "Show All Cards" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -2969,6 +3013,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "チュートリアルを表示"
+          }
+        }
+      }
+    },
+    "Shows made-up passkeys, codes and credentials in place of yours, to show the app to someone. Your own are kept as they are. While it is on, adding, sync and backups are turned off." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "あなたのデータの代わりに、架空のパスキー、コード、資格情報を表示します。人にアプリを見せるときに使えます。あなたのデータはそのまま残ります。オンの間は、追加、同期、バックアップは使えません。"
           }
         }
       }
@@ -3044,6 +3098,7 @@
       }
     },
     "Sort and Filter" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -3153,12 +3208,12 @@
         }
       }
     },
-    "Swipe left or right to switch between your favorites and the other cards. In Settings you can switch by kind instead, and change the order." : {
+    "Swipe left or right to switch between credentials, passkeys and two-factor codes. In Settings you can switch between your favorites and the others instead, and change the order." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "左右にスワイプすると、お気に入りとそれ以外のカードを切り替えられます。設定では、種類ごとの切り替えや、並び順も変えられます。"
+            "value" : "左右にスワイプすると、資格情報、パスキー、2段階認証のコードを切り替えられます。設定では、お気に入りとそれ以外の切り替えや、並び順も変えられます。"
           }
         }
       }
@@ -3889,6 +3944,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "もう一度お試しください。それでも失敗する場合は、管理コンソールで新しいオファーを作成してください。"
+          }
+        }
+      }
+    },
+    "Turn off Demo Mode in Settings to add your own." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自分のデータを追加するには、設定でデモモードをオフにしてください。"
           }
         }
       }

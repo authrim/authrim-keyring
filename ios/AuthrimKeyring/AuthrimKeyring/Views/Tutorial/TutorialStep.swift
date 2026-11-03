@@ -36,7 +36,7 @@ struct TutorialStep: Identifiable {
             id: 3,
             target: .cards,
             title: "Swipe Between Pages",
-            message: "Swipe left or right to switch between your favorites and the other cards. In Settings you can switch by kind instead, and change the order."
+            message: "Swipe left or right to switch between credentials, passkeys and two-factor codes. In Settings you can switch between your favorites and the others instead, and change the order."
         ),
         TutorialStep(
             id: 4,

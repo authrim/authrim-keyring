@@ -6,53 +6,113 @@ struct HomePageBar: View {
     let pages: [HomePage]
     let current: HomePage
     let onSelect: (HomePage) -> Void
+    @Namespace private var marker
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 2) {
             ForEach(pages) { page in
                 let isCurrent = page == current
                 Button { onSelect(page) } label: {
                     Text(page.title)
                         .font(.subheadline.weight(isCurrent ? .semibold : .regular))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
+                        .lineLimit(1)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
                         .background {
-                            if isCurrent { Capsule().fill(.regularMaterial) }
+                            // Slides to the new page along with the cards, unless motion is reduced.
+                            if isCurrent && reduceMotion {
+                                Capsule().fill(.fill)
+                            } else if isCurrent {
+                                Capsule().fill(.fill).matchedGeometryEffect(id: "current", in: marker)
+                            }
                         }
                         .contentShape(.capsule)
                 }
                 .buttonStyle(.plain)
                 .opacity(isCurrent ? 1 : 0.7)
                 .accessibilityAddTraits(isCurrent ? .isSelected : [])
+                .accessibilityShowsLargeContentViewer()
             }
-            Spacer(minLength: 0)
+        }
+        .padding(4)
+        .pageBarBackground()
+        // Kept to one row, as a tab bar is; touching and holding a name shows it larger.
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+    }
+}
+
+private extension View {
+    /// Liquid Glass from iOS 26, frosted material before it, so the names stay legible over the cards.
+    @ViewBuilder
+    func pageBarBackground() -> some View {
+        if #available(iOS 26, *) {
+            glassEffect(.regular, in: .capsule)
+        } else {
+            background(.regularMaterial, in: .capsule)
         }
     }
 }
 
 extension View {
-    /// Calls `action` with +1 for a swipe toward the next page and -1 toward the previous one.
-    /// Mostly sideways movement only, so vertical scrolling stays with the scroll view.
-    func onPageSwipe(isEnabled: Bool, _ action: @escaping (Int) -> Void) -> some View {
-        modifier(PageSwipe(isEnabled: isEnabled, action: action))
+    /// Mostly sideways drags only, so vertical scrolling stays with the scroll view.
+    /// `onDrag` gets how far the finger has moved toward the trailing side; `onEnd` gets +1 to turn to
+    /// the page after, -1 to the page before, or 0 to stay, as when a drag is too short,
+    /// turns into scrolling, or is cancelled.
+    func onPageSwipe(isEnabled: Bool, onDrag: @escaping (CGFloat) -> Void, onEnd: @escaping (Int) -> Void) -> some View {
+        modifier(PageSwipe(isEnabled: isEnabled, onDrag: onDrag, onEnd: onEnd))
     }
 }
 
 private struct PageSwipe: ViewModifier {
     let isEnabled: Bool
-    let action: (Int) -> Void
+    let onDrag: (CGFloat) -> Void
+    let onEnd: (Int) -> Void
+    /// Decided at the start of each drag, which is told apart by where it started:
+    /// sideways, or left to the scroll view.
+    @State private var direction: (start: CGPoint, isSideways: Bool)?
+    /// Goes back to false however the drag stops, including when the system cancels it.
+    @GestureState private var isDragging = false
     @Environment(\.layoutDirection) private var layoutDirection
+
+    /// A drag's sideways distance toward the trailing side. The finger moves on the screen,
+    /// while offsets follow the layout, which is mirrored when it runs right to left.
+    private func trailingward(_ width: CGFloat) -> CGFloat {
+        layoutDirection == .rightToLeft ? -width : width
+    }
 
     func body(content: Content) -> some View {
         content.simultaneousGesture(
-            DragGesture(minimumDistance: 24).onEnded { value in
-                let across = value.translation.width
-                guard abs(across) > 60, abs(across) > abs(value.translation.height) * 1.5 else { return }
-                // A leftward swipe brings in the next page, unless the layout runs right to left.
-                let isLeftward = across < 0
-                action(isLeftward == (layoutDirection == .leftToRight) ? 1 : -1)
-            },
+            DragGesture(minimumDistance: 24)
+                .updating($isDragging) { _, isDragging, _ in isDragging = true }
+                .onChanged { value in
+                    if direction?.start != value.startLocation {
+                        direction = (value.startLocation, abs(value.translation.width) > abs(value.translation.height) * 1.5)
+                    }
+                    if direction?.isSideways == true {
+                        onDrag(trailingward(value.translation.width))
+                    }
+                }
+                .onEnded { value in
+                    guard direction?.start == value.startLocation, direction?.isSideways == true else { return }
+                    // A quick flick turns the page too, though the finger moved only a little.
+                    let across = trailingward(abs(value.predictedEndTranslation.width) > abs(value.translation.width)
+                        ? value.predictedEndTranslation.width
+                        : value.translation.width)
+                    // A drag that turned into scrolling does not turn the page.
+                    let isStillSideways = abs(value.translation.width) > abs(value.translation.height) * 1.5
+                    // Toward the leading side brings in the page after, as the pages lie in the bar.
+                    onEnd(abs(across) > 80 && isStillSideways ? (across < 0 ? 1 : -1) : 0)
+                },
             isEnabled: isEnabled
         )
+        .onChange(of: isDragging) { _, isDragging in
+            if !isDragging { onEnd(0) }
+        }
+        // Searching turns the swipe off, perhaps in the middle of one.
+        .onChange(of: isEnabled) { _, _ in
+            direction = nil
+            onEnd(0)
+        }
     }
 }

@@ -6,14 +6,13 @@ struct CredentialCardView: View {
     let credential: StoredCredential
     let onOpen: () -> Void
 
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     private let cornerRadius: CGFloat = 18
 
     var body: some View {
         Button(action: onOpen) {
             HStack(alignment: .top, spacing: 12) {
+                // No kind badge: the card itself reads as a credential, under its heading.
                 VStack(alignment: .leading, spacing: 4) {
-                    if dynamicTypeSize.isAccessibilitySize { badges }
                     Text(credential.credentialName)
                         .font(.headline)
                     Text(credential.issuer.walletHost)
@@ -25,7 +24,6 @@ struct CredentialCardView: View {
                     expiry
                 }
                 Spacer(minLength: 8)
-                if !dynamicTypeSize.isAccessibilitySize { badges }
                 Image(systemName: "chevron.right")
                     .font(.footnote.weight(.semibold))
                     .opacity(0.8)
@@ -70,16 +68,6 @@ struct CredentialCardView: View {
                     .opacity(0.85)
             }
         }
-    }
-
-    private var badges: some View {
-        Text("Credential")
-            .font(.caption2.weight(.semibold))
-            .lineLimit(1)
-            .fixedSize()
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .overlay { Capsule().strokeBorder(appearance.foreground.opacity(0.5)) }
     }
 }
 

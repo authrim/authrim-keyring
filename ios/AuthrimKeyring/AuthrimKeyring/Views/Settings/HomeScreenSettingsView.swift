@@ -3,7 +3,7 @@ import SwiftUI
 /// What swiping on the home screen moves between, and how the cards are ordered.
 struct HomeScreenSettingsView: View {
     @Environment(AccountStore.self) private var store
-    @AppStorage("homePaging") private var paging = HomePaging.favorites
+    @AppStorage("homePaging") private var paging = HomePaging.kinds
     @AppStorage("homeSort") private var sort = HomeSort.custom
 
     var body: some View {

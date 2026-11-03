@@ -15,6 +15,7 @@ struct RecoveryCodesView: View {
     #endif
     @State private var isAdding = false
     @State private var copiedID: UUID?
+    @AppStorage(DemoMode.key) private var isDemoModeOn = false
 
     private var details: AccountDetails { store.details(for: accountID) }
 
@@ -69,15 +70,24 @@ struct RecoveryCodesView: View {
             }
         }
         .sheet(isPresented: $isAdding) {
-            AddRecoveryCodesView { text in
-                var updated = details
-                let wasEmpty = updated.recoveryCodes.isEmpty
-                updated.addRecoveryCodes(from: text)
-                store.setDetails(updated)
-                // Only the codes just pasted are known to the user; earlier ones stay hidden.
-                if wasEmpty {
-                    isRevealed = true
-                }
+            // Real codes pasted onto a made-up card would go with it.
+            if isDemoModeOn {
+                DemoModeAddNotice()
+            } else {
+                addCodes
+            }
+        }
+    }
+
+    private var addCodes: some View {
+        AddRecoveryCodesView { text in
+            var updated = details
+            let wasEmpty = updated.recoveryCodes.isEmpty
+            updated.addRecoveryCodes(from: text)
+            store.setDetails(updated)
+            // Only the codes just pasted are known to the user; earlier ones stay hidden.
+            if wasEmpty {
+                isRevealed = true
             }
         }
     }

@@ -9,7 +9,7 @@ YOUR CODES, ONE TAP AWAY
 • Each account is a card. Tap it to see the current code and how long it stays valid.
 • Tap the code to copy it. Copied codes stay on this device and are cleared from the clipboard after 60 seconds.
 • Give each card its own color. The text switches between black and white to stay readable.
-• Star your favorites to keep them on top, swipe to switch between favorites and the rest, and search by name, website, or tag.
+• Star your favorites to keep them on top, swipe to switch between credentials, passkeys, and codes, and search by name, website, or tag.
 
 FILLED IN FOR YOU
 • Turn on Keyring in Settings > General > AutoFill & Passwords, and the code is suggested above the keyboard on the websites you set for each card.

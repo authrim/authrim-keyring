@@ -8,6 +8,7 @@ struct SettingsView: View {
 
     @Environment(WallpaperStore.self) private var wallpaper
     @AppStorage("hasSeenTutorial") private var hasSeenTutorial = false
+    @AppStorage(DemoMode.key) private var isDemoModeOn = false
     @State private var isConfirmingDeleteAll = false
     @State private var isConfirmingSyncOff = false
     @State private var isExporting = false
@@ -54,6 +55,7 @@ struct SettingsView: View {
                     Toggle(isOn: syncBinding) {
                         Label("iCloud Keychain Sync", systemImage: "icloud")
                     }
+                    .disabled(isDemoModeOn)
                 } header: {
                     Text("Sync")
                 } footer: {
@@ -66,6 +68,8 @@ struct SettingsView: View {
                     } label: {
                         Label("AutoFill & Passkeys", systemImage: "key.viewfinder")
                     }
+                    // It lists and changes the rules for the user's own passkeys.
+                    .disabled(isDemoModeOn)
                 } footer: {
                     Text("Passkeys are not included in backup files. Passkeys kept on this iPhone only cannot be moved to another device.")
                 }
@@ -74,12 +78,14 @@ struct SettingsView: View {
                     Button("Export Encrypted Backup", systemImage: "square.and.arrow.up") {
                         isExporting = true
                     }
-                    .disabled(store.accounts.isEmpty)
+                    .disabled(store.accounts.isEmpty || isDemoModeOn)
                     Button("Import Backup", systemImage: "square.and.arrow.down") {
                         isPickingBackup = true
                     }
+                    .disabled(isDemoModeOn)
                     if #available(iOS 26, *) {
                         CredentialExportButton()
+                            .disabled(isDemoModeOn)
                     }
                 } header: {
                     Text("Backup")
@@ -110,7 +116,7 @@ struct SettingsView: View {
                     Button("Delete All Accounts", role: .destructive) {
                         isConfirmingDeleteAll = true
                     }
-                    .disabled(store.items.isEmpty && !hasKeptICloudCopies)
+                    .disabled(store.items.isEmpty && !hasKeptICloudCopies || isDemoModeOn)
                 } header: {
                     Text("Data")
                 } footer: {
@@ -119,6 +125,14 @@ struct SettingsView: View {
                     } else {
                         Text("Secret keys are stored only in this device’s Keychain and are never sent to a server. They do not move to a new device on their own, so turn on iCloud sync or keep an encrypted backup. Also keep the backup codes each service provides.")
                     }
+                }
+
+                Section {
+                    Toggle(isOn: $isDemoModeOn) {
+                        Label("Demo Mode", systemImage: "play.rectangle")
+                    }
+                } footer: {
+                    Text("Shows made-up passkeys, codes and credentials in place of yours, to show the app to someone. Your own are kept as they are. While it is on, adding, sync and backups are turned off.")
                 }
             }
             .navigationTitle("Settings")

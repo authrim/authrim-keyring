@@ -7,6 +7,7 @@ import UniformTypeIdentifiers
 struct AddAccountView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.openURL) private var openURL
 
     @State private var candidate: OTPAccount?
     /// A credential offer the camera found; handed to the wallet instead of the one-time code flow.
@@ -24,6 +25,11 @@ struct AddAccountView: View {
     @State private var isChoosingFile = false
     /// A chosen file or pasted text being read.
     @State private var isReadingImport = false
+    /// A passkey sign-in code for another device being handed to iOS.
+    @State private var isHandingOffSignIn = false
+    @State private var isShowingCameraHint = false
+    /// The camera keeps seeing a code after the hint closes, so it is handed off only once.
+    @State private var handedOffSignIn: URL?
 
     var body: some View {
         NavigationStack {
@@ -112,6 +118,11 @@ struct AddAccountView: View {
             } message: {
                 Text(errorMessage ?? "")
             }
+            .alert("Scan with the Camera App", isPresented: $isShowingCameraHint) {
+                Button("OK") {}
+            } message: {
+                Text("This QR code is for signing in on another device with a passkey. Scan it with the Camera app or the Code Scanner in Control Center, then choose Keyring.")
+            }
             .photosPicker(isPresented: $isPickingPhoto, selection: $photoItem, matching: .images)
             .onChange(of: photoItem) { _, item in
                 guard let item else { return }
@@ -183,6 +194,7 @@ struct AddAccountView: View {
     private var isScanning: Bool {
         candidate == nil && credentialOffer == nil && !isEnteringManually && errorMessage == nil
             && !isPickingPhoto && !isImportingPhoto && !isShowingImported && !isChoosingFile && !isReadingImport
+            && !isHandingOffSignIn && !isShowingCameraHint
     }
 
     private func migrationBanner(_ progress: MigrationProgress) -> some View {
@@ -203,7 +215,12 @@ struct AddAccountView: View {
     }
 
     private func handle(_ payload: String) {
-        guard candidate == nil, credentialOffer == nil, !isEnteringManually, errorMessage == nil, !isShowingImported else { return }
+        guard candidate == nil, credentialOffer == nil, !isEnteringManually, errorMessage == nil, !isShowingImported,
+              !isHandingOffSignIn, !isShowingCameraHint else { return }
+        if let url = HybridSignInLink.url(from: payload) {
+            if url != handedOffSignIn { handOffSignIn(url) }
+            return
+        }
         if CredentialOfferLink.isOffer(payload) {
             credentialOffer = IncomingOffer(text: payload)
             return
@@ -216,6 +233,23 @@ struct AddAccountView: View {
             candidate = try OTPAuthURI.parse(payload)
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Lets iOS sign in on the other device, as the Camera app does with this code.
+    /// If iOS does not take it from an app, the user is pointed to the Camera app.
+    private func handOffSignIn(_ url: URL) {
+        handedOffSignIn = url
+        isHandingOffSignIn = true
+        openURL(url) { accepted in
+            if accepted {
+                // Signing in is not adding an account, so nothing is left to do here.
+                // Scanning stays paused while the sheet closes.
+                dismiss()
+            } else {
+                isHandingOffSignIn = false
+                isShowingCameraHint = true
+            }
         }
     }
 
@@ -291,6 +325,8 @@ struct AddAccountView: View {
     }
 
     private func importPhoto(_ item: PhotosPickerItem) async {
+        // Choosing a photo is a deliberate try, so the same sign-in code is handed off again.
+        handedOffSignIn = nil
         isImportingPhoto = true
         defer {
             isImportingPhoto = false

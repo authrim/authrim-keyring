@@ -2647,6 +2647,16 @@
         }
       }
     },
+    "Scan with the Camera App" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カメラアプリで読み取ってください"
+          }
+        }
+      }
+    },
     "Scanned %lld of %lld codes from Google Authenticator. Scan the next one." : {
       "localizations" : {
         "en" : {
@@ -3569,6 +3579,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "この写真を読み込めませんでした。"
+          }
+        }
+      }
+    },
+    "This QR code is for signing in on another device with a passkey. Scan it with the Camera app or the Code Scanner in Control Center, then choose Keyring." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このQRコードは、ほかのデバイスでパスキーを使ってサインインするためのものです。カメラアプリか、コントロールセンターのコードスキャナーで読み取り、Keyringを選んでください。"
           }
         }
       }

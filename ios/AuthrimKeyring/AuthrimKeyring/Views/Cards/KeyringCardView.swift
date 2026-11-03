@@ -5,6 +5,8 @@ import SwiftUI
 struct CardGlass: Equatable {
     var opacity: Double
     var backdrop: CardColor
+    /// Only an outline, for a closed card that shows the wallpaper.
+    var isClear = false
 }
 
 /// Colors of a card face, with a text color picked for contrast.
@@ -18,6 +20,8 @@ struct CardAppearance: Equatable {
     var warning: Color
     /// Opacity of the color over frosted glass, or nil for a solid card.
     var glassOpacity: Double?
+    /// The card is clear, so the text needs a halo to stand out from the wallpaper.
+    var isClearGlass: Bool
 
     init(base: CardColor, glass: CardGlass? = nil) {
         // Contrast is checked against what the card looks like on screen.
@@ -32,6 +36,7 @@ struct CardAppearance: Equatable {
         bottom = Color(end)
         usesDarkText = darkText
         glassOpacity = glass?.opacity
+        isClearGlass = glass?.isClear ?? false
 
         let accent = darkText ? CardColor(hex: 0xA3001B) : CardColor(hex: 0xFFD60A)
         let accentIsLegible = [shown(base), shown(end)].allSatisfy { CardColor.contrast($0, accent) >= 3 }
@@ -99,6 +104,10 @@ struct KeyringCardView<Detail: View>: View {
             }
         }
         .foregroundStyle(appearance.foreground)
+        // Switched at once rather than animated, so it is not redrawn while the card resizes.
+        .animation(nil) { content in
+            content.shadow(color: appearance.isClearGlass ? halo : .clear, radius: appearance.isClearGlass ? 2 : 0)
+        }
         .environment(\.cardAppearance, appearance)
         .clipShape(.rect(cornerRadius: cornerRadius))
         .background {
@@ -107,7 +116,7 @@ struct KeyringCardView<Detail: View>: View {
             let shape = RoundedRectangle(cornerRadius: cornerRadius)
             if let opacity = appearance.glassOpacity {
                 // No shadow: it would show through the glass.
-                GlassCardFace(shape: shape, tint: appearance.top, opacity: opacity)
+                GlassCardFace(shape: shape, tint: appearance.top, opacity: opacity, isClear: appearance.isClearGlass)
             } else {
                 shape
                     .fill(LinearGradient(colors: [appearance.top, appearance.bottom], startPoint: .topLeading, endPoint: .bottomTrailing))
@@ -116,6 +125,11 @@ struct KeyringCardView<Detail: View>: View {
             }
         }
         .contentShape(.contextMenuPreview, .rect(cornerRadius: cornerRadius))
+    }
+
+    /// The opposite of the text color, around the text on clear glass.
+    private var halo: Color {
+        (appearance.usesDarkText ? Color.white : .black).opacity(0.7)
     }
 
     @ViewBuilder
@@ -196,9 +210,13 @@ struct GlassCardFace<S: InsettableShape>: View {
     let tint: Color
     /// How strongly the card color tints the glass.
     let opacity: Double
+    /// Only an outline over the wallpaper: no glass and no color.
+    var isClear = false
 
     var body: some View {
-        if #available(iOS 26, *) {
+        if isClear {
+            shape.strokeBorder(.white.opacity(0.35))
+        } else if #available(iOS 26, *) {
             Color.clear
                 .glassEffect(.regular.tint(tint.opacity(opacity)), in: shape)
         } else {

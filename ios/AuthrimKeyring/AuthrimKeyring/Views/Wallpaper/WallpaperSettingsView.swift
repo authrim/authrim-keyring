@@ -53,11 +53,16 @@ struct WallpaperSettingsView: View {
                         Slider(value: transparencyBinding, in: WallpaperSettings.cardTransparencyRange)
                             .frame(maxWidth: 200)
                     }
+                    Toggle("Clear Until Opened", isOn: clearUntilOpenedBinding)
                 }
             } header: {
                 Text("Cards")
             } footer: {
-                Text("Lets the wallpaper show through the cards.")
+                if wallpaper.settings.glassCards, wallpaper.settings.clearUntilOpened {
+                    Text("Closed cards are almost clear, so the wallpaper shows. A card you open is frosted at the transparency above.")
+                } else {
+                    Text("Lets the wallpaper show through the cards.")
+                }
             }
 
             Section("Wallpapers") {
@@ -120,6 +125,10 @@ struct WallpaperSettingsView: View {
         Binding(get: { wallpaper.settings.glassCards }, set: { wallpaper.setGlassCards($0) })
     }
 
+    private var clearUntilOpenedBinding: Binding<Bool> {
+        Binding(get: { wallpaper.settings.clearUntilOpened }, set: { wallpaper.setClearUntilOpened($0) })
+    }
+
     private var transparencyBinding: Binding<Double> {
         Binding(get: { wallpaper.settings.cardTransparency }, set: { wallpaper.setCardTransparency($0) })
     }
@@ -157,8 +166,9 @@ private struct WallpaperPreview: View {
                 .dynamicTypeSize(.large)
                 .foregroundStyle(.primary)
                 .padding(.bottom, 4)
+            // The middle card is the open one, for when closed cards are clear.
             ForEach([0, 1, 10], id: \.self) { index in
-                card(CardColor.presets[index])
+                card(CardColor.presets[index], isOpen: index == 1)
             }
             Spacer(minLength: 0)
         }
@@ -171,12 +181,12 @@ private struct WallpaperPreview: View {
         .accessibilityHidden(true)
     }
 
-    private func card(_ color: CardColor) -> some View {
+    private func card(_ color: CardColor, isOpen: Bool) -> some View {
         let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
-        let opacity = wallpaper.cardGlass(in: wallpaper.colorScheme ?? colorScheme)?.opacity
+        let glass = wallpaper.cardGlass(in: wallpaper.colorScheme ?? colorScheme, isOpen: isOpen)
         return Group {
-            if let opacity {
-                GlassCardFace(shape: shape, tint: Color(color), opacity: opacity)
+            if let glass {
+                GlassCardFace(shape: shape, tint: Color(color), opacity: glass.opacity, isClear: glass.isClear)
             } else {
                 shape.fill(Color(color))
             }

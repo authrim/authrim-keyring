@@ -244,7 +244,7 @@ struct HomeView: View {
         KeyringCardView(
             appearance: CardAppearance(
                 base: passkey.effectiveCardColor,
-                glass: wallpaper.cardGlass(in: wallpaper.colorScheme ?? colorScheme)
+                glass: wallpaper.cardGlass(in: wallpaper.colorScheme ?? colorScheme, isOpen: expandedID == passkey.id)
             ),
             title: passkey.displayTitle,
             subtitle: passkey.displaySubtitle,
@@ -267,7 +267,7 @@ struct HomeView: View {
         KeyringCardView(
             appearance: CardAppearance(
                 base: account.effectiveCardColor,
-                glass: wallpaper.cardGlass(in: wallpaper.colorScheme ?? colorScheme)
+                glass: wallpaper.cardGlass(in: wallpaper.colorScheme ?? colorScheme, isOpen: expandedID == account.id)
             ),
             title: account.displayTitle,
             subtitle: account.displaySubtitle,

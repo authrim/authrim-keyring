@@ -25,6 +25,7 @@ struct HomeEmptyState: View {
                     .buttonStyle(.borderedProminent)
             }
         }
+        .readableOverWallpaper()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
@@ -54,6 +55,33 @@ struct NoMatchingCards: View {
                 }
             }
         }
+        .readableOverWallpaper()
         .padding(.top, 40)
+    }
+}
+
+/// Puts frosted glass behind text on the home screen when a wallpaper is shown,
+/// so the text reads over any picture.
+private struct ReadableOverWallpaper: ViewModifier {
+    @Environment(WallpaperStore.self) private var wallpaper
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    func body(content: Content) -> some View {
+        if wallpaper.settings.kind == .system {
+            content
+        } else {
+            content
+                // Hugs the text, except at the largest sizes, where it may need the whole screen.
+                .fixedSize(horizontal: false, vertical: !dynamicTypeSize.isAccessibilitySize)
+                .padding(.vertical, 8)
+                .background(.regularMaterial, in: .rect(cornerRadius: 24))
+                .padding(.horizontal, 24)
+        }
+    }
+}
+
+private extension View {
+    func readableOverWallpaper() -> some View {
+        modifier(ReadableOverWallpaper())
     }
 }

@@ -56,8 +56,10 @@ final class WallpaperStore {
     }
 
     /// How cards are drawn over the wallpaper, or nil for solid cards.
-    /// - Parameter colorScheme: The appearance the home screen is drawn in.
-    func cardGlass(in colorScheme: ColorScheme) -> CardGlass? {
+    /// - Parameters:
+    ///   - colorScheme: The appearance the home screen is drawn in.
+    ///   - isOpen: Whether the card is open; closed cards can be clear.
+    func cardGlass(in colorScheme: ColorScheme, isOpen: Bool = true) -> CardGlass? {
         guard settings.glassCards else { return nil }
         let wallpaperLightness: Double = switch settings.kind {
         case .system: colorScheme == .dark ? 0 : 0.95
@@ -66,7 +68,12 @@ final class WallpaperStore {
         }
         // The frosted glass pulls the wallpaper toward white or black.
         let wallpaperColor = CardColor(red: wallpaperLightness, green: wallpaperLightness, blue: wallpaperLightness)
-        let backdrop = wallpaperColor.mixed(toward: colorScheme == .dark ? .black : .white, by: 0.4)
+        let glassColor: CardColor = colorScheme == .dark ? .black : .white
+        if settings.clearUntilOpened, !isOpen {
+            // Only an outline, so the wallpaper shows as it is.
+            return CardGlass(opacity: 0, backdrop: wallpaperColor, isClear: true)
+        }
+        let backdrop = wallpaperColor.mixed(toward: glassColor, by: 0.4)
         return CardGlass(opacity: 1 - settings.cardTransparency, backdrop: backdrop)
     }
 
@@ -90,6 +97,11 @@ final class WallpaperStore {
 
     func setGlassCards(_ isOn: Bool) {
         settings.glassCards = isOn
+        save()
+    }
+
+    func setClearUntilOpened(_ isOn: Bool) {
+        settings.clearUntilOpened = isOn
         save()
     }
 

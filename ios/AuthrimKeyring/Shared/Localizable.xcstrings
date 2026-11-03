@@ -797,12 +797,32 @@
         }
       }
     },
+    "Clear Until Opened" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開くまで透明"
+          }
+        }
+      }
+    },
     "Close" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "閉じる"
+          }
+        }
+      }
+    },
+    "Closed cards are almost clear, so the wallpaper shows. A card you open is frosted at the transparency above." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "閉じたカードはほぼ透明になり、壁紙がよく見えます。開いたカードは、上の透明度のすりガラスになります。"
           }
         }
       }

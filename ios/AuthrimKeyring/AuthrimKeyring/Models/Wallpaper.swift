@@ -21,6 +21,9 @@ nonisolated struct WallpaperSettings: Codable, Equatable, Sendable {
     var glassCards = true
     /// How much of the wallpaper shows through a glass card.
     var cardTransparency = 0.75
+    /// Closed glass cards are almost clear, so the wallpaper shows; a card is
+    /// frosted only while it is open.
+    var clearUntilOpened = false
 
     static let maximumBlurRadius: CGFloat = 30
     static let maximumDim = 0.7
@@ -38,6 +41,7 @@ nonisolated struct WallpaperSettings: Codable, Equatable, Sendable {
         photoLightness = try container.decodeIfPresent(Double.self, forKey: .photoLightness) ?? defaults.photoLightness
         glassCards = try container.decodeIfPresent(Bool.self, forKey: .glassCards) ?? defaults.glassCards
         cardTransparency = try container.decodeIfPresent(Double.self, forKey: .cardTransparency) ?? defaults.cardTransparency
+        clearUntilOpened = try container.decodeIfPresent(Bool.self, forKey: .clearUntilOpened) ?? defaults.clearUntilOpened
     }
 }
 

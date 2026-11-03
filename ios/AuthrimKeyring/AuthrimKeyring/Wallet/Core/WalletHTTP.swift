@@ -56,7 +56,9 @@ nonisolated final class WalletHTTP: Sendable {
     }
 
     /// False for local names and for loopback, private, link-local, CGNAT, unique-local and
-    /// unspecified IP literals (IPv4-mapped IPv6 included).
+    /// unspecified IP literals (IPv4-mapped IPv6 included). Accepted residual risk: a public name may
+    /// still resolve to an internal address; only a service holding a valid certificate for that name
+    /// then receives the request, the address itself is not checked after resolution.
     static func isPublicHost(_ host: String) -> Bool {
         let name = host.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "[]."))
         if name == "localhost" || [".localhost", ".local", ".internal", ".home.arpa"].contains(where: name.hasSuffix) {
@@ -67,12 +69,15 @@ nonisolated final class WalletHTTP: Sendable {
         var address = in6_addr()
         guard inet_pton(AF_INET6, name, &address) == 1 else { return false }
         let bytes = withUnsafeBytes(of: &address) { Array($0) }
-        if bytes[0..<10].allSatisfy({ $0 == 0 }), bytes[10] == 0xff, bytes[11] == 0xff {
+        // IPv4-mapped (::ffff:0:0/96) and IPv4-compatible (::/96, which also holds :: and ::1).
+        if bytes[0..<10].allSatisfy({ $0 == 0 }),
+           (bytes[10] == 0xff && bytes[11] == 0xff) || (bytes[10] == 0 && bytes[11] == 0) {
             return isPublicIPv4(Array(bytes[12..<16]))
         }
-        if bytes[0..<15].allSatisfy({ $0 == 0 }) { return false }  // :: and ::1
+        if bytes[0..<4] == [0x00, 0x64, 0xff, 0x9b] { return false }  // 64:ff9b::/32 NAT64
         if bytes[0] & 0xfe == 0xfc { return false }  // fc00::/7
         if bytes[0] == 0xfe, bytes[1] & 0xc0 == 0x80 { return false }  // fe80::/10
+        if bytes[0] == 0xff { return false }  // multicast
         return true
     }
 
@@ -88,7 +93,9 @@ nonisolated final class WalletHTTP: Sendable {
         case (0, _), (10, _), (127, _): return false
         case (100, 64...127): return false
         case (169, 254), (192, 168): return false
-        case (172, 16...31): return false
+        case (192, 0) where b[2] == 0: return false  // 192.0.0.0/24
+        case (172, 16...31), (198, 18...19): return false
+        case (224...255, _): return false  // multicast, reserved, broadcast
         default: return true
         }
     }

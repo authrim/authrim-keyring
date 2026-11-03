@@ -101,14 +101,15 @@ struct WalletIssuanceTests {
     @Test(arguments: [
         "localhost", "printer.local", "db.internal", "127.0.0.1", "127.1", "2130706433", "10.0.0.8",
         "172.20.1.1", "192.168.0.1", "169.254.169.254", "100.64.0.1", "0.0.0.0", "[::1]", "[fe80::1]",
-        "[fd00::1]", "[::ffff:192.168.0.1]",
+        "[fd00::1]", "[::ffff:192.168.0.1]", "[::127.0.0.1]", "[::]", "[64:ff9b::a00:1]", "[ff02::1]",
+        "239.0.0.1", "255.255.255.255", "192.0.0.8", "192.0.0.255", "198.18.0.1",
     ])
     func rejectsNonPublicHosts(host: String) {
         #expect(throws: WalletError.self) { try WalletHTTP.requireHTTPS(URL(string: "https://\(host)/x")!, "The URL") }
     }
 
     @Test func acceptsPublicHosts() throws {
-        for host in ["issuer.example.com", "8.8.8.8", "[2001:db8::1]", "172.32.0.1"] {
+        for host in ["issuer.example.com", "8.8.8.8", "[2001:db8::1]", "172.32.0.1", "192.0.1.1", "[::ffff:192.0.1.1]"] {
             _ = try WalletHTTP.requireHTTPS(URL(string: "https://\(host)/x")!, "The URL")
         }
     }

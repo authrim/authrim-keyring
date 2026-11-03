@@ -40,6 +40,12 @@ struct WalletSDJWTTests {
         rejects(try issuer.sdJwt(holder: holder.publicJWK, options))
     }
 
+    @Test func claimNamesThatCleanIntoHiddenNamesAreRejected() throws {
+        var options = TestIssuer.Options()
+        options.extraPayload = ["cnf\u{200B}": "spoofed"]
+        rejects(try issuer.sdJwt(holder: holder.publicJWK, options))
+    }
+
     @Test func tooManyClaimsAreRejected() throws {
         var options = TestIssuer.Options()
         options.extraPayload = Dictionary(uniqueKeysWithValues: (0..<SDJWTVerifier.maxDisplayedClaims).map { ("c\($0)", "v") })

@@ -84,13 +84,14 @@ nonisolated enum SDJWTVerifier {
         if payload["_sd_alg"] != nil, !(payload["_sd_alg"] is String) { throw fail("Unsupported disclosure digest algorithm.") }
 
         let disclosed = try disclosedClaims(parsed.disclosures, payload: payload)
-        // Names and values are shown on screen: strip control and format characters (bidi overrides
-        // included) and bound their length and count, the same way issuer metadata text is treated.
+        // Names and values are shown on screen. A name must already be clean display text, so no name
+        // can turn into another (a hidden one included) by cleaning; values lose control and format
+        // characters (bidi overrides included) and are bounded, like issuer metadata text.
         var claims: [String: String] = [:]
         let shown = payload.filter { !hiddenClaims.contains($0.key) }.map { ($0.key, $0.value) }
-        for (rawName, value) in shown + disclosed {
-            guard !hiddenClaims.contains(rawName) else { throw fail("A disclosure repeats a claim.") }
-            guard let name = IssuerMetadata.sanitize(rawName) else { throw fail("A claim has no displayable name.") }
+        for (name, value) in shown + disclosed {
+            guard !hiddenClaims.contains(name) else { throw fail("A disclosure repeats a claim.") }
+            guard IssuerMetadata.sanitize(name) == name else { throw fail("A claim has no displayable name.") }
             guard claims[name] == nil else { throw fail("A disclosure repeats a claim.") }
             guard claims.count < maxDisplayedClaims else { throw fail("The credential has too many claims.") }
             claims[name] = displayText(value)

@@ -3,6 +3,8 @@ name: PR source
 # main takes pull requests from develop only. The main ruleset requires this check.
 on:
   pull_request:
+    # edited too, so a pull request retargeted to main is checked again.
+    types: [opened, synchronize, reopened, edited]
     branches: [main]
 
 permissions: {}
@@ -13,10 +15,15 @@ jobs:
     steps:
       - name: Require develop of this repository as the head branch
         env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
           HEAD_REF: ${{ github.head_ref }}
           HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
           REPO: ${{ github.repository }}
         run: |
+          if [ "$BASE_REF" != "main" ]; then
+            echo "::error::Expected a pull request into main (got $BASE_REF)."
+            exit 1
+          fi
           if [ "$HEAD_REF" != "develop" ] || [ "$HEAD_REPO" != "$REPO" ]; then
             echo "::error::Pull requests into main must come from develop in $REPO (got $HEAD_REPO:$HEAD_REF)."
             exit 1

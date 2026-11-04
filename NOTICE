@@ -1,0 +1,27 @@
+Authrim Keyring
+Copyright 2026 Yuta Hoshina
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE),
+except for the parts listed below.
+
+--------------------------------------------------------------------------------
+Third-party material
+--------------------------------------------------------------------------------
+
+Cinzel (Cinzel-SemiBold.ttf)
+  License: SIL Open Font License, Version 1.1
+  Copyright: 2020 The Cinzel Project Authors
+  URL: https://github.com/NDISCOVER/Cinzel
+  Location: ios/AuthrimKeyring/AuthrimKeyring/Fonts/
+  The full license text is in ios/AuthrimKeyring/AuthrimKeyring/Fonts/Cinzel-OFL.txt.
+
+--------------------------------------------------------------------------------
+Names and logos
+--------------------------------------------------------------------------------
+
+"Authrim" and "Authrim Keyring", the deer logo, the app icon, and the wordmark
+are not licensed under the Apache License. You may not use them to identify
+your own product or a modified version of this one. This covers the files in
+ios/AuthrimKeyring/AuthrimKeyring/AppIcon.icon/ and the BrandMark, LaunchMark
+and LaunchWordmark image sets in
+ios/AuthrimKeyring/AuthrimKeyring/Assets.xcassets/.

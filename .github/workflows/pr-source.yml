@@ -1,0 +1,24 @@
+name: PR source
+
+# main takes pull requests from develop only. The main ruleset requires this check.
+on:
+  pull_request:
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  from-develop:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require develop of this repository as the head branch
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ "$HEAD_REF" != "develop" ] || [ "$HEAD_REPO" != "$REPO" ]; then
+            echo "::error::Pull requests into main must come from develop in $REPO (got $HEAD_REPO:$HEAD_REF)."
+            exit 1
+          fi
+          echo "Head is $REPO:develop."

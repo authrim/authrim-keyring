@@ -11,7 +11,7 @@ struct WalletPresentationTests {
     static let host = "issuer.example.com"
     static let did = "did:web:issuer.example.com"
     static let clientID = "decentralized_identifier:did:web:issuer.example.com"
-    static let requestURL = "https://issuer.example.com/vp/admin/request/req-1"
+    static let requestURL = "https://issuer.example.com/vp/admin/request/g1%3Aapac%3A0%3Avp_0f8c2d4e-1b3a-4c5d-9e7f-123456789abc"
     static let responseURL = "https://issuer.example.com/vp/admin/response"
     static let vct = "https://authrim.com/credentials/admin/v1"
     static let issuerJWT = "eyJhbGciOiJFUzI1NiJ9.eyJzdWIiOiJhZG1pbi0xIn0.c2ln"
@@ -180,6 +180,16 @@ struct WalletPresentationTests {
         await #expect(throws: WalletError.invalidRequest("The request has conditions Keyring does not support.")) {
             _ = try await client().preview(link: Self.link, credentials: [credential])
         }
+        let malformed = payload {
+            $0["dcql_query"] = ["credentials": [[
+                "id": "admin", "format": "dc+sd-jwt", "meta": ["vct_values": [Self.vct]],
+                "claims": [["path": ["sub"], "values": ["admin-2"]], NSNull()] as [Any],
+            ]]]
+        }
+        stub(requestObject: try requestObject(malformed))
+        await #expect(throws: WalletError.invalidRequest("The request has conditions Keyring does not support.")) {
+            _ = try await client().preview(link: Self.link, credentials: [credential])
+        }
     }
 
     @Test func refusesAnExpiredRequest() async throws {
@@ -209,6 +219,9 @@ struct WalletPresentationTests {
         "openid4vp://?client_id=x&request_uri=https%3A%2F%2Fissuer.example.com%2Fvp%2Fadmin%2Frequest%2Fa%3Ftoken%3D1",
         "openid4vp://?client_id=x&request_uri=https%3A%2F%2Fissuer.example.com%2Fvp%2Fadmin%2Frequest%2Fa%2Fb",
         "openid4vp://?client_id=x&request_uri=https%3A%2F%2Fissuer.example.com%2Fvp%2Fadmin%2Frequest%2F",
+        "openid4vp://?client_id=x&request_uri=https%3A%2F%2Fissuer.example.com%2Fvp%2Fadmin%2Frequest%2F..",
+        "openid4vp://?client_id=x&request_uri=https%3A%2F%2Fissuer.example.com%2Fvp%2Fadmin%2Frequest%2F%252e%252e",
+        "openid4vp://?client_id=x&request_uri=https%3A%2F%2Fissuer.example.com%2Fvp%2Fadmin%2Frequest%2Freq-1",
     ])
     func refusesLinksThatAreNotSignedRequestsByReference(link: String) {
         #expect(throws: WalletError.notAPresentationRequest) { _ = try PresentationLink(link) }

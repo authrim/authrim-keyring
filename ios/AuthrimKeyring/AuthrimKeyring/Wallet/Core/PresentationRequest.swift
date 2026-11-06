@@ -10,13 +10,14 @@ nonisolated struct PresentationLink: Sendable, Equatable {
     /// Whether scanned or opened text is a presentation request link (the scheme is case-insensitive).
     static let adminRequestPrefix = "/vp/admin/request/"
 
-    /// `/vp/admin/request/<one percent-encoded segment>`.
+    /// `/vp/admin/request/<request id>`, the id in the server's own form
+    /// (`g<generation>:<region>:<shard>:vp_<uuid>`, percent-encoded): nothing else is fetched, so a
+    /// crafted link cannot send the phone to another path of the server (dot segments included).
     static func isAdminRequestPath(_ path: String) -> Bool {
         guard path.hasPrefix(adminRequestPrefix) else { return false }
-        let id = path.dropFirst(adminRequestPrefix.count)
-        let allowed = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~%")
-        return !id.isEmpty && id.count <= 512 && id.unicodeScalars.allSatisfy(allowed.contains)
-            && !id.contains("%2F") && !id.contains("%2f")
+        let encoded = String(path.dropFirst(adminRequestPrefix.count))
+        guard encoded.count <= 256, let id = encoded.removingPercentEncoding else { return false }
+        return id.wholeMatch(of: /g[0-9]{1,6}:[a-z0-9-]{1,32}:[0-9]{1,6}:vp_[0-9A-Fa-f-]{8,64}/) != nil
     }
 
     static func isRequest(_ text: String) -> Bool {
@@ -157,7 +158,12 @@ nonisolated enum PresentationRequestValidator {
         guard credentials[0].keys.allSatisfy({ ["id", "format", "meta", "claims"].contains($0) }),
               (credentials[0]["meta"] as? [String: Any])?.keys.allSatisfy({ $0 == "vct_values" }) ?? false
         else { throw WalletError.invalidRequest("The request has conditions Keyring does not support.") }
-        let claims = (credentials[0]["claims"] as? [[String: Any]]) ?? []
+        // Absent claims ask for nothing; present claims must all be plain path objects.
+        let rawClaims = credentials[0]["claims"]
+        guard rawClaims == nil || rawClaims is [[String: Any]] else {
+            throw WalletError.invalidRequest("The request has conditions Keyring does not support.")
+        }
+        let claims = (rawClaims as? [[String: Any]]) ?? []
         guard claims.allSatisfy({ $0.keys.allSatisfy { $0 == "path" } }) else {
             throw WalletError.invalidRequest("The request has conditions Keyring does not support.")
         }

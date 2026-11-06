@@ -17,7 +17,7 @@ nonisolated struct PresentationLink: Sendable, Equatable {
         guard path.hasPrefix(adminRequestPrefix) else { return false }
         let encoded = String(path.dropFirst(adminRequestPrefix.count))
         guard encoded.count <= 256, let id = encoded.removingPercentEncoding else { return false }
-        return id.wholeMatch(of: /g[0-9]{1,6}:[a-z0-9-]{1,32}:[0-9]{1,6}:vp_[0-9A-Fa-f-]{8,64}/) != nil
+        return id.wholeMatch(of: /g[0-9]{1,6}:[a-z0-9-]{1,32}:[0-9]{1,6}:vp_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/) != nil
     }
 
     static func isRequest(_ text: String) -> Bool {

@@ -222,6 +222,9 @@ struct WalletPresentationTests {
         "openid4vp://?client_id=x&request_uri=https%3A%2F%2Fissuer.example.com%2Fvp%2Fadmin%2Frequest%2F..",
         "openid4vp://?client_id=x&request_uri=https%3A%2F%2Fissuer.example.com%2Fvp%2Fadmin%2Frequest%2F%252e%252e",
         "openid4vp://?client_id=x&request_uri=https%3A%2F%2Fissuer.example.com%2Fvp%2Fadmin%2Frequest%2Freq-1",
+        "openid4vp://?client_id=x&request_uri=https%3A%2F%2Fissuer.example.com%2Fvp%2Fadmin%2Frequest%2Fg1%253Aapac%253A0%253Avp_--------",
+        "openid4vp://?client_id=x&request_uri=https%3A%2F%2Fissuer.example.com%2Fvp%2Fadmin%2Frequest%2Fg1%253Aapac%253A0%253Avp_12345678",
+        "openid4vp://?client_id=x&request_uri=https%3A%2F%2Fissuer.example.com%2Fvp%2Fadmin%2Frequest%2Fg1%253Aapac%253A0%253Avp_0f8c2d4e1b3a4c5d9e7f123456789abc",
     ])
     func refusesLinksThatAreNotSignedRequestsByReference(link: String) {
         #expect(throws: WalletError.notAPresentationRequest) { _ = try PresentationLink(link) }

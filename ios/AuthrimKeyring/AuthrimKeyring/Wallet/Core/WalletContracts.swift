@@ -67,6 +67,16 @@ enum WalletError: Error, Equatable, Sendable {
     /// The request may have reached the issuer, but its result never arrived (timeout, connection
     /// lost while waiting). Retryable for reads; after a token request it means the code may be spent.
     case outcomeUnknown(String)
+    /// The scanned text is not an OpenID4VP request link.
+    case notAPresentationRequest
+    /// The request does not come from the issuer of a credential on this device; nothing was sent.
+    case untrustedVerifier(String)
+    /// The request is malformed, expired or asks for something the wallet does not give.
+    case invalidRequest(String)
+    /// No credential on this device answers the request.
+    case noMatchingCredential
+    /// The verifier refused the answer (e.g. a wrong number); a new request is needed.
+    case presentationRefused(String?)
 }
 
 /// Runs the issuance protocol. Implemented by `OpenID4VCIClient`; the UI only sees this.
@@ -85,3 +95,14 @@ protocol CredentialStore: Sendable {
     func save(_ credential: StoredCredential) throws
     func delete(_ credential: StoredCredential) throws
 }
+
+/// Answers administrator presentation requests (OpenID4VP 1.0, cross-device `direct_post`).
+/// Implemented by `OpenID4VPClient`; the UI only sees this.
+protocol PresentationService: Sendable {
+    /// Fetch the request object, verify its signature and content, and pick the credential.
+    func preview(link: String, credentials: [StoredCredential]) async throws -> PresentationRequest
+    /// Sign the key binding with the credential's holder key (asks for Face ID / passcode),
+    /// including the number typed by the user, and send the answer.
+    func present(_ request: PresentationRequest, matchCode: String) async throws
+}
+

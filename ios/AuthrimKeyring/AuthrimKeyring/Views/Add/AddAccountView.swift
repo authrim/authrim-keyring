@@ -12,6 +12,7 @@ struct AddAccountView: View {
     @State private var candidate: OTPAccount?
     /// A credential offer the camera found; handed to the wallet instead of the one-time code flow.
     @State private var credentialOffer: IncomingOffer?
+    @State private var presentationRequest: IncomingOffer?
     @State private var isEnteringManually = false
     @State private var photoItem: PhotosPickerItem?
     @State private var isPickingPhoto = false
@@ -92,6 +93,9 @@ struct AddAccountView: View {
             }
             .navigationDestination(item: $credentialOffer) { offer in
                 CredentialOfferView(offer: offer.text) { dismiss() }
+            }
+            .navigationDestination(item: $presentationRequest) { request in
+                PresentationView(link: request.text) { dismiss() }
             }
             .navigationDestination(isPresented: $isEnteringManually) {
                 ManualEntryView { dismiss() }
@@ -192,7 +196,7 @@ struct AddAccountView: View {
 
     /// Scanning pauses while another screen, alert or photo import is in progress.
     private var isScanning: Bool {
-        candidate == nil && credentialOffer == nil && !isEnteringManually && errorMessage == nil
+        candidate == nil && credentialOffer == nil && presentationRequest == nil && !isEnteringManually && errorMessage == nil
             && !isPickingPhoto && !isImportingPhoto && !isShowingImported && !isChoosingFile && !isReadingImport
             && !isHandingOffSignIn && !isShowingCameraHint
     }
@@ -215,7 +219,7 @@ struct AddAccountView: View {
     }
 
     private func handle(_ payload: String) {
-        guard candidate == nil, credentialOffer == nil, !isEnteringManually, errorMessage == nil, !isShowingImported,
+        guard candidate == nil, credentialOffer == nil, presentationRequest == nil, !isEnteringManually, errorMessage == nil, !isShowingImported,
               !isHandingOffSignIn, !isShowingCameraHint else { return }
         if let url = HybridSignInLink.url(from: payload) {
             if url != handedOffSignIn { handOffSignIn(url) }
@@ -223,6 +227,10 @@ struct AddAccountView: View {
         }
         if CredentialOfferLink.isOffer(payload) {
             credentialOffer = IncomingOffer(text: payload)
+            return
+        }
+        if PresentationLink.isRequest(payload) {
+            presentationRequest = IncomingOffer(text: payload)
             return
         }
         if GoogleAuthMigration.isMigrationURI(payload) {

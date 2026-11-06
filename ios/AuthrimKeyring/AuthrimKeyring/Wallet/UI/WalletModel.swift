@@ -12,6 +12,7 @@ struct IncomingOffer: Identifiable, Hashable {
 @Observable
 final class WalletModel {
     let issuance: any CredentialIssuanceService
+    let presentation: any PresentationService
     private let store: any CredentialStore
     private let trustedIssuers: [TrustedIssuer]
 
@@ -19,14 +20,21 @@ final class WalletModel {
     private(set) var credentials: [StoredCredential] = []
     /// An offer opened from a link, shown once the app is unlocked.
     var incomingOffer: IncomingOffer?
+    /// A presentation request (`openid4vp://`) opened from a link, shown once the app is unlocked.
+    var incomingPresentation: IncomingOffer?
     /// The credential whose detail is open.
     var detail: StoredCredential?
     var lastError: String?
     /// Set while the stored credentials cannot be read; Home offers a retry. Cleared by the next successful load.
     var loadError: String?
 
-    init(issuance: any CredentialIssuanceService, store: any CredentialStore, trustedIssuers: [TrustedIssuer] = TrustedIssuer.all) {
+    init(
+        issuance: any CredentialIssuanceService, store: any CredentialStore,
+        presentation: any PresentationService = OpenID4VPClient(),
+        trustedIssuers: [TrustedIssuer] = TrustedIssuer.all
+    ) {
         self.issuance = issuance
+        self.presentation = presentation
         self.store = store
         self.trustedIssuers = trustedIssuers
     }
@@ -75,8 +83,12 @@ final class WalletModel {
         return true
     }
 
-    /// Takes an `openid-credential-offer://` link opened from outside the app.
+    /// Takes an `openid-credential-offer://` or `openid4vp://` link opened from outside the app.
     func handle(url: URL) {
+        if PresentationLink.isRequest(url.absoluteString) {
+            incomingPresentation = IncomingOffer(text: url.absoluteString)
+            return
+        }
         guard CredentialOfferLink.isOffer(url.absoluteString) else { return }
         incomingOffer = IncomingOffer(text: url.absoluteString)
     }

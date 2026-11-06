@@ -5,6 +5,7 @@ import Testing
 
 /// Offer parsing, metadata validation and the issue flow, with the network stubbed.
 /// Serialized: the stub registry is shared.
+extension StubbedNetworkTests {
 @Suite(.serialized)
 struct WalletIssuanceTests {
     static let base = TestIssuer.base
@@ -373,4 +374,5 @@ struct WalletIssuanceTests {
         await #expect(throws: WalletError.self) { try await client.issue(preview, transactionCode: "123456") }
         #expect(StubURLProtocol.requests(to: Self.base + "/vci/token").count == 1)
     }
+}
 }

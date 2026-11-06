@@ -49,6 +49,9 @@ struct RootView: View {
         .sheet(item: unlockedOffer) { offer in
             if isDemoModeOn { DemoModeAddNotice() } else { CredentialOfferSheet(offer: offer.text) }
         }
+        .sheet(item: unlockedPresentation) { request in
+            if isDemoModeOn { DemoModeAddNotice() } else { PresentationSheet(link: request.text) }
+        }
         .sheet(item: unlockedCredentialImport) { request in
             if isDemoModeOn {
                 DemoModeAddNotice()
@@ -76,6 +79,14 @@ struct RootView: View {
         Binding(
             get: { appLock.isLocked || needsUnlockSetup ? nil : wallet.incomingOffer },
             set: { wallet.incomingOffer = $0 }
+        )
+    }
+
+    /// The pending presentation request, but only while the app is unlocked.
+    private var unlockedPresentation: Binding<IncomingOffer?> {
+        Binding(
+            get: { appLock.isLocked || needsUnlockSetup ? nil : wallet.incomingPresentation },
+            set: { wallet.incomingPresentation = $0 }
         )
     }
 

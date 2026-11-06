@@ -159,6 +159,29 @@ struct WalletPresentationTests {
         }
     }
 
+    @Test func refusesConditionsItDoesNotApply() async throws {
+        let withValues = payload {
+            $0["dcql_query"] = ["credentials": [[
+                "id": "admin", "format": "dc+sd-jwt", "meta": ["vct_values": [Self.vct]],
+                "claims": [["path": ["sub"], "values": ["admin-2"]]],
+            ]]]
+        }
+        stub(requestObject: try requestObject(withValues))
+        await #expect(throws: WalletError.invalidRequest("The request has conditions Keyring does not support.")) {
+            _ = try await client().preview(link: Self.link, credentials: [credential])
+        }
+        let withClaimSets = payload {
+            $0["dcql_query"] = ["credentials": [[
+                "id": "admin", "format": "dc+sd-jwt", "meta": ["vct_values": [Self.vct]],
+                "claim_sets": [["a"]],
+            ]]]
+        }
+        stub(requestObject: try requestObject(withClaimSets))
+        await #expect(throws: WalletError.invalidRequest("The request has conditions Keyring does not support.")) {
+            _ = try await client().preview(link: Self.link, credentials: [credential])
+        }
+    }
+
     @Test func refusesAnExpiredRequest() async throws {
         stub(requestObject: try requestObject(payload {
             $0["iat"] = now.timeIntervalSince1970 - 900
@@ -182,6 +205,10 @@ struct WalletPresentationTests {
         "openid4vp://?client_id=x&request_uri=http%3A%2F%2Fissuer.example.com%2Fr",
         "openid4vp://?client_id=x&request_uri=https%3A%2F%2Fissuer.example.com%2Fr&request_uri_method=post",
         "https://issuer.example.com/r",
+        "openid4vp://?client_id=x&request_uri=https%3A%2F%2Fissuer.example.com%2Fadmin%2Fdelete",
+        "openid4vp://?client_id=x&request_uri=https%3A%2F%2Fissuer.example.com%2Fvp%2Fadmin%2Frequest%2Fa%3Ftoken%3D1",
+        "openid4vp://?client_id=x&request_uri=https%3A%2F%2Fissuer.example.com%2Fvp%2Fadmin%2Frequest%2Fa%2Fb",
+        "openid4vp://?client_id=x&request_uri=https%3A%2F%2Fissuer.example.com%2Fvp%2Fadmin%2Frequest%2F",
     ])
     func refusesLinksThatAreNotSignedRequestsByReference(link: String) {
         #expect(throws: WalletError.notAPresentationRequest) { _ = try PresentationLink(link) }
@@ -191,7 +218,9 @@ struct WalletPresentationTests {
         let allowed = CharacterSet.alphanumerics
         let link = "openid4vp://?client_id=\(Self.clientID.addingPercentEncoding(withAllowedCharacters: allowed)!)"
             + "&request_uri=\("https://issuer.example.com:8443/r".addingPercentEncoding(withAllowedCharacters: allowed)!)"
-        await expectUntrusted { try await client().preview(link: link, credentials: [credential]) }
+        await #expect(throws: WalletError.self) {
+            _ = try await client().preview(link: link, credentials: [credential])
+        }
         #expect(StubURLProtocol.requests(to: "https://issuer.example.com:8443/r").isEmpty)
     }
 

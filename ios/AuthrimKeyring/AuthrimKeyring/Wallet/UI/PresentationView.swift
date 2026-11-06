@@ -77,6 +77,9 @@ private struct PresentationForm: View {
                     Label("Use this credential as a second factor", systemImage: "key.viewfinder")
                 }
                 LabeledContent("Credential", value: request.credential.credentialName)
+                if let account = request.credential.claims["email"] ?? request.credential.claims["name"] {
+                    LabeledContent("Administrator", value: account)
+                }
             }
             Section {
                 TextField("Two digits", text: $flow.matchCode)

@@ -21,6 +21,16 @@
         }
       }
     },
+    "Administrator" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理者"
+          }
+        }
+      }
+    },
     "An important operation in the admin console" : {
       "localizations" : {
         "ja" : {

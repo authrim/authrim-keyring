@@ -8,6 +8,17 @@ nonisolated struct PresentationLink: Sendable, Equatable {
     let requestURI: URL
 
     /// Whether scanned or opened text is a presentation request link (the scheme is case-insensitive).
+    static let adminRequestPrefix = "/vp/admin/request/"
+
+    /// `/vp/admin/request/<one percent-encoded segment>`.
+    static func isAdminRequestPath(_ path: String) -> Bool {
+        guard path.hasPrefix(adminRequestPrefix) else { return false }
+        let id = path.dropFirst(adminRequestPrefix.count)
+        let allowed = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~%")
+        return !id.isEmpty && id.count <= 512 && id.unicodeScalars.allSatisfy(allowed.contains)
+            && !id.contains("%2F") && !id.contains("%2f")
+    }
+
     static func isRequest(_ text: String) -> Bool {
         text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased().hasPrefix(scheme + ":")
     }
@@ -27,9 +38,11 @@ nonisolated struct PresentationLink: Sendable, Equatable {
               value("request_uri_method").map({ $0 == "get" }) ?? true,
               let requestURI = URL(string: uri)
         else { throw WalletError.notAPresentationRequest }
-        guard let checked = try? WalletHTTP.requireHTTPS(requestURI, "The request URI") else {
-            throw WalletError.notAPresentationRequest
-        }
+        // Only the admin console's request endpoint, `/vp/admin/request/<id>`, with nothing more.
+        guard let checked = try? WalletHTTP.requireHTTPS(requestURI, "The request URI"),
+              checked.query == nil, checked.fragment == nil, checked.port == nil,
+              Self.isAdminRequestPath(checked.path(percentEncoded: true))
+        else { throw WalletError.notAPresentationRequest }
         self.clientID = clientID
         self.requestURI = checked
     }
@@ -139,7 +152,15 @@ nonisolated enum PresentationRequestValidator {
               credentials[0]["format"] as? String == "dc+sd-jwt",
               let vcts = (credentials[0]["meta"] as? [String: Any])?["vct_values"] as? [String], !vcts.isEmpty
         else { throw WalletError.invalidRequest("The request asks for something other than the admin credential.") }
+        // Only plain paths are understood: a condition the wallet does not apply (values, claim
+        // sets, more than one query) is refused rather than ignored.
+        guard credentials[0].keys.allSatisfy({ ["id", "format", "meta", "claims"].contains($0) }),
+              (credentials[0]["meta"] as? [String: Any])?.keys.allSatisfy({ $0 == "vct_values" }) ?? false
+        else { throw WalletError.invalidRequest("The request has conditions Keyring does not support.") }
         let claims = (credentials[0]["claims"] as? [[String: Any]]) ?? []
+        guard claims.allSatisfy({ $0.keys.allSatisfy { $0 == "path" } }) else {
+            throw WalletError.invalidRequest("The request has conditions Keyring does not support.")
+        }
         let paths = claims.compactMap { ($0["path"] as? [String])?.joined(separator: ".") }
         guard paths.count == claims.count, Set(paths).isSubset(of: ["sub", "tenant_id"]) else {
             throw WalletError.invalidRequest("The request asks for more than the admin credential needs.")

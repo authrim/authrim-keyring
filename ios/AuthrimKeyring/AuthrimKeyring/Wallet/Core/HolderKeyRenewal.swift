@@ -28,13 +28,33 @@ nonisolated enum HolderKeyRenewal {
 
     /// The holder key the credential is bound to (`cnf.jwk` of its issuer-signed JWT).
     static func holderKey(of credential: StoredCredential) -> PublicJWK? {
-        guard let jwt = credential.sdJwt.split(separator: "~", maxSplits: 1).first else { return nil }
-        let segments = jwt.split(separator: ".", omittingEmptySubsequences: false)
-        guard segments.count == 3, let data = Base64URL.decode(String(segments[1])),
-              let payload = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
-              let cnf = payload["cnf"] as? [String: Any], let jwk = cnf["jwk"] as? [String: Any]
+        guard let cnf = issuerPayload(of: credential.sdJwt)?["cnf"] as? [String: Any],
+              let jwk = cnf["jwk"] as? [String: Any]
         else { return nil }
         return PublicJWK(from: jwk)
+    }
+
+    /// The administrator a credential names (`sub` of its issuer-signed JWT).
+    static func subject(ofSDJWT sdJwt: String) -> String? {
+        issuerPayload(of: sdJwt)?["sub"] as? String
+    }
+
+    /// Whether `issued` names the same administrator as the credential it renews. The offer link
+    /// that names the key is not authenticated: a credential of someone else bound to this
+    /// device's key is refused, so it can never stand in for the admin's own.
+    static func isSameAdministrator(_ issued: String, as renewed: StoredCredential) -> Bool {
+        guard let subject = subject(ofSDJWT: issued), let earlier = self.subject(ofSDJWT: renewed.sdJwt)
+        else { return false }
+        // Byte for byte: Swift's `==` treats canonically equivalent strings as equal, JWT
+        // identifiers are compared as they are (RFC 7519 section 2).
+        return subject.utf8.elementsEqual(earlier.utf8)
+    }
+
+    private static func issuerPayload(of sdJwt: String) -> [String: Any]? {
+        guard let jwt = sdJwt.split(separator: "~", maxSplits: 1).first else { return nil }
+        let segments = jwt.split(separator: ".", omittingEmptySubsequences: false)
+        guard segments.count == 3, let data = Base64URL.decode(String(segments[1])) else { return nil }
+        return (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
     }
 
     /// base64url RFC 7638 thumbprint of the credential's holder key, as the server writes it.

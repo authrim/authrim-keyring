@@ -210,8 +210,14 @@ nonisolated enum PresentationRequestValidator {
               let purpose = (details["purpose"] as? String).flatMap(PresentationPurpose.init(rawValue:))
         else { throw WalletError.invalidRequest("The request does not say what it is for.") }
         let tenant = ((details["tenant"] as? String) ?? "").prefix(200)
-        // Only a registration can be a recovery request; anything else in `mode` is ignored.
-        let isRecovery = purpose == .enroll && details["mode"] as? String == "recovery"
+        // Only a registration can be a recovery request. Any other `mode` is a meaning Keyring
+        // would not show, so the request is refused rather than signed.
+        let isRecovery: Bool
+        switch details["mode"] {
+        case nil: isRecovery = false
+        case let mode as String where mode == "recovery" && purpose == .enroll: isRecovery = true
+        default: throw WalletError.invalidRequest("The request asks for something Keyring does not support.")
+        }
         return (entries[0], purpose, String(tenant), isRecovery)
     }
 }

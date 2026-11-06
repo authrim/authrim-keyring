@@ -203,6 +203,38 @@ struct WalletRenewalTests {
         #expect(renewed.secondFactorRegisteredAt == old.secondFactorRegisteredAt)
     }
 
+    @Test(arguments: [
+        ("someone-else", true),
+        // Canonically equivalent to "user-1é" but another identifier.
+        ("user-1e\u{0301}", false),
+        (nil, true),
+    ] as [(String?, Bool)])
+    func refusesARenewalThatNamesAnotherAdministrator(_ subject: String?, plainOld: Bool) async throws {
+        var old = try existing()
+        if !plainOld {
+            var options = TestIssuer.Options()
+            options.extraPayload = ["sub": "user-1\u{00E9}"]
+            old = StoredCredential(
+                id: old.id, issuer: old.issuer, issuerDisplayName: nil, credentialConfigurationId: old.credentialConfigurationId,
+                vct: old.vct, credentialName: old.credentialName, claims: [:], issuedAt: old.issuedAt,
+                expiresAt: old.expiresAt, keyTag: old.keyTag, confirmationCode: old.confirmationCode,
+                sdJwt: try issuer.sdJwt(holder: signer.publicJWK, options), secondFactorRegisteredAt: old.secondFactorRegisteredAt)
+        }
+        store.items = [old]
+        // Someone else's offer naming this device's key.
+        let (issuer, signer) = (issuer, signer)
+        stubIssuance(credential: {
+            var options = TestIssuer.Options()
+            options.extraPayload = ["sub": subject.map { $0 as Any } ?? NSNull()]
+            return try issuer.sdJwt(holder: signer.publicJWK, options)
+        })
+        let client = client()
+        let preview = try await client.preview(offer: Self.offerLink + "&authrim_renew_holder_jkt=\(thumbprint)")
+        await #expect(throws: WalletError.self) { try await client.issue(preview, transactionCode: "123456") }
+        #expect(store.items.count == 1)
+        #expect(deleted.value.isEmpty)
+    }
+
     @Test func neverDeletesTheReusedKeyWhenRenewalFails() async throws {
         store.items = [try existing()]
         stubIssuance(credential: { "not-a-credential" })
@@ -320,5 +352,48 @@ struct WalletSharedKeyTests {
         try store.delete(item)
         #expect(deletedTags.value.isEmpty)
         try KeychainStore(service: service).delete(id: unreadable.id, from: .device)
+    }
+}
+
+/// Recording the registration after an answered request: an ordinary registration marks the key,
+/// a recovery request does not (its key is a factor only once the recovery completes).
+@MainActor
+@Suite(.serialized)
+struct WalletRegistrationMarkTests {
+    private struct AnsweringService: PresentationService {
+        let request: PresentationRequest
+        func preview(link: String, credentials: [StoredCredential]) async throws -> PresentationRequest { request }
+        func present(_ request: PresentationRequest, matchCode: String) async throws {}
+    }
+
+    private struct NoIssuance: CredentialIssuanceService {
+        func preview(offer: String) async throws -> CredentialOfferPreview { throw WalletError.notAnOffer }
+        func issue(_ preview: CredentialOfferPreview, transactionCode: String?) async throws -> StoredCredential {
+            throw WalletError.notAnOffer
+        }
+    }
+
+    @Test(arguments: [false, true])
+    func marksOnlyAnOrdinaryRegistration(isRecovery: Bool) async throws {
+        let credential = StoredCredential(
+            id: UUID(), issuer: URL(string: "https://issuer.example.com")!, issuerDisplayName: nil,
+            credentialConfigurationId: "admin", vct: "v", credentialName: "Admin", claims: [:], issuedAt: Date(),
+            expiresAt: nil, keyTag: "k", confirmationCode: "ABCD-EFGH", sdJwt: "a.b.c~")
+        var request = PresentationRequest(
+            clientID: "c", verifierHost: "issuer.example.com", responseURI: URL(string: "https://issuer.example.com/r")!,
+            nonce: "n", state: "s", expiresAt: Date().addingTimeInterval(60), transactionData: "t", purpose: .enroll,
+            tenant: "", credential: credential)
+        request.isRecovery = isRecovery
+        request.candidates = [credential]
+        let store = MemoryStore()
+        store.items = [credential]
+        let wallet = WalletModel(issuance: NoIssuance(), store: store, presentation: AnsweringService(request: request))
+        wallet.load()
+        let flow = PresentationFlow(link: "openid4vp://x")
+        await flow.start(using: wallet)
+        flow.matchCode = "42"
+        await flow.approve(request, using: wallet)
+        #expect(flow.isDone)
+        #expect((wallet.credentials.first?.secondFactorRegisteredAt != nil) == !isRecovery)
     }
 }

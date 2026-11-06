@@ -127,6 +127,9 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
         do {
             let sdJwt = try await requestCredential(issuer, accessToken: accessToken, proof: signed.proof)
             let verified = try await verify(sdJwt, issuer: issuer, holderKey: signer.publicJWK)
+            if let renewal, reused != nil, !HolderKeyRenewal.isSameAdministrator(sdJwt, as: renewal) {
+                throw WalletError.invalidCredential(String(localized: "The renewed credential is for another administrator, so it was not saved."))
+            }
             let credential = StoredCredential(
                 id: UUID(), issuer: issuer.issuer, issuerDisplayName: issuer.displayName,
                 credentialConfigurationId: issuer.configuration.id, vct: issuer.configuration.vct,

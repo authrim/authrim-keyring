@@ -62,8 +62,9 @@ final class PresentationFlow {
         do {
             try await wallet.presentation.present(request, matchCode: code)
             matchCode = ""
-            // The console now holds this key as a second factor (or as a recovery request's new one).
-            if request.purpose == .enroll { wallet.markSecondFactor(request.credential) }
+            // The console now holds this key as a second factor. A recovery request's key becomes one
+            // only when the recovery completes, so it is not marked.
+            if request.purpose == .enroll && !request.isRecovery { wallet.markSecondFactor(request.credential) }
             phase = .done(request)
         } catch {
             matchCode = ""

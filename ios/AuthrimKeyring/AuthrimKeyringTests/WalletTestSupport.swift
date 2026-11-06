@@ -1,6 +1,11 @@
 import CryptoKit
 import Foundation
+import Testing
 @testable import AuthrimKeyring
+
+/// The suites that share `StubURLProtocol`'s registry: nested here so they never run in parallel
+/// with each other (`.serialized` applies to every suite inside).
+@Suite(.serialized) enum StubbedNetworkTests {}
 
 /// Routes every request of a `WalletHTTP` to a handler keyed by "METHOD url".
 final class StubURLProtocol: URLProtocol, @unchecked Sendable {

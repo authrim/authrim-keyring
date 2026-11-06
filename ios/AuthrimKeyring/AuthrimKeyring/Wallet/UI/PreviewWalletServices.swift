@@ -25,6 +25,26 @@ struct PreviewIssuance: CredentialIssuanceService {
     }
 }
 
+struct PreviewPresentation: PresentationService {
+    var outcome: PreviewIssuance.Outcome = .success
+    var delay: Duration = .milliseconds(600)
+
+    func preview(link: String, credentials: [StoredCredential]) async throws -> PresentationRequest {
+        try await Task.sleep(for: delay)
+        guard let credential = credentials.first else { throw WalletError.noMatchingCredential }
+        return PresentationRequest(
+            clientID: "decentralized_identifier:did:web:id.example.com", verifierHost: "id.example.com",
+            responseURI: URL(string: "https://id.example.com/vp/admin/response")!, nonce: "preview-nonce-000000",
+            state: "preview", expiresAt: .now.addingTimeInterval(300), transactionData: "e30",
+            purpose: .stepUp, tenant: "Example", credential: credential)
+    }
+
+    func present(_ request: PresentationRequest, matchCode: String) async throws {
+        try await Task.sleep(for: delay)
+        if case .failure(let error) = outcome { throw error }
+    }
+}
+
 final class PreviewCredentialStore: CredentialStore, @unchecked Sendable {
     private var credentials: [StoredCredential]
 
@@ -48,7 +68,8 @@ extension WalletModel {
     ) -> WalletModel {
         let model = WalletModel(
             issuance: PreviewIssuance(preview: preview, issue: issue),
-            store: PreviewCredentialStore(credentials: credentials)
+            store: PreviewCredentialStore(credentials: credentials),
+            presentation: PreviewPresentation()
         )
         model.load()
         return model

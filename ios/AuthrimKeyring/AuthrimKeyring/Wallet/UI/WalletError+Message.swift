@@ -13,6 +13,11 @@ extension WalletError {
         case .keyUnavailable: "The Secure Key Could Not Be Used"
         case .storage: "The Credential Could Not Be Saved"
         case .offerConsumed: "The Offer Can No Longer Be Used"
+        case .notAPresentationRequest: "This Is Not a Request from the Admin Console"
+        case .untrustedVerifier: "The Request Was Not Answered"
+        case .invalidRequest: "The Request Cannot Be Answered"
+        case .noMatchingCredential: "No Admin Credential for This Request"
+        case .presentationRefused: "The Admin Console Did Not Accept the Answer"
         }
     }
 
@@ -36,6 +41,16 @@ extension WalletError {
             "The one-time code was already used, but the credential could not be completed. Nothing was saved. Create a new code in the admin console and scan it again."
         case .storage:
             "Try again. If it still fails, create a new offer in the admin console."
+        case .notAPresentationRequest:
+            "The code does not contain a request from the Authrim admin console."
+        case .untrustedVerifier:
+            "Keyring answers only the Authrim server that issued your admin credential. This request came from somewhere else, so nothing was sent."
+        case .invalidRequest:
+            "The request is malformed or has expired. Start again in the admin console."
+        case .noMatchingCredential:
+            "This iPhone holds no admin credential from this server. Issue one in the admin console first (My account → Authrim Keyring)."
+        case .presentationRefused:
+            "The number may have been wrong, or the request expired. Start again in the admin console."
         }
     }
 
@@ -44,8 +59,10 @@ extension WalletError {
         switch self {
         case .network(let text), .invalidIssuer(let text), .invalidCredential(let text),
              .keyUnavailable(let text), .storage(let text), .offerConsumed(let text),
-             .outcomeUnknown(let text):
+             .outcomeUnknown(let text), .untrustedVerifier(let text), .invalidRequest(let text):
             text.isEmpty ? nil : text
+        case .presentationRefused(let reason):
+            reason
         default:
             nil
         }
@@ -55,7 +72,9 @@ extension WalletError {
     var canRetry: Bool {
         switch self {
         case .network, .outcomeUnknown, .transactionCodeRequired, .keyUnavailable, .storage: true
-        case .notAnOffer, .invalidIssuer, .offerRejected, .invalidCredential, .offerConsumed: false
+        case .notAnOffer, .invalidIssuer, .offerRejected, .invalidCredential, .offerConsumed,
+             .notAPresentationRequest, .untrustedVerifier, .invalidRequest, .noMatchingCredential,
+             .presentationRefused: false
         }
     }
 }

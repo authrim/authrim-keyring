@@ -37,6 +37,17 @@ nonisolated enum HolderKey {
         #endif
     }
 
+    /// Signs `message` with the stored holder key under `tag` (ES256, raw `r || s`). On a device this
+    /// asks for Face ID or the passcode with `reason` shown; the key itself never leaves the
+    /// Secure Enclave.
+    static func sign(tag: String, message: Data, reason: String) throws -> Data {
+        #if targetEnvironment(simulator) && DEBUG
+        return try SoftwareKey.sign(tag: tag, message: message)
+        #else
+        return try SecureEnclaveKey.sign(tag: tag, message: message, reason: reason)
+        #endif
+    }
+
     /// Deletes the key under `tag`. Succeeds when there is none.
     static func delete(tag: String) throws {
         let query: [String: Any] = [
@@ -92,8 +103,13 @@ nonisolated struct SecureEnclaveKey: HolderSigning {
     }
 
     func sign(_ message: Data) throws -> Data {
+        try Self.sign(
+            tag: tag, message: message, reason: String(localized: "Create the proof for the credential request"))
+    }
+
+    static func sign(tag: String, message: Data, reason: String) throws -> Data {
         let context = LAContext()
-        context.localizedReason = String(localized: "Create the proof for the credential request")
+        context.localizedReason = reason
         let query: [String: Any] = [
             kSecClass as String: kSecClassKey,
             kSecAttrApplicationTag as String: Data(tag.utf8),
@@ -186,6 +202,25 @@ nonisolated struct SoftwareKey: HolderSigning {
     }
 
     func sign(_ message: Data) throws -> Data {
+        do { return try key.signature(for: message).rawRepresentation } catch {
+            throw WalletError.keyUnavailable("Signing failed.")
+        }
+    }
+
+    /// Signs with the software key stored under `tag`.
+    static func sign(tag: String, message: Data) throws -> Data {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: HolderKey.softwareService,
+            kSecAttrAccount as String: tag,
+            kSecReturnData as String: true,
+            kSecAttrSynchronizable as String: false,
+            kSecUseDataProtectionKeychain as String: true,
+        ]
+        var item: CFTypeRef?
+        guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess, let data = item as? Data,
+              let key = try? P256.Signing.PrivateKey(rawRepresentation: data)
+        else { throw WalletError.keyUnavailable("The key was not found.") }
         do { return try key.signature(for: message).rawRepresentation } catch {
             throw WalletError.keyUnavailable("Signing failed.")
         }

@@ -11,12 +11,112 @@
         }
       }
     },
+    "Admin Console Request" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理コンソールからの要求"
+          }
+        }
+      }
+    },
+    "An important operation in the admin console" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理コンソールでの重要な操作"
+          }
+        }
+      }
+    },
+    "Approve" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "承認"
+          }
+        }
+      }
+    },
+    "Approve the request from the Authrim admin console" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authrim 管理コンソールからの要求を承認"
+          }
+        }
+      }
+    },
+    "Approved" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "承認しました"
+          }
+        }
+      }
+    },
+    "Checking the request…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要求を確認しています…"
+          }
+        }
+      }
+    },
     "%@-digit codes are not supported." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@桁のコードには対応していません。"
+          }
+        }
+      }
+    },
+    "Enter the two digits shown in the admin console." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理コンソールに表示された 2 桁の番号を入力してください。"
+          }
+        }
+      }
+    },
+    "Go back to the admin console. It continues on its own." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理コンソールに戻ってください。そのまま続きます。"
+          }
+        }
+      }
+    },
+    "Keyring answers only the Authrim server that issued your admin credential. This request came from somewhere else, so nothing was sent." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keyring は、管理者の資格情報を発行した Authrim サーバーにだけ応答します。この要求は別の場所から来たため、何も送っていません。"
+          }
+        }
+      }
+    },
+    "Keyring answers only the server that issued your admin credential." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keyring は、管理者の資格情報を発行したサーバーにだけ応答します。"
           }
         }
       }
@@ -2122,6 +2222,16 @@
         }
       }
     },
+    "No Admin Credential for This Request" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この要求に使える管理者の資格情報がありません"
+          }
+        }
+      }
+    },
     "No Cards Tagged “%@”" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2273,6 +2383,16 @@
         }
       }
     },
+    "Number in the Admin Console" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理コンソールの番号"
+          }
+        }
+      }
+    },
     "Ocean" : {
       "localizations" : {
         "ja" : {
@@ -2355,6 +2475,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "見覚えのある発行元の資格情報だけを受け取ってください。Keyringは発行元の運営者を確認できません。"
+          }
+        }
+      }
+    },
+    "Only your admin credential’s identity is sent, signed with its key on this iPhone. You will be asked for Face ID or your passcode." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "送られるのは管理者の資格情報の識別情報だけで、この iPhone にある鍵で署名します。Face ID かパスコードを求められます。"
           }
         }
       }
@@ -2739,6 +2869,16 @@
         }
       }
     },
+    "Request From" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要求元"
+          }
+        }
+      }
+    },
     "Require %@" : {
       "localizations" : {
         "ja" : {
@@ -2881,6 +3021,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "セキュリティ"
+          }
+        }
+      }
+    },
+    "Server" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サーバー"
           }
         }
       }
@@ -3308,12 +3458,32 @@
         }
       }
     },
+    "Tenant" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "テナント"
+          }
+        }
+      }
+    },
     "Text on the card switches between black and white to stay readable." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "カードの文字は、読みやすいように黒と白が自動で切り替わります。"
+          }
+        }
+      }
+    },
+    "The Admin Console Did Not Accept the Answer" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理コンソールが応答を受け付けませんでした"
           }
         }
       }
@@ -3374,6 +3544,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "クリップボードにテキストがありません。"
+          }
+        }
+      }
+    },
+    "The code does not contain a request from the Authrim admin console." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このコードには、Authrim 管理コンソールからの要求が含まれていません。"
           }
         }
       }
@@ -3518,6 +3698,16 @@
         }
       }
     },
+    "The number may have been wrong, or the request expired. Start again in the admin console." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "番号が違っていたか、要求の期限が切れた可能性があります。管理コンソールでもう一度始めてください。"
+          }
+        }
+      }
+    },
     "The Offer Can No Longer Be Used" : {
       "localizations" : {
         "ja" : {
@@ -3614,6 +3804,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "写真はこのデバイスにだけ保存され、iCloud同期やKeyringのバックアップには含まれません。"
+          }
+        }
+      }
+    },
+    "The Request Cannot Be Answered" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この要求には応答できません"
+          }
+        }
+      }
+    },
+    "The request is malformed or has expired. Start again in the admin console." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要求の形式が正しくないか、期限が切れています。管理コンソールでもう一度始めてください。"
+          }
+        }
+      }
+    },
+    "The Request Was Not Answered" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要求に応答しませんでした"
           }
         }
       }
@@ -3778,6 +3998,16 @@
         }
       }
     },
+    "This iPhone holds no admin credential from this server. Issue one in the admin console first (My account → Authrim Keyring)." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この iPhone には、このサーバーの管理者の資格情報がありません。先に管理コンソールで発行してください（マイアカウント → Authrim Keyring）。"
+          }
+        }
+      }
+    },
     "This iPhone Only" : {
       "localizations" : {
         "ja" : {
@@ -3794,6 +4024,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "資格情報のオファーではありません"
+          }
+        }
+      }
+    },
+    "This Is Not a Request from the Admin Console" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理コンソールからの要求ではありません"
           }
         }
       }
@@ -4028,12 +4268,32 @@
         }
       }
     },
+    "Two digits" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2 桁の番号"
+          }
+        }
+      }
+    },
     "Type" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "種類"
+          }
+        }
+      }
+    },
+    "Type the number your admin console shows right now. Never type a number someone else tells you: they may be trying to use your credential." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "いま管理コンソールに表示されている番号を入力してください。他人から伝えられた番号は入力しないでください。あなたの資格情報を使おうとしている可能性があります。"
           }
         }
       }
@@ -4124,6 +4384,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "自分でサインインした %@ の管理コンソールで確かめてください。コードが一致すれば、この発行元は「あなたが確認済み」と表示されます。"
+          }
+        }
+      }
+    },
+    "Use this credential as a second factor" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この資格情報を 2 つ目の要素として使う"
           }
         }
       }
@@ -4224,6 +4494,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ウェブサイト"
+          }
+        }
+      }
+    },
+    "What You Approve" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "承認する内容"
           }
         }
       }

@@ -109,6 +109,19 @@ struct WalletPresentationTests {
         #expect(request.credential.vct == Self.vct)
     }
 
+    @Test(arguments: [
+        (#"{"type":"authrim_admin_step_up","credential_ids":["admin"],"purpose":"enroll","mode":"recovery"}"#, true),
+        (#"{"type":"authrim_admin_step_up","credential_ids":["admin"],"purpose":"enroll"}"#, false),
+        // Only a registration can be a recovery request.
+        (#"{"type":"authrim_admin_step_up","credential_ids":["admin"],"purpose":"step_up","mode":"recovery"}"#, false),
+    ])
+    func readsWhetherARegistrationFilesARecoveryRequest(_ json: String, isRecovery: Bool) async throws {
+        let data = Base64URL.encode(Data(json.utf8))
+        stub(requestObject: try requestObject(payload { $0["transaction_data"] = [data] }))
+        let request = try await client().preview(link: Self.link, credentials: [credential])
+        #expect(request.isRecovery == isRecovery)
+    }
+
     @Test func fetchesNothingFromAServerThatIssuedNoCredentialHere() async throws {
         await #expect(throws: WalletError.self) {
             _ = try await client().preview(link: Self.link, credentials: [])

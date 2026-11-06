@@ -74,7 +74,13 @@ struct CredentialDetailView: View {
                 if wallet.remove(credential) { dismiss() }
             }
         } message: {
-            Text("This device’s key for the credential is deleted, so it can no longer be presented. Also revoke it in the admin console. This cannot be undone.")
+            if !wallet.deletesKey(credential) {
+                Text("Another credential on this iPhone uses the same key, so the key stays. Also revoke this credential in the admin console.")
+            } else if credential.secondFactorRegisteredAt != nil {
+                Text("This credential’s key is your second factor in the admin console. Once it is deleted, you cannot approve important operations with Keyring until you register a new one. This cannot be undone.")
+            } else {
+                Text("This device’s key for the credential is deleted, so it can no longer be presented. Also revoke it in the admin console. This cannot be undone.")
+            }
         }
         .alert("Something went wrong", isPresented: hasError) {
             Button("OK") { wallet.lastError = nil }

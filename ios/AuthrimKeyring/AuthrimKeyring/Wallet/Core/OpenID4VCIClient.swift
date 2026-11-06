@@ -7,6 +7,7 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
     private let http: WalletHTTP
     private let store: any CredentialStore
     private let makeKey: @Sendable (String) throws -> any HolderSigning
+    private let existingKey: @Sendable (String, PublicJWK) -> any HolderSigning
     private let deleteKey: @Sendable (String) -> Void
     private let now: @Sendable () -> Date
     private let languages: @Sendable () -> [String]
@@ -16,6 +17,11 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
         http: WalletHTTP = WalletHTTP(),
         store: any CredentialStore = KeychainCredentialStore(),
         makeKey: @escaping @Sendable (String) throws -> any HolderSigning = { try HolderKey.create(tag: $0) },
+        existingKey: @escaping @Sendable (String, PublicJWK) -> any HolderSigning = {
+            ExistingHolderKey(
+                tag: $0, publicJWK: $1,
+                reason: String(localized: "Renew your admin credential with the key on this iPhone."))
+        },
         deleteKey: @escaping @Sendable (String) -> Void = { try? HolderKey.delete(tag: $0) },
         now: @escaping @Sendable () -> Date = { Date() },
         languages: @escaping @Sendable () -> [String] = { Locale.preferredLanguages }
@@ -23,6 +29,7 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
         self.http = http
         self.store = store
         self.makeKey = makeKey
+        self.existingKey = existingKey
         self.deleteKey = deleteKey
         self.now = now
         self.languages = languages
@@ -39,11 +46,28 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
                 numeric: (code.inputMode ?? "numeric") == "numeric",
                 description: code.description.flatMap { IssuerMetadata.sanitize(String($0.prefix(300))) })
         }
+        // A credential this device already holds for this issuer, bound to a key the offer names
+        // (the admin's registered second factor): renewed with that key so the factor carries over.
+        // With a hint, a failed read is an error: issuing with a new key instead would silently lose
+        // the second factor the renewal is meant to keep.
+        let hints = HolderKeyRenewal.hints(in: offer)
+        var renewal: StoredCredential?
+        if !hints.isEmpty {
+            let stored = try store.loadAllCountingSkipped()
+            renewal = HolderKeyRenewal.renewable(
+                from: stored.items, issuer: verified.issuer, vct: verified.configuration.vct, hints: hints)
+            // The credential to renew may be the one that could not be read.
+            if renewal == nil && stored.skipped > 0 {
+                throw WalletError.storage(String(localized: "A stored credential could not be read, so Keyring cannot tell whether to renew it."))
+            }
+        }
         let preview = CredentialOfferPreview(
             id: UUID(), issuer: verified.issuer, issuerDisplayName: verified.displayName,
             credentialConfigurationId: verified.configuration.id, credentialName: verified.configuration.name,
-            claimNames: verified.configuration.claimNames, transactionCode: requirement)
-        await sessions.put(preview.id, PendingOffer(preAuthorizedCode: parsed.preAuthorizedCode, issuer: verified))
+            claimNames: verified.configuration.claimNames, transactionCode: requirement,
+            renewsCredential: renewal != nil)
+        await sessions.put(
+            preview.id, PendingOffer(preAuthorizedCode: parsed.preAuthorizedCode, issuer: verified, renewal: renewal))
         return preview
     }
 
@@ -54,6 +78,16 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
             throw WalletError.invalidIssuer("This offer is no longer available. Scan it again.")
         }
         let issuer = pending.issuer
+        // From before the token request (which spends the offer) until this returns, deleting the
+        // credential being renewed keeps its key: the renewal signs with it.
+        if let renewal = pending.renewal { HolderKeyReservations.shared.reserve(renewal.keyTag) }
+        defer { if let renewal = pending.renewal { HolderKeyReservations.shared.release(renewal.keyTag) } }
+        // With the key reserved, it is still there only if a credential still uses it: otherwise stop
+        // before the token request spends the offer.
+        if let renewal = pending.renewal, try !store.loadAll().contains(where: { $0.keyTag == renewal.keyTag }) {
+            await sessions.remove(preview.id)
+            throw WalletError.storage(String(localized: "The credential to renew was removed. Create a new offer in the admin console."))
+        }
         let code = transactionCode?.trimmingCharacters(in: .whitespacesAndNewlines)
         if preview.transactionCode != nil, code?.isEmpty != false { throw WalletError.transactionCodeRequired }
 
@@ -68,7 +102,7 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
         // From here the pre-authorized code is spent. Any failure is final for this offer: a retry would
         // only be refused (or burn another code), so the offer is dropped and the user needs a new one.
         do {
-            let credential = try await complete(issuer, accessToken: accessToken)
+            let credential = try await complete(issuer, accessToken: accessToken, renewal: pending.renewal)
             await sessions.remove(preview.id)
             return credential
         } catch {
@@ -78,11 +112,17 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
     }
 
     /// Nonce, proof, credential, verification and storage, after the token step.
-    private func complete(_ issuer: VerifiedIssuer, accessToken: String) async throws -> StoredCredential {
+    private func complete(
+        _ issuer: VerifiedIssuer, accessToken: String, renewal: StoredCredential?
+    ) async throws -> StoredCredential {
         let nonce = try await requestNonce(issuer)
 
-        let tag = HolderKey.makeTag()
-        let signed = try await createProof(tag: tag, audience: issuer.issuer.absoluteString, nonce: nonce)
+        // A renewal signs with the key the earlier credential uses; it is never deleted here, as that
+        // credential still needs it.
+        let reused = renewal.flatMap { old in HolderKeyRenewal.holderKey(of: old).map { (old.keyTag, $0) } }
+        let tag = reused?.0 ?? HolderKey.makeTag()
+        let signed = try await createProof(
+            tag: tag, existing: reused?.1, audience: issuer.issuer.absoluteString, nonce: nonce)
         let signer = signed.signer
         do {
             let sdJwt = try await requestCredential(issuer, accessToken: accessToken, proof: signed.proof)
@@ -92,31 +132,41 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
                 credentialConfigurationId: issuer.configuration.id, vct: issuer.configuration.vct,
                 credentialName: issuer.configuration.name, claims: verified.claims,
                 issuedAt: verified.issuedAt ?? now(), expiresAt: verified.expiresAt, keyTag: tag,
-                confirmationCode: signer.publicJWK.confirmationCode, sdJwt: sdJwt)
+                confirmationCode: signer.publicJWK.confirmationCode, sdJwt: sdJwt,
+                // The same key is the same second factor, as recorded now (not when the offer was read).
+                // A registration known when the offer was read is never dropped (the renewed
+                // credential may have been deleted meanwhile).
+                secondFactorRegisteredAt: reused == nil
+                    ? nil : [registeredAt(keyTag: tag), renewal?.secondFactorRegisteredAt].compactMap { $0 }.min())
             do { try store.save(credential) } catch let error as WalletError { throw error } catch {
                 throw WalletError.storage(error.localizedDescription)
             }
             return credential
         } catch {
-            deleteKey(tag)
+            if reused == nil { deleteKey(tag) }
             throw error
         }
     }
 
-    /// Creates the holder key and signs the proof. `@concurrent` keeps both off the main actor: the
+    /// When the admin console accepted the key under `keyTag`, from the stored credentials using it.
+    private func registeredAt(keyTag: String) -> Date? {
+        ((try? store.loadAll()) ?? []).filter { $0.keyTag == keyTag }.compactMap(\.secondFactorRegisteredAt).min()
+    }
+
+    /// Creates the holder key (or takes the existing one of a renewal) and signs the proof. `@concurrent` keeps both off the main actor: the
     /// Secure Enclave calls block while Face ID / the passcode prompt is up, and any key created before a
     /// failure is deleted here.
     @concurrent
-    private func createProof(tag: String, audience: String, nonce: String?) async throws
+    private func createProof(tag: String, existing: PublicJWK?, audience: String, nonce: String?) async throws
         -> (signer: any HolderSigning, proof: String)
     {
-        let signer = try makeKey(tag)
+        let signer = try existing.map { existingKey(tag, $0) } ?? makeKey(tag)
         do {
             let proof = try ProofJWT.make(
                 audience: audience, nonce: nonce, issuedAt: now(), key: signer.publicJWK, sign: signer.sign)
             return (signer, proof)
         } catch {
-            deleteKey(tag)
+            if existing == nil { deleteKey(tag) }
             throw error
         }
     }
@@ -217,6 +267,8 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
 nonisolated struct PendingOffer: Sendable {
     let preAuthorizedCode: String
     let issuer: VerifiedIssuer
+    /// The stored credential whose holder key the new one is bound to, for a renewal.
+    var renewal: StoredCredential? = nil
 }
 
 /// The verified offers waiting for the user's decision. The pre-authorized code stays here, out of the preview.

@@ -71,10 +71,22 @@ nonisolated struct PresentationRequest: Sendable, Identifiable {
     /// The single `transaction_data` entry as received (its hash goes into the key binding).
     let transactionData: String
     let purpose: PresentationPurpose
+    /// An enrolment that files a recovery request (`mode: recovery` in `transaction_data`).
+    var isRecovery = false
     /// Tenant shown in the admin console.
     let tenant: String
-    /// The stored credential that answers it.
-    let credential: StoredCredential
+    /// The stored credential that answers it (the user may pick another of `candidates`).
+    var credential: StoredCredential
+    /// The credentials that could answer it, one per holder key, the preferred one first.
+    var candidates: [StoredCredential] = []
+
+    /// The same request answered with another of its candidates.
+    func answering(with chosen: StoredCredential) -> PresentationRequest {
+        guard candidates.contains(where: { $0.id == chosen.id }) else { return self }
+        var copy = self
+        copy.credential = chosen
+        return copy
+    }
 }
 
 /// The fixed checks of an administrator presentation request. A request is answered only when it
@@ -129,19 +141,34 @@ nonisolated enum PresentationRequestValidator {
         else { throw WalletError.invalidRequest("The request has expired.") }
 
         let vctValues = try adminQueryVcts(payload["dcql_query"])
-        let (transactionData, purpose, tenant) = try transactionDetails(payload["transaction_data"])
+        let (transactionData, purpose, tenant, isRecovery) = try transactionDetails(payload["transaction_data"])
 
-        // The credential this issuer gave this device, for the requested type.
+        // The credentials this issuer gave this device, for the requested type.
         let matching = credentials
             .filter { $0.issuer.host?.lowercased() == host && $0.issuer.port == nil && vctValues.contains($0.vct) }
             .filter { $0.expiresAt.map { $0 > now } ?? true }
-            .sorted { $0.issuedAt > $1.issuedAt }
-        guard let credential = matching.first else { throw WalletError.noMatchingCredential }
+        let candidates = preferred(matching, for: purpose)
+        guard let credential = candidates.first else { throw WalletError.noMatchingCredential }
 
-        return PresentationRequest(
+        var request = PresentationRequest(
             clientID: link.clientID, verifierHost: host, responseURI: responseURI, nonce: nonce, state: state,
             expiresAt: expiresAt, transactionData: transactionData, purpose: purpose, tenant: tenant,
             credential: credential)
+        request.isRecovery = isRecovery
+        request.candidates = candidates
+        return request
+    }
+
+    /// One credential per holder key (the newest), ordered for the purpose: a step-up first offers
+    /// the keys the admin console accepted as second factors, a registration the newest key.
+    static func preferred(_ credentials: [StoredCredential], for purpose: PresentationPurpose) -> [StoredCredential] {
+        let newestFirst = credentials.sorted { $0.issuedAt > $1.issuedAt }
+        var seenKeys = Set<String>()
+        let perKey = newestFirst.filter { seenKeys.insert($0.keyTag).inserted }
+        guard purpose == .stepUp else { return perKey }
+        let registered = Set(
+            credentials.filter { $0.secondFactorRegisteredAt != nil }.map(\.keyTag))
+        return perKey.filter { registered.contains($0.keyTag) } + perKey.filter { !registered.contains($0.keyTag) }
     }
 
     /// The one DCQL query of an administrator presentation: one `dc+sd-jwt` credential under
@@ -174,7 +201,7 @@ nonisolated enum PresentationRequestValidator {
         return vcts
     }
 
-    private static func transactionDetails(_ value: Any?) throws -> (String, PresentationPurpose, String) {
+    private static func transactionDetails(_ value: Any?) throws -> (String, PresentationPurpose, String, Bool) {
         guard let entries = value as? [String], entries.count == 1, entries[0].count <= 4096,
               let data = Base64URL.decode(entries[0]),
               let details = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
@@ -183,6 +210,8 @@ nonisolated enum PresentationRequestValidator {
               let purpose = (details["purpose"] as? String).flatMap(PresentationPurpose.init(rawValue:))
         else { throw WalletError.invalidRequest("The request does not say what it is for.") }
         let tenant = ((details["tenant"] as? String) ?? "").prefix(200)
-        return (entries[0], purpose, String(tenant))
+        // Only a registration can be a recovery request; anything else in `mode` is ignored.
+        let isRecovery = purpose == .enroll && details["mode"] as? String == "recovery"
+        return (entries[0], purpose, String(tenant), isRecovery)
     }
 }

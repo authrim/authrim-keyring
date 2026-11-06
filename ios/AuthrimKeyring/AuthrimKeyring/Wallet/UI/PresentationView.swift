@@ -57,6 +57,22 @@ private struct PresentationForm: View {
     let isSending: Bool
     @FocusState private var isCodeFocused: Bool
 
+    /// The credential that answers, chosen among the request's candidates.
+    private var chosenCredential: Binding<UUID> {
+        Binding(
+            get: { request.credential.id },
+            set: { id in
+                if let chosen = request.candidates.first(where: { $0.id == id }) { flow.choose(chosen) }
+            })
+    }
+
+    /// `ABCD-EFGH`, marked when the admin console accepted the key as a second factor.
+    private func keyLabel(_ credential: StoredCredential) -> String {
+        credential.secondFactorRegisteredAt == nil
+            ? credential.confirmationCode
+            : String(localized: "\(credential.confirmationCode) (second factor)")
+    }
+
     var body: some View {
         Form {
             Section {
@@ -69,16 +85,33 @@ private struct PresentationForm: View {
             } footer: {
                 Text("Keyring answers only the server that issued your admin credential.")
             }
-            Section("What You Approve") {
+            Section {
                 switch request.purpose {
                 case .stepUp:
                     Label("An important operation in the admin console", systemImage: "checkmark.shield")
+                case .enroll where request.isRecovery:
+                    Label("Request a recovery of your second factors with this credential", systemImage: "arrow.counterclockwise")
                 case .enroll:
                     Label("Use this credential as a second factor", systemImage: "key.viewfinder")
                 }
                 LabeledContent("Credential", value: request.credential.credentialName)
                 if let account = request.credential.claims["email"] ?? request.credential.claims["name"] {
                     LabeledContent("Administrator", value: account)
+                }
+                if request.candidates.count > 1 {
+                    Picker("Key", selection: chosenCredential) {
+                        ForEach(request.candidates) { candidate in
+                            Text(keyLabel(candidate)).tag(candidate.id)
+                        }
+                    }
+                }
+            } header: {
+                Text("What You Approve")
+            } footer: {
+                if request.purpose == .enroll && request.isRecovery {
+                    Text("Every administrator gets an email. After 24 hours you can complete the recovery in the admin console; your current second factors then stop working.")
+                } else if request.candidates.count > 1 {
+                    Text("This iPhone holds more than one key for this server. Choose the one marked as a second factor before you approve. If the admin console refuses it, start again there and choose another key.")
                 }
             }
             Section {

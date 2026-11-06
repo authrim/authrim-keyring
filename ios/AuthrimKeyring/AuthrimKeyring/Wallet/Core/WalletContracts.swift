@@ -14,6 +14,9 @@ struct CredentialOfferPreview: Identifiable, Sendable {
     let claimNames: [String]
     /// Present when the offer requires a transaction code (Authrim admin offers always do).
     let transactionCode: TransactionCodeRequirement?
+    /// The new credential is bound to the key of a credential already on this device (the admin's
+    /// registered second factor), instead of a new key.
+    var renewsCredential = false
 }
 
 struct TransactionCodeRequirement: Sendable, Equatable {
@@ -35,7 +38,8 @@ struct StoredCredential: Codable, Identifiable, Sendable, Hashable {
     let claims: [String: String]
     let issuedAt: Date
     let expiresAt: Date?
-    /// Secure Enclave key tag of this credential's own holder key.
+    /// Secure Enclave key tag of this credential's holder key. A renewed credential shares the key
+    /// (and the tag) of the credential it renews.
     let keyTag: String
     /// `ABCD-EFGH`: first 8 base32 characters of the RFC 7638 thumbprint of the holder key, the
     /// same code the Authrim admin console shows after issuance.
@@ -44,6 +48,9 @@ struct StoredCredential: Codable, Identifiable, Sendable, Hashable {
     let sdJwt: String
     /// When the user said the admin console shows the same confirmation code; nil until then.
     var confirmedAt: Date? = nil
+    /// When the admin console accepted this credential's key as a second factor (a registration or
+    /// a recovery request answered from this device); nil when not known to be one.
+    var secondFactorRegisteredAt: Date? = nil
 }
 
 enum WalletError: Error, Equatable, Sendable {
@@ -89,11 +96,19 @@ protocol CredentialIssuanceService: Sendable {
         -> StoredCredential
 }
 
-/// Device-only storage of credentials. Deleting a credential also deletes its holder key.
+/// Device-only storage of credentials. Deleting a credential also deletes its holder key, unless
+/// another stored credential still uses that key (a renewal).
 protocol CredentialStore: Sendable {
     func loadAll() throws -> [StoredCredential]
+    /// The credentials and how many stored items could not be read, so a caller can tell a
+    /// complete list from one missing what it could not decode.
+    func loadAllCountingSkipped() throws -> (items: [StoredCredential], skipped: Int)
     func save(_ credential: StoredCredential) throws
     func delete(_ credential: StoredCredential) throws
+}
+
+extension CredentialStore {
+    func loadAllCountingSkipped() throws -> (items: [StoredCredential], skipped: Int) { (try loadAll(), 0) }
 }
 
 /// Answers administrator presentation requests (OpenID4VP 1.0, cross-device `direct_post`).

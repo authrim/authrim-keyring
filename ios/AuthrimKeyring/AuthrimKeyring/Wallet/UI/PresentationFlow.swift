@@ -62,6 +62,8 @@ final class PresentationFlow {
         do {
             try await wallet.presentation.present(request, matchCode: code)
             matchCode = ""
+            // The console now holds this key as a second factor (or as a recovery request's new one).
+            if request.purpose == .enroll { wallet.markSecondFactor(request.credential) }
             phase = .done(request)
         } catch {
             matchCode = ""
@@ -78,6 +80,12 @@ final class PresentationFlow {
         } else {
             await load(using: wallet)
         }
+    }
+
+    /// Answers with another of the request's credentials (another holder key on this device).
+    func choose(_ credential: StoredCredential) {
+        guard case .ready(let request) = phase else { return }
+        phase = .ready(request.answering(with: credential))
     }
 
     /// Keeps only digits, at most two.

@@ -4627,6 +4627,116 @@
           }
         }
       }
+    },
+    "Renew your admin credential with the key on this iPhone." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この iPhone の鍵で、管理者の資格情報を更新します。"
+          }
+        }
+      }
+    },
+    "Request a recovery of your second factors with this credential" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この資格情報で、2 つ目の要素の復旧を申請する"
+          }
+        }
+      }
+    },
+    "Key" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "鍵"
+          }
+        }
+      }
+    },
+    "Every administrator gets an email. After 24 hours you can complete the recovery in the admin console; your current second factors then stop working." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理者全員にメールが届きます。24 時間後に管理コンソールで復旧を完了でき、完了すると今の 2 つ目の要素は使えなくなります。"
+          }
+        }
+      }
+    },
+    "%@ (second factor)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@（2 つ目の要素）"
+          }
+        }
+      }
+    },
+    "Another credential on this iPhone uses the same key, so the key stays. Also revoke this credential in the admin console." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この iPhone のほかの資格情報が同じ鍵を使っているので、鍵は残ります。管理コンソールでも、この資格情報を取り消してください。"
+          }
+        }
+      }
+    },
+    "This credential’s key is your second factor in the admin console. Once it is deleted, you cannot approve important operations with Keyring until you register a new one. This cannot be undone." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この資格情報の鍵は、管理コンソールでの 2 つ目の要素です。削除すると、新しく登録し直すまで、Keyring で重要な操作を承認できなくなります。元には戻せません。"
+          }
+        }
+      }
+    },
+    "Keyring renews your current credential with the key it already has on this device, so your second factor keeps working. You will be asked for Face ID, Touch ID or your passcode." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keyring は、この端末にある今の鍵のまま資格情報を更新するので、2 つ目の要素はそのまま使えます。Face ID、Touch ID、またはパスコードを求められます。"
+          }
+        }
+      }
+    },
+    "A stored credential could not be read, so Keyring cannot tell whether to renew it." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存されている資格情報を読み取れなかったため、更新すべきかどうかを判断できません。"
+          }
+        }
+      }
+    },
+    "This iPhone holds more than one key for this server. Choose the one marked as a second factor before you approve. If the admin console refuses it, start again there and choose another key." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この iPhone には、このサーバーの鍵が複数あります。承認する前に、「2 つ目の要素」と表示された鍵を選んでください。管理コンソールで断られたら、そこからやり直して別の鍵を選んでください。"
+          }
+        }
+      }
+    },
+    "The credential to renew was removed. Create a new offer in the admin console." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新する資格情報が削除されました。管理コンソールで新しい QR コードを作ってください。"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

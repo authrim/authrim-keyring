@@ -28,14 +28,28 @@ nonisolated struct KeychainCredentialStore: CredentialStore {
         } catch { throw WalletError.storage(error.localizedDescription) }
     }
 
+    func loadAllCountingSkipped() throws -> (items: [StoredCredential], skipped: Int) {
+        do {
+            let stored = try keychain.loadAllCountingSkipped(StoredCredential.self, from: .device)
+            return (stored.items.sorted { $0.issuedAt > $1.issuedAt }, stored.skipped)
+        } catch { throw WalletError.storage(error.localizedDescription) }
+    }
+
     func save(_ credential: StoredCredential) throws {
         do { try keychain.save(credential, to: .device) } catch { throw WalletError.storage(error.localizedDescription) }
     }
 
     /// Deletes the holder key first, then the item, so a failed key deletion keeps the credential visible.
+    /// The key is kept when another stored credential still uses it (Keyring renewed it with the same
+    /// key), when a renewal is signing with it right now, or when an item could not be read (it might
+    /// be one that uses the key).
     func delete(_ credential: StoredCredential) throws {
         do {
-            try deleteKey(credential.keyTag)
+            let stored = try loadAllCountingSkipped()
+            let shared = stored.items.contains { $0.id != credential.id && $0.keyTag == credential.keyTag }
+            if !shared && stored.skipped == 0 && !HolderKeyReservations.shared.isReserved(credential.keyTag) {
+                try deleteKey(credential.keyTag)
+            }
             try keychain.delete(id: credential.id, from: .device)
         } catch let error as WalletError {
             throw error

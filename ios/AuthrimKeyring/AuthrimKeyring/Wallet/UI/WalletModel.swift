@@ -61,6 +61,23 @@ final class WalletModel {
         return true
     }
 
+    /// Records that the admin console accepted the key of `credential` as a second factor. Every
+    /// credential sharing that key is the same factor. A failed save only loses the hint.
+    func markSecondFactor(_ credential: StoredCredential) {
+        let at = Date.now
+        for index in credentials.indices where credentials[index].keyTag == credential.keyTag {
+            guard credentials[index].secondFactorRegisteredAt == nil else { continue }
+            var marked = credentials[index]
+            marked.secondFactorRegisteredAt = at
+            if (try? store.save(marked)) != nil { credentials[index] = marked }
+        }
+    }
+
+    /// Whether deleting `credential` also deletes its holder key (no other credential uses it).
+    func deletesKey(_ credential: StoredCredential) -> Bool {
+        !credentials.contains { $0.id != credential.id && $0.keyTag == credential.keyTag }
+    }
+
     func load() {
         do {
             credentials = try store.loadAll().sorted { $0.issuedAt > $1.issuedAt }

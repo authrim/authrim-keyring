@@ -86,7 +86,11 @@ private struct CredentialOfferForm: View {
             }
             Section {
             } footer: {
-                Text("Keyring creates a key for this credential in the Secure Enclave of this device. You will be asked for Face ID, Touch ID or your passcode.")
+                if preview.renewsCredential {
+                    Text("Keyring renews your current credential with the key it already has on this device, so your second factor keeps working. You will be asked for Face ID, Touch ID or your passcode.")
+                } else {
+                    Text("Keyring creates a key for this credential in the Secure Enclave of this device. You will be asked for Face ID, Touch ID or your passcode.")
+                }
             }
         }
         .disabled(isIssuing)

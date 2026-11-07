@@ -15,6 +15,12 @@ Cinzel (Cinzel-SemiBold.ttf)
   Location: ios/AuthrimKeyring/AuthrimKeyring/Fonts/
   The full license text is in ios/AuthrimKeyring/AuthrimKeyring/Fonts/Cinzel-OFL.txt.
 
+Public Suffix List (public_suffix_list.dat)
+  License: Mozilla Public License, Version 2.0
+  URL: https://publicsuffix.org/list/
+  Location: ios/AuthrimKeyring/Shared/AutoFill/
+  The file is included unmodified. The license is at https://mozilla.org/MPL/2.0/.
+
 --------------------------------------------------------------------------------
 Names and logos
 --------------------------------------------------------------------------------

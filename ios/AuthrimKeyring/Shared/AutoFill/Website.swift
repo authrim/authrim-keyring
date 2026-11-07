@@ -23,10 +23,12 @@ nonisolated enum Website {
         return isSharedSuffix(site) ? nil : site
     }
 
-    /// Common public suffixes, such as `co.uk`, and hosting domains whose
-    /// subdomains belong to different owners, such as `github.io`. Not the whole
-    /// Public Suffix List, but enough to stop the usual mistakes.
+    /// Whether names under `site` can belong to different owners, such as `co.uk` or
+    /// `github.io`, by the bundled Public Suffix List. If the list cannot be read, a short
+    /// list of the most common ones stands in for it.
     static func isSharedSuffix(_ site: String) -> Bool {
+        let site = ascii(site)
+        if let list = PublicSuffixList.bundled { return list.isPublicSuffix(site) }
         let labels = site.split(separator: ".")
         if labels.count == 2, labels[1].count == 2, genericSecondLevel.contains(String(labels[0])) {
             return true
@@ -44,8 +46,42 @@ nonisolated enum Website {
         "azurewebsites.net", "cloudfront.net", "s3.amazonaws.com", "onrender.com", "fly.dev",
     ]
 
-    /// Whether a page on `host` belongs to `site`, including its subdomains.
+    /// Whether a page on `host` may be offered the codes of a card set for `site`: the site
+    /// itself, or one of its subdomains with the same owner. Also checks sites saved or
+    /// imported before a suffix was known, so that a site such as `pages.dev` never covers
+    /// unrelated subdomains.
     static func matches(host: String, site: String) -> Bool {
+        let host = ascii(host)
+        let site = ascii(site)
+        if host == site { return true }
+        guard host.hasSuffix("." + site) else { return false }
+        guard let list = PublicSuffixList.bundled else { return !isSharedSuffix(site) }
+        // The owner of `host` must own `site` too, so no suffix lies between them.
+        guard let owner = list.registrableDomain(of: host) else { return false }
+        return site == owner || site.hasSuffix("." + owner)
+    }
+
+    /// Whether the codes of a card set for `site` may be suggested above the keyboard,
+    /// where the system, not Keyring, picks the pages that see them. Not for a shared
+    /// suffix, nor for a name with shared suffixes under it, such as `amazonaws.com`;
+    /// Keyring's own list, which checks the page itself, still suggests those.
+    static func canSuggestAboveKeyboard(_ site: String) -> Bool {
+        guard !isSharedSuffix(site) else { return false }
+        return !(PublicSuffixList.bundled?.hasSuffixesBeneath(ascii(site)) ?? false)
+    }
+
+    /// `host` as the Public Suffix List is compared: lowercase, with internationalized
+    /// labels in punycode, so that `公司.cn` is recognized as `xn--55qx5d.cn`.
+    static func ascii(_ host: String) -> String {
+        host.lowercased()
+            .split(separator: ".", omittingEmptySubsequences: false)
+            .map { PublicSuffixList.punycode(String($0)) ?? String($0) }
+            .joined(separator: ".")
+    }
+
+    /// Whether `host` is `site` or any name under it, owner or not. For rules where
+    /// covering more is the cautious side, such as which passkeys stay on this device.
+    static func isSameOrSubdomain(_ host: String, of site: String) -> Bool {
         let host = host.lowercased()
         return host == site || host.hasSuffix("." + site)
     }

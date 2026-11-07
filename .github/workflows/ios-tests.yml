@@ -14,18 +14,20 @@ concurrency:
 
 jobs:
   unit-tests:
-    runs-on: macos-latest
+    # The project needs Xcode 27.2 or later, which only the xcode-27 image (a public
+    # preview) has so far. Move to macos-latest once that includes it.
+    runs-on: xcode-27
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
 
-      # The project needs Xcode 27.2 or later. Until GitHub's macOS images include it,
-      # this step fails rather than report tests that never ran.
+      # Fails rather than report tests that never ran, if the image has no Xcode 27.2.
+      # Only plain version names count: Xcode_27.2.app, not Xcode_27.2_Release_Candidate.app.
       - name: Select Xcode 27.2 or later
         run: |
-          xcode=$(ls -d /Applications/Xcode_[0-9]*.app 2>/dev/null | sort -V | tail -n 1)
+          xcode=$(ls -d /Applications/Xcode_*.app 2>/dev/null | grep -E '/Xcode_[0-9]+(\.[0-9]+)*\.app$' | sort -V | tail -n 1)
           version=$(basename "${xcode:-none}" .app | sed 's/^Xcode_//')
           lowest=$(printf '%s\n' "27.2" "$version" | sort -V | head -n 1)
           if [ -z "$xcode" ] || [ "$lowest" != "27.2" ]; then

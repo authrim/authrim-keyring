@@ -34,8 +34,9 @@ jobs:
             echo "::error::Xcode 27.2 or later is required. Installed: $(ls -d /Applications/Xcode*.app | tr '\n' ' ')"
             exit 1
           fi
-          sudo xcode-select -s "$xcode"
-          xcodebuild -version
+          # For this job only, without sudo or a change to the machine's default.
+          echo "DEVELOPER_DIR=$xcode/Contents/Developer" >> "$GITHUB_ENV"
+          DEVELOPER_DIR="$xcode/Contents/Developer" xcodebuild -version
 
       - name: Pick an iPhone simulator on iOS 26 or later
         id: simulator

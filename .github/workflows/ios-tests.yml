@@ -42,13 +42,16 @@ jobs:
         id: simulator
         run: |
           udid=$(xcrun simctl list devices available --json | python3 -c '
-          import json, sys
+          import json, re, sys
           devices = json.load(sys.stdin)["devices"]
           found = []
           for runtime, items in devices.items():
-              if ".iOS-" not in runtime:
+              # Keys look like "…SimRuntime.iOS-27-2", or "…iOS-27-2-iPhone19-4" for a
+              # runtime made for one device; only the leading numbers are the version.
+              match = re.search(r"\.iOS-(\d+(?:-\d+)*)", runtime)
+              if not match:
                   continue
-              version = tuple(int(part) for part in runtime.split(".iOS-")[1].split("-"))
+              version = tuple(int(part) for part in match.group(1).split("-"))
               if version >= (26,):
                   found += [(version, d["udid"]) for d in items if d["name"].startswith("iPhone")]
           print(max(found)[1] if found else "")

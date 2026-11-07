@@ -92,6 +92,7 @@ The source code is licensed under the [Apache License 2.0](LICENSE). Copyright 2
 Some parts are not covered by it:
 
 - The Cinzel font is under the SIL Open Font License 1.1.
+- The bundled Public Suffix List is under the Mozilla Public License 2.0.
 - The Authrim and Authrim Keyring names, the deer logo, the app icon and the wordmark are not licensed for use in other products.
 
 See [NOTICE](NOTICE) for details.

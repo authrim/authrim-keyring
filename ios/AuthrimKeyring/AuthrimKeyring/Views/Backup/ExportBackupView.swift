@@ -13,12 +13,15 @@ struct ExportBackupView: View {
     @State private var document: BackupDocument?
     @State private var errorMessage: String?
 
-    private var isPasswordLongEnough: Bool {
-        password.count >= EncryptedBackup.minimumPasswordLength
+    /// The password last suggested, shown so it can be written down.
+    @State private var suggestion: String?
+
+    private var weakness: BackupPassword.Weakness? {
+        BackupPassword.weakness(of: password)
     }
 
     private var canExport: Bool {
-        isPasswordLongEnough && password == confirmation && !isWorking && !store.accounts.isEmpty
+        weakness == nil && password == confirmation && !isWorking && !store.accounts.isEmpty
     }
 
     var body: some View {
@@ -31,12 +34,31 @@ struct ExportBackupView: View {
                 Section {
                     SecureField("Password", text: $password)
                     SecureField("Confirm Password", text: $confirmation)
+                    Button("Suggest a Password") {
+                        let suggested = BackupPassword.suggestion()
+                        password = suggested
+                        confirmation = suggested
+                        suggestion = suggested
+                    }
+                    if let suggestion, suggestion == password {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(verbatim: suggestion)
+                                .font(.body.monospaced())
+                                .textSelection(.enabled)
+                            Text("Write this password down, or save it in a password manager.")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 } footer: {
                     if !confirmation.isEmpty, password != confirmation {
                         Text("The passwords do not match.")
                             .foregroundStyle(.red)
+                    } else if weakness == .easyToGuess {
+                        Text("This password is easy to guess. Use a longer one, or a suggested password.")
+                            .foregroundStyle(.red)
                     } else {
-                        Text("Use at least \(EncryptedBackup.minimumPasswordLength) characters. The password cannot be recovered, and the backup cannot be restored without it.")
+                        Text("Use at least \(BackupPassword.minimumLength) characters. The password cannot be recovered, and the backup cannot be restored without it.")
                     }
                 }
             }

@@ -120,10 +120,11 @@ final class CredentialProviderViewController: ASCredentialProviderViewController
         else { return cancel(.failed) }
         store.load()
         // The card, or this site on it, may have been removed since the suggestion
-        // was registered; an outdated suggestion must not fill in a code.
+        // was registered; an outdated suggestion must not fill in a code. Nor may one
+        // that an older version registered for a shared suffix such as `pages.dev`.
         let site = Self.host(of: identity.serviceIdentifier)
         guard let account = store.accounts.first(where: { $0.id == id }),
-              let site,
+              let site, Website.canSuggestAboveKeyboard(site),
               store.details(for: id).websites.contains(where: { Website.matches(host: site, site: $0) })
         else { return cancel(.credentialIdentityNotFound) }
         finish(with: account)

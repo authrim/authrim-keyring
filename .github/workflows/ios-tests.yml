@@ -1,0 +1,78 @@
+name: iOS tests
+
+on:
+  pull_request:
+    branches: [develop, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit-tests:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # The project needs Xcode 27.2 or later. Until GitHub's macOS images include it,
+      # this step fails rather than report tests that never ran.
+      - name: Select Xcode 27.2 or later
+        run: |
+          xcode=$(ls -d /Applications/Xcode_[0-9]*.app 2>/dev/null | sort -V | tail -n 1)
+          version=$(basename "${xcode:-none}" .app | sed 's/^Xcode_//')
+          lowest=$(printf '%s\n' "27.2" "$version" | sort -V | head -n 1)
+          if [ -z "$xcode" ] || [ "$lowest" != "27.2" ]; then
+            echo "::error::Xcode 27.2 or later is required. Installed: $(ls -d /Applications/Xcode*.app | tr '\n' ' ')"
+            exit 1
+          fi
+          sudo xcode-select -s "$xcode"
+          xcodebuild -version
+
+      - name: Pick an iPhone simulator on iOS 26 or later
+        id: simulator
+        run: |
+          udid=$(xcrun simctl list devices available --json | python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin)["devices"]
+          found = []
+          for runtime, items in devices.items():
+              if ".iOS-" not in runtime:
+                  continue
+              version = tuple(int(part) for part in runtime.split(".iOS-")[1].split("-"))
+              if version >= (26,):
+                  found += [(version, d["udid"]) for d in items if d["name"].startswith("iPhone")]
+          print(max(found)[1] if found else "")
+          ')
+          if [ -z "$udid" ]; then
+            echo "::error::No iPhone simulator on iOS 26 or later."
+            exit 1
+          fi
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+
+      # Signed to run locally, with no team: the Keychain tests need the entitlements,
+      # which an unsigned build leaves out.
+      - name: Run the unit tests
+        working-directory: ios/AuthrimKeyring
+        env:
+          UDID: ${{ steps.simulator.outputs.udid }}
+        run: |
+          status=0
+          xcodebuild test \
+            -project AuthrimKeyring.xcodeproj \
+            -scheme AuthrimKeyring \
+            -destination "platform=iOS Simulator,id=$UDID" \
+            CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= \
+            > "$RUNNER_TEMP/xcodebuild.log" 2>&1 || status=$?
+          # The full log is long; show the results, and the end of it on failure.
+          grep -E "error:|✘|Test run with" "$RUNNER_TEMP/xcodebuild.log" || true
+          if [ "$status" -ne 0 ]; then
+            tail -n 80 "$RUNNER_TEMP/xcodebuild.log"
+            exit "$status"
+          fi

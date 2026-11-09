@@ -83,14 +83,12 @@ nonisolated enum SDJWTVerifier {
         if let alg = payload["_sd_alg"] as? String, alg != "sha-256" { throw fail("Unsupported disclosure digest algorithm.") }
         if payload["_sd_alg"] != nil, !(payload["_sd_alg"] is String) { throw fail("Unsupported disclosure digest algorithm.") }
 
-        let disclosed = try disclosedClaims(parsed.disclosures, payload: payload)
+        let resolved = try resolveDisclosures(parsed.disclosures, payload: payload)
         // Names and values are shown on screen. A name must already be clean display text, so no name
         // can turn into another (a hidden one included) by cleaning; values lose control and format
         // characters (bidi overrides included) and are bounded, like issuer metadata text.
         var claims: [String: String] = [:]
-        let shown = payload.filter { !hiddenClaims.contains($0.key) }.map { ($0.key, $0.value) }
-        for (name, value) in shown + disclosed {
-            guard !hiddenClaims.contains(name) else { throw fail("A disclosure repeats a claim.") }
+        for (name, value) in resolved where !hiddenClaims.contains(name) {
             guard IssuerMetadata.sanitize(name) == name else { throw fail("A claim has no displayable name.") }
             guard claims[name] == nil else { throw fail("A disclosure repeats a claim.") }
             guard claims.count < maxDisplayedClaims else { throw fail("The credential has too many claims.") }
@@ -101,54 +99,97 @@ nonisolated enum SDJWTVerifier {
 
     // MARK: Disclosures
 
-    /// Every disclosure must be a `[salt, name, value]` array whose digest is in the top-level `_sd`.
-    private static func disclosedClaims(_ disclosures: [String], payload: [String: Any]) throws -> [(String, Any)] {
-        guard disclosures.count <= maxDisclosures else { throw fail("The credential has too many disclosures.") }
-        var digests: [String] = []
-        if let raw = payload["_sd"] {
-            guard let list = raw as? [Any], let strings = list as? [String] else { throw fail("The credential lists its disclosures incorrectly.") }
-            digests = strings
-        }
-        // The same digest twice, anywhere in the payload or the disclosures, would let one disclosure stand
-        // for two claims (RFC 9901 7.1).
-        var everyDigest = collectDigests(payload)
-        var seen = Set<String>()
-        var result: [(String, Any)] = []
-        for disclosure in disclosures {
-            let digest = Base64URL.encode(Data(SHA256.hash(data: Data(disclosure.utf8))))
-            guard digests.contains(digest), seen.insert(digest).inserted else {
-                throw fail("A disclosure does not match the signed credential.")
-            }
-            guard let data = Base64URL.decode(disclosure),
-                  let array = (try? JSONSerialization.jsonObject(with: data)) as? [Any], array.count == 3,
-                  array[0] is String, let name = array[1] as? String, !name.isEmpty, !neverDisclosed.contains(name)
-            else { throw fail("A disclosure is malformed.") }
-            everyDigest += collectDigests(array[2])
-            result.append((name, array[2]))
-        }
-        guard Set(everyDigest).count == everyDigest.count else { throw fail("The credential repeats a disclosure digest.") }
-        return result
+    private enum Disclosure {
+        case objectMember(name: String, value: Any)
+        case arrayElement(value: Any)
     }
 
-    /// Every string in an `_sd` array anywhere inside `value`.
-    private static func collectDigests(_ value: Any) -> [String] {
-        if let object = value as? [String: Any] {
-            var found = (object["_sd"] as? [Any])?.compactMap { $0 as? String } ?? []
-            for (_, child) in object { found += collectDigests(child) }
-            return found
-        }
-        if let array = value as? [Any] {
-            return array.flatMap { element -> [String] in
-                // An array element disclosure is referenced as {"...": "<digest>"}.
-                if let object = element as? [String: Any], object.count == 1,
-                   let digest = object["..."] as? String
-                {
-                    return [digest]
+    /// Resolve only disclosure digests reachable from the signed payload. An object member may
+    /// contain another `_sd` list, and an array placeholder may disclose an object with its own
+    /// digests (RFC 9901 section 6). The disclosure order does not have to be parent-first.
+    private static func resolveDisclosures(_ disclosures: [String], payload: [String: Any]) throws -> [String: Any] {
+        guard disclosures.count <= maxDisclosures else { throw fail("The credential has too many disclosures.") }
+        var byDigest: [String: Disclosure] = [:]
+        for disclosure in disclosures {
+            let digest = Base64URL.encode(Data(SHA256.hash(data: Data(disclosure.utf8))))
+            guard let data = Base64URL.decode(disclosure),
+                  let array = (try? JSONSerialization.jsonObject(with: data)) as? [Any],
+                  (array.count == 2 || array.count == 3), array[0] is String,
+                  byDigest[digest] == nil
+            else { throw fail("A disclosure is malformed.") }
+            if array.count == 3 {
+                guard let name = array[1] as? String, !name.isEmpty,
+                      IssuerMetadata.sanitize(name) == name else {
+                    throw fail("A disclosure is malformed.")
                 }
-                return collectDigests(element)
+                byDigest[digest] = .objectMember(name: name, value: array[2])
+            } else {
+                byDigest[digest] = .arrayElement(value: array[1])
             }
         }
-        return []
+
+        var referenced = Set<String>()
+        var used = Set<String>()
+        func take(_ digest: String) throws -> Disclosure? {
+            // A digest may occur only once, including references to undisclosed values.
+            guard referenced.insert(digest).inserted else {
+                throw fail("The credential repeats a disclosure digest.")
+            }
+            if let disclosure = byDigest[digest] { used.insert(digest); return disclosure }
+            return nil
+        }
+
+        func resolve(_ value: Any, depth: Int) throws -> Any {
+            guard depth <= 64 else { throw fail("The credential has too many nested claims.") }
+            if let object = value as? [String: Any] {
+                var result: [String: Any] = [:]
+                for (name, child) in object where name != "_sd" {
+                    result[name] = try resolve(child, depth: depth + 1)
+                }
+                if let raw = object["_sd"] {
+                    guard let digests = raw as? [String] else {
+                        throw fail("The credential lists its disclosures incorrectly.")
+                    }
+                    for digest in digests {
+                        guard let disclosure = try take(digest) else { continue }
+                        guard case .objectMember(let name, let child) = disclosure,
+                              result[name] == nil,
+                              name != "_sd", name != "_sd_alg", name != "...",
+                              (depth > 0 || !neverDisclosed.contains(name)) else {
+                            throw fail("A disclosure repeats a claim.")
+                        }
+                        result[name] = try resolve(child, depth: depth + 1)
+                    }
+                }
+                return result
+            }
+            if let array = value as? [Any] {
+                var result: [Any] = []
+                for element in array {
+                    if let placeholder = element as? [String: Any], placeholder.count == 1,
+                       let raw = placeholder["..."] {
+                        guard let digest = raw as? String else {
+                            throw fail("A disclosure placeholder is malformed.")
+                        }
+                        guard let disclosure = try take(digest) else { continue }
+                        guard case .arrayElement(let child) = disclosure else {
+                            throw fail("A disclosure has the wrong shape.")
+                        }
+                        result.append(try resolve(child, depth: depth + 1))
+                    } else {
+                        result.append(try resolve(element, depth: depth + 1))
+                    }
+                }
+                return result
+            }
+            return value
+        }
+
+        guard let resolved = try resolve(payload, depth: 0) as? [String: Any],
+              used.count == byDigest.count else {
+            throw fail("A disclosure does not match the signed credential.")
+        }
+        return resolved
     }
 
     // MARK: Helpers

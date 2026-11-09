@@ -57,7 +57,7 @@ struct CredentialDetailView: View {
             } header: {
                 Text("Confirmation Code")
             } footer: {
-                Text("The admin console shows the same code for this credential.")
+                Text("If your issuer shows a confirmation code, compare it with this code before tapping Codes Match.")
             }
             Section {
                 Button("Remove from Keyring", role: .destructive) { isConfirmingRemoval = true }
@@ -75,11 +75,11 @@ struct CredentialDetailView: View {
             }
         } message: {
             if !wallet.deletesKey(credential) {
-                Text("Another credential on this iPhone uses the same key, so the key stays. Also revoke this credential in the admin console.")
+                Text("Another credential on this iPhone uses the same key, so the key stays. Also revoke this credential with its issuer.")
             } else if credential.secondFactorRegisteredAt != nil {
                 Text("This credential’s key is your second factor in the admin console. Once it is deleted, you cannot approve important operations with Keyring until you register a new one. This cannot be undone.")
             } else {
-                Text("This device’s key for the credential is deleted, so it can no longer be presented. Also revoke it in the admin console. This cannot be undone.")
+                Text("This device’s key for the credential is deleted, so it can no longer be presented. Also revoke it with its issuer. This cannot be undone.")
             }
         }
         .alert("Something went wrong", isPresented: hasError) {

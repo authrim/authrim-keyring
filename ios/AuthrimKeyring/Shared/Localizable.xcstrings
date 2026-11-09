@@ -1,6 +1,124 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Check the Transaction Code" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "トランザクションコードを確認してください" } } }
+    },
+    "EUDI test issuer: the public test attestation service does not verify this iPhone's Secure Enclave properties. Use this offer for interoperability testing only." : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "EUDI テスト用発行者: 公開テスト用アテステーションサービスは、この iPhone の Secure Enclave の特性を検証しません。このオファーは相互運用テストにのみ使用してください。" } } }
+    },
+    "Issuer Certificate Trust Is Unavailable" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "発行者の証明書を信頼できません" } } }
+    },
+    "The transaction code was incorrect. Check it and try again with this offer." : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "トランザクションコードが違います。確認して、このオファーでもう一度お試しください。" } } }
+    },
+    "This Issuer Requires Credential Encryption" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "この発行者は資格情報の暗号化を要求しています" } } }
+    },
+    "This issuer requires a trusted certificate provider that Keyring does not have. The one-time code was not used. Contact the issuer or offer provider." : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "この発行元の証明書を検証するための信頼設定が Keyring にありません。ワンタイムコードは使用していません。発行元またはオファーの提供元にお問い合わせください。" } } }
+    },
+    "This issuer requires credential encryption that Keyring cannot provide yet. The one-time code was not used." : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "この発行者は資格情報の暗号化を要求していますが、Keyring はまだ対応していません。ワンタイムコードは使用していません。" } } }
+    },
+    "This Issuer Requires Key Attestation" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この発行者は鍵のアテステーションを要求しています"
+          }
+        }
+      }
+    },
+    "This issuer requires key attestation that Keyring cannot provide yet. The one-time code was not used." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この発行者は鍵のアテステーションを要求していますが、Keyringはまだ提供できません。ワンタイムコードは使用していません。"
+          }
+        }
+      }
+    },
+    "%lld saved from %@" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "%2$@ から %1$lld 件保存しました" } } }
+    },
+    "%lld selected. Keyring sends a separate request for each credential." : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "%lld 件を選択中です。資格情報ごとに別の要求を送信します。" } } }
+    },
+    "Authorization server" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "認可サーバー" } } }
+    },
+    "Compare this code with the issuing service if it shows one." : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "発行サービスにコードが表示されている場合は、このコードと照合してください。" } } }
+    },
+    "Could not receive %@. %@ A new offer is needed for the remaining credentials." : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "%1$@ を受け取れませんでした。%2$@ 残りの資格情報には新しいオファーが必要です。" } } }
+    },
+    "Credentials Received" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "資格情報を受け取りました" } } }
+    },
+    "Credentials to Receive" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "受け取る資格情報" } } }
+    },
+    "Double tap to change selection" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "ダブルタップで選択を切り替えます" } } }
+    },
+    "Enter the %lld-character code supplied with this offer." : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "このオファーと一緒に案内された %lld 文字のコードを入力してください。" } } }
+    },
+    "Enter the %lld-digit code supplied with this offer." : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "このオファーと一緒に案内された %lld 桁のコードを入力してください。" } } }
+    },
+    "Enter the code supplied with this offer." : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "このオファーと一緒に案内されたコードを入力してください。" } } }
+    },
+    "For a renewal, Keyring reuses the key already on this device so your second factor keeps working. New credentials receive separate Secure Enclave keys. You will be asked for Face ID, Touch ID or your passcode." : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "更新する資格情報には、この端末の既存の鍵を再利用して二要素認証を維持します。新しい資格情報には別々の Secure Enclave の鍵を作成します。Face ID、Touch ID、またはパスコードでの確認が必要です。" } } }
+    },
+    "If the code differs, do not confirm it. Contact the issuer to check or revoke the credential." : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "コードが異なる場合は確認しないでください。資格情報の確認や失効については発行者に問い合わせてください。" } } }
+    },
+    "Keyring creates a separate Secure Enclave key for each selected credential. You will be asked for Face ID, Touch ID or your passcode." : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "選択した資格情報ごとに、Secure Enclave に別の鍵を作成します。Face ID、Touch ID、またはパスコードでの確認が必要です。" } } }
+    },
+    "Not selected" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "未選択" } } }
+    },
+    "Only confirm a matching code shown by the service you opened yourself for %@. Keyring will mark this issuer as confirmed by you." : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "%@ のためにご自身で開いたサービスに同じコードが表示された場合だけ確認してください。Keyring はこの発行者を、あなたが確認した相手として記録します。" } } }
+    },
+    "Selected" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "選択中" } } }
+    },
+    "Some Credentials Received" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "一部の資格情報を受け取りました" } } }
+    },
+    "You can review each credential and its key confirmation code in your wallet." : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "資格情報と鍵の確認コードは、それぞれウォレットで確認できます。" } } }
+    },
+    "Authorization Code Offers Are Not Supported Yet" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "認可コード方式のオファーにはまだ対応していません"
+          }
+        }
+      }
+    },
+    "This offer uses authorization code sign-in. Keyring currently supports only pre-authorized code offers." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このオファーは認可コード方式を使用します。現在のKeyringは事前認可コード方式のオファーにのみ対応しています。"
+          }
+        }
+      }
+    },
     "Suggest a Password" : {
       "localizations" : {
         "ja" : {
@@ -3538,12 +3656,12 @@
         }
       }
     },
-    "The admin console shows the same code for this credential." : {
+    "If your issuer shows a confirmation code, compare it with this code before tapping Codes Match." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "管理コンソールには、この資格情報について同じコードが表示されます。"
+            "value" : "発行者が確認コードを表示する場合は、このコードと一致することを確かめてから「コードが一致」をタップしてください。"
           }
         }
       }
@@ -3608,12 +3726,12 @@
         }
       }
     },
-    "The code or link does not contain a credential offer. Ask your administrator for a new one." : {
+    "The code or link does not contain a credential offer. Ask the offer provider for a new one." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "このコードまたはリンクには資格情報のオファーが含まれていません。管理者に新しいものを依頼してください。"
+            "value" : "このコードまたはリンクには資格情報のオファーが含まれていません。提供元に新しいオファーを依頼してください。"
           }
         }
       }
@@ -3718,12 +3836,12 @@
         }
       }
     },
-    "The issued credential failed verification, so it was not saved. Create a new offer in the admin console and scan it again." : {
+    "The issued credential failed verification, so it was not saved. Ask the issuer or offer provider for a new offer, then scan it again." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "発行された資格情報の検証に失敗したため、保存されませんでした。管理コンソールで新しいオファーを作成し、もう一度読み取ってください。"
+            "value" : "発行された資格情報の検証に失敗したため、保存されませんでした。発行元またはオファーの提供元に新しいオファーを依頼し、もう一度読み取ってください。"
           }
         }
       }
@@ -3738,12 +3856,12 @@
         }
       }
     },
-    "The issuer’s information is inconsistent, so Keyring stopped. Nothing was saved. Create a new offer or contact your administrator." : {
+    "The issuer’s information is inconsistent, so Keyring stopped. Nothing was saved. Contact the issuer or offer provider." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "発行元の情報に矛盾があるため、Keyringは処理を中止しました。何も保存されていません。新しいオファーを作成するか、管理者に連絡してください。"
+            "value" : "発行元の情報に矛盾があるため、Keyring は処理を中止しました。何も保存されていません。発行元またはオファーの提供元にお問い合わせください。"
           }
         }
       }
@@ -3778,12 +3896,12 @@
         }
       }
     },
-    "The one-time code was already used, but the credential could not be completed. Nothing was saved. Create a new code in the admin console and scan it again." : {
+    "The one-time code was already used, but the credential could not be completed. Nothing was saved. Ask the issuer or offer provider for a new offer, then scan it again." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ワンタイムコードはすでに使用されましたが、資格情報を完了できませんでした。何も保存されていません。管理コンソールで新しいコードを作成し、もう一度読み取ってください。"
+            "value" : "ワンタイムコードはすでに使用されましたが、資格情報を受け取れませんでした。何も保存されていません。発行元またはオファーの提供元に新しいオファーを依頼し、もう一度読み取ってください。"
           }
         }
       }
@@ -3938,12 +4056,12 @@
         }
       }
     },
-    "The transaction code was wrong or the offer has expired. Create a new offer in the admin console and scan it again." : {
+    "The transaction code was wrong or the offer has expired. Ask the issuer or offer provider for a new offer, then scan it again." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "トランザクションコードが誤っているか、オファーの有効期限が切れています。管理コンソールで新しいオファーを作成し、もう一度読み取ってください。"
+            "value" : "トランザクションコードが誤っているか、オファーの有効期限が切れています。発行元またはオファーの提供元に新しいオファーを依頼し、もう一度読み取ってください。"
           }
         }
       }
@@ -4018,12 +4136,12 @@
         }
       }
     },
-    "This device’s key for the credential is deleted, so it can no longer be presented. Also revoke it in the admin console. This cannot be undone." : {
+    "This device’s key for the credential is deleted, so it can no longer be presented. Also revoke it with its issuer. This cannot be undone." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "この資格情報用のこのデバイス上の鍵が削除されるため、資格情報を提示できなくなります。管理コンソールでも失効させてください。この操作は取り消せません。"
+            "value" : "この資格情報用のこのデバイス上の鍵が削除されるため、資格情報を提示できなくなります。発行者にも失効を依頼してください。この操作は取り消せません。"
           }
         }
       }
@@ -4118,12 +4236,12 @@
         }
       }
     },
-    "This offer needs the transaction code shown in the admin console." : {
+    "This offer needs the transaction code supplied by the issuer or offer provider." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "このオファーには、管理コンソールに表示されるトランザクションコードが必要です。"
+            "value" : "このオファーには、発行元またはオファーの提供元から案内されたトランザクションコードが必要です。"
           }
         }
       }
@@ -4238,12 +4356,12 @@
         }
       }
     },
-    "Try again. If it still fails, create a new offer in the admin console." : {
+    "Try again. If it still fails, ask the issuer or offer provider for a new offer." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "もう一度お試しください。それでも失敗する場合は、管理コンソールで新しいオファーを作成してください。"
+            "value" : "もう一度お試しください。それでも失敗する場合は、発行元またはオファーの提供元に新しいオファーを依頼してください。"
           }
         }
       }
@@ -4718,12 +4836,12 @@
         }
       }
     },
-    "Another credential on this iPhone uses the same key, so the key stays. Also revoke this credential in the admin console." : {
+    "Another credential on this iPhone uses the same key, so the key stays. Also revoke this credential with its issuer." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "この iPhone のほかの資格情報が同じ鍵を使っているので、鍵は残ります。管理コンソールでも、この資格情報を取り消してください。"
+            "value" : "この iPhone のほかの資格情報が同じ鍵を使っているので、鍵は残ります。発行者にも、この資格情報の取り消しを依頼してください。"
           }
         }
       }
@@ -4768,12 +4886,12 @@
         }
       }
     },
-    "The credential to renew was removed. Create a new offer in the admin console." : {
+    "The credential to renew was removed. Ask the issuer or offer provider for a new offer." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "更新する資格情報が削除されました。管理コンソールで新しい QR コードを作ってください。"
+            "value" : "更新する資格情報が削除されました。発行元またはオファーの提供元に新しいオファーを依頼してください。"
           }
         }
       }

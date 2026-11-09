@@ -16,7 +16,7 @@ nonisolated struct ParsedOffer: Sendable, Equatable {
 }
 
 nonisolated enum CredentialOfferParser {
-    static let scheme = "openid-credential-offer"
+    static let schemes: Set<String> = ["openid-credential-offer", "haip-vci"]
     static let preAuthorizedGrant = "urn:ietf:params:oauth:grant-type:pre-authorized_code"
     static let maxInputLength = 8 * 1024
 
@@ -26,12 +26,12 @@ nonisolated enum CredentialOfferParser {
         case inline(Data)
     }
 
-    /// Reads the `openid-credential-offer://` link (exactly one of `credential_offer_uri` or `credential_offer`).
+    /// Reads an OpenID4VCI or HAIP offer link (exactly one of `credential_offer_uri` or `credential_offer`).
     static func source(of text: String) throws -> Source {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count <= maxInputLength,
               let components = URLComponents(string: trimmed),
-              components.scheme?.lowercased() == scheme
+              let scheme = components.scheme?.lowercased(), schemes.contains(scheme)
         else { throw WalletError.notAnOffer }
 
         let items = components.queryItems ?? []
@@ -51,11 +51,15 @@ nonisolated enum CredentialOfferParser {
         guard data.count <= WalletHTTP.jsonLimit,
               let object = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
               let issuer = object["credential_issuer"] as? String,
-              let ids = object["credential_configuration_ids"] as? [String], !ids.isEmpty, ids.count <= 32
+              let ids = object["credential_configuration_ids"] as? [String], !ids.isEmpty, ids.count <= 32,
+              ids.allSatisfy({ !$0.isEmpty }), Set(ids).count == ids.count
         else { throw WalletError.notAnOffer }
 
-        guard let grants = object["grants"] as? [String: Any],
-              let grant = grants[preAuthorizedGrant] as? [String: Any],
+        guard let grants = object["grants"] as? [String: Any] else { throw WalletError.notAnOffer }
+        if grants[preAuthorizedGrant] == nil, grants["authorization_code"] != nil {
+            throw WalletError.unsupportedGrant
+        }
+        guard let grant = grants[preAuthorizedGrant] as? [String: Any],
               let code = grant["pre-authorized_code"] as? String, !code.isEmpty
         else { throw WalletError.invalidIssuer("The offer has no pre-authorized code grant.") }
 

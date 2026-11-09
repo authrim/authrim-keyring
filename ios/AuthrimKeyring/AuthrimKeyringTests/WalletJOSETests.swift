@@ -56,6 +56,17 @@ struct WalletJOSETests {
         #expect(!JWS.verifyES256(parts, with: P256.Signing.PrivateKey().publicKey))
     }
 
+    @Test func proofJWTCanCarryProviderKeyAttestation() throws {
+        let signer = TestSigner(tag: "t", key: P256.Signing.PrivateKey())
+        let jwt = try ProofJWT.make(
+            audience: "https://issuer.example.com", nonce: "c-nonce", issuedAt: .now,
+            key: signer.publicJWK, keyAttestation: "signed.provider.attestation", sign: signer.sign)
+        let parts = try #require(JWS.parse(jwt))
+        #expect(parts.header["key_attestation"] as? String == "signed.provider.attestation")
+        #expect(parts.header["jwk"] as? [String: String] == signer.publicJWK.proofMembers)
+        #expect(JWS.verifyES256(parts, with: signer.key.publicKey))
+    }
+
     @Test func derSignatureConvertsToRaw() throws {
         let key = P256.Signing.PrivateKey()
         let signature = try key.signature(for: Data("hello".utf8))

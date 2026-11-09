@@ -20,6 +20,14 @@ final class WalletModel {
     private(set) var credentials: [StoredCredential] = []
     /// An offer opened from a link, shown once the app is unlocked.
     var incomingOffer: IncomingOffer?
+    /// Kept while the app lock temporarily removes the sheet, including an issuance already in progress.
+    private(set) var incomingOfferFlow: CredentialOfferFlow?
+    /// Links received while an offer is on screen wait for that sheet to close.
+    private var queuedIncomingOffers: [IncomingOffer] = []
+    private var incomingOfferDismissalPending = false
+    var queuedIncomingOfferCount: Int { queuedIncomingOffers.count }
+    /// A camera offer waits until the scanner sheet has finished closing before it is presented.
+    private(set) var cameraOfferWaitsForAddSheet = false
     /// A presentation request (`openid4vp://`) opened from a link, shown once the app is unlocked.
     var incomingPresentation: IncomingOffer?
     /// The credential whose detail is open.
@@ -100,23 +108,69 @@ final class WalletModel {
         return true
     }
 
-    /// Takes an `openid-credential-offer://` or `openid4vp://` link opened from outside the app.
+    /// Takes an OpenID4VCI, HAIP VCI or OpenID4VP link opened from outside the app.
     func handle(url: URL) {
         if PresentationLink.isRequest(url.absoluteString) {
             incomingPresentation = IncomingOffer(text: url.absoluteString)
             return
         }
         guard CredentialOfferLink.isOffer(url.absoluteString) else { return }
-        incomingOffer = IncomingOffer(text: url.absoluteString)
+        receiveOffer(url.absoluteString)
+    }
+
+    /// Camera and deep links use the same app-owned flow so returning from a locked app resumes it.
+    func receiveOffer(_ text: String) {
+        let offer = IncomingOffer(text: text)
+        if incomingOffer != nil || incomingOfferDismissalPending || !queuedIncomingOffers.isEmpty {
+            queuedIncomingOffers.append(offer)
+        } else {
+            presentIncomingOffer(offer)
+        }
+    }
+
+    func receiveCameraOffer(_ text: String) {
+        if incomingOffer == nil && !incomingOfferDismissalPending && queuedIncomingOffers.isEmpty {
+            cameraOfferWaitsForAddSheet = true
+        }
+        receiveOffer(text)
+    }
+
+    private func presentIncomingOffer(_ offer: IncomingOffer) {
+        incomingOfferFlow = CredentialOfferFlow(offer: offer.text)
+        incomingOffer = offer
+    }
+
+    func addAccountSheetDidDismiss() {
+        cameraOfferWaitsForAddSheet = false
+    }
+
+    func closeIncomingOffer() {
+        incomingOfferDismissalPending = true
+        incomingOffer = nil
+        incomingOfferFlow = nil
+        cameraOfferWaitsForAddSheet = false
+    }
+
+    /// Called after SwiftUI has fully dismissed the previous sheet, so the next one can present.
+    func incomingOfferSheetDidDismiss() {
+        incomingOfferDismissalPending = false
+        guard incomingOffer == nil, !queuedIncomingOffers.isEmpty else { return }
+        presentIncomingOffer(queuedIncomingOffers.removeFirst())
+    }
+
+    /// Clear the transaction code in the app switcher. When the lock removes the Add sheet,
+    /// its pending handoff may proceed after unlock; without a lock, wait for onDismiss.
+    func suspendIncomingOfferForBackground(removesAddAccountSheet: Bool) {
+        incomingOfferFlow?.transactionCode = ""
+        if removesAddAccountSheet { cameraOfferWaitsForAddSheet = false }
     }
 }
 
 enum CredentialOfferLink {
-    static let scheme = "openid-credential-offer"
-
     /// Whether scanned or opened text is a credential offer link (the scheme is case-insensitive).
     static func isOffer(_ text: String) -> Bool {
-        text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased().hasPrefix(scheme + ":")
+        let normalized = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return CredentialOfferParser.schemes.contains { normalized.hasPrefix($0 + ":") }
     }
 }
 

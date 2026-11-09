@@ -46,8 +46,14 @@ struct RootView: View {
         // A credential offer opened from a link waits here until the app is unlocked.
         .onOpenURL { wallet.handle(url: $0) }
         // In Demo Mode what arrives would go with the made-up cards, so it is not taken.
-        .sheet(item: unlockedOffer) { offer in
-            if isDemoModeOn { DemoModeAddNotice() } else { CredentialOfferSheet(offer: offer.text) }
+        .sheet(item: unlockedOffer, onDismiss: wallet.incomingOfferSheetDidDismiss) { offer in
+            if isDemoModeOn {
+                DemoModeAddNotice()
+            } else if let flow = wallet.incomingOfferFlow {
+                CredentialOfferSheet(flow: flow)
+            } else {
+                CredentialOfferSheet(offer: offer.text)
+            }
         }
         .sheet(item: unlockedPresentation) { request in
             if isDemoModeOn { DemoModeAddNotice() } else { PresentationSheet(link: request.text) }
@@ -62,7 +68,9 @@ struct RootView: View {
         .onChange(of: scenePhase) { _, phase in
             switch phase {
             case .background:
+                // Keep the offer and its progress, but require the transaction code again after unlock.
                 appLock.lock()
+                wallet.suspendIncomingOfferForBackground(removesAddAccountSheet: appLock.isEnabled)
             case .active:
                 // Picks up accounts that iCloud Keychain synced while the app was away.
                 store.load()
@@ -77,8 +85,16 @@ struct RootView: View {
     /// The pending credential offer, but only while the app is unlocked.
     private var unlockedOffer: Binding<IncomingOffer?> {
         Binding(
-            get: { appLock.isLocked || needsUnlockSetup ? nil : wallet.incomingOffer },
-            set: { wallet.incomingOffer = $0 }
+            get: { appLock.isLocked || needsUnlockSetup || wallet.cameraOfferWaitsForAddSheet ? nil : wallet.incomingOffer },
+            set: { value in
+                if let value {
+                    wallet.incomingOffer = value
+                } else if !appLock.isLocked && scenePhase == .active && !needsUnlockSetup
+                            && !wallet.cameraOfferWaitsForAddSheet {
+                    // A user dismissal closes the offer; the app lock's temporary dismissal does not.
+                    wallet.closeIncomingOffer()
+                }
+            }
         )
     }
 

@@ -8,10 +8,14 @@ struct CredentialOfferView: View {
     let showsCancel: Bool
     let onClose: () -> Void
 
-    init(offer: String, showsCancel: Bool = false, onClose: @escaping () -> Void) {
-        _flow = State(initialValue: CredentialOfferFlow(offer: offer))
+    init(flow: CredentialOfferFlow, showsCancel: Bool = false, onClose: @escaping () -> Void) {
+        _flow = State(initialValue: flow)
         self.showsCancel = showsCancel
         self.onClose = onClose
+    }
+
+    init(offer: String, showsCancel: Bool = false, onClose: @escaping () -> Void) {
+        self.init(flow: CredentialOfferFlow(offer: offer), showsCancel: showsCancel, onClose: onClose)
     }
 
     var body: some View {
@@ -41,8 +45,8 @@ struct CredentialOfferView: View {
             CredentialOfferForm(flow: flow, preview: preview, isIssuing: false)
         case .issuing(let preview):
             CredentialOfferForm(flow: flow, preview: preview, isIssuing: true)
-        case .issued(let credential):
-            CredentialIssuedView(credential: credential, onDone: onClose)
+        case .issued(let credentials, let partialFailure):
+            CredentialIssuedView(credentials: credentials, partialFailure: partialFailure, onDone: onClose)
         case .failed(let error, _):
             CredentialFailureView(error: error, onRetry: { Task { await flow.retry(using: wallet) } }, onClose: onClose)
         }
@@ -62,23 +66,35 @@ private struct CredentialOfferForm: View {
         Form {
             Section("Issuer") {
                 IssuerLabel(issuer: preview.issuer, displayName: preview.issuerDisplayName, trust: trust)
+                if !WalletHTTP.sameOrigin(preview.authorizationServer, preview.issuer) {
+                    LabeledContent("Authorization server", value: preview.authorizationServer.walletHost)
+                }
             }
             Section {
-                Text(preview.credentialName)
-                    .font(.headline)
-                ForEach(preview.claimNames, id: \.self) { name in
-                    Label(name, systemImage: "checkmark.circle")
-                        .font(.subheadline)
+                ForEach(preview.credentials) { credential in
+                    credentialRow(credential)
                 }
             } header: {
-                Text("Credential")
+                if preview.credentials.count == 1 {
+                    Text("Credential")
+                } else {
+                    Text("Credentials to Receive")
+                }
             } footer: {
-                switch trust {
-                case .verified: EmptyView()
-                case .confirmedByUser:
-                    Text("You confirmed this issuer when you compared a confirmation code. Keyring itself does not vouch for who runs it.")
-                case .unconfirmed:
-                    Text("Only receive a credential from an issuer you recognize. Keyring cannot confirm who runs it.")
+                VStack(alignment: .leading, spacing: 6) {
+                    if preview.credentials.count > 1 {
+                        Text("\(flow.selectedConfigurationIds.count) selected. Keyring sends a separate request for each credential.")
+                    }
+                    switch trust {
+                    case .verified: EmptyView()
+                    case .confirmedByUser:
+                        Text("You confirmed this issuer when you compared a confirmation code. Keyring itself does not vouch for who runs it.")
+                    case .unconfirmed:
+                        Text("Only receive a credential from an issuer you recognize. Keyring cannot confirm who runs it.")
+                    }
+                    if preview.issuer.absoluteString == "https://issuer.eudiw.dev" {
+                        Text("EUDI test issuer: the public test attestation service does not verify this iPhone's Secure Enclave properties. Use this offer for interoperability testing only.")
+                    }
                 }
             }
             if let requirement = preview.transactionCode {
@@ -86,10 +102,10 @@ private struct CredentialOfferForm: View {
             }
             Section {
             } footer: {
-                if preview.renewsCredential {
-                    Text("Keyring renews your current credential with the key it already has on this device, so your second factor keeps working. You will be asked for Face ID, Touch ID or your passcode.")
+                if preview.credentials.contains(where: { flow.selectedConfigurationIds.contains($0.id) && $0.renewsCredential }) {
+                    Text("For a renewal, Keyring reuses the key already on this device so your second factor keeps working. New credentials receive separate Secure Enclave keys. You will be asked for Face ID, Touch ID or your passcode.")
                 } else {
-                    Text("Keyring creates a key for this credential in the Secure Enclave of this device. You will be asked for Face ID, Touch ID or your passcode.")
+                    Text("Keyring creates a separate Secure Enclave key for each selected credential. You will be asked for Face ID, Touch ID or your passcode.")
                 }
             }
         }
@@ -115,6 +131,44 @@ private struct CredentialOfferForm: View {
         .accessibilityElement(children: .contain)
     }
 
+    @ViewBuilder
+    private func credentialRow(_ credential: OfferedCredential) -> some View {
+        if preview.credentials.count == 1 {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(credential.name).font(.headline)
+                ForEach(credential.claimNames.indices, id: \.self) { index in
+                    Label(credential.claimNames[index], systemImage: "checkmark.circle")
+                        .font(.subheadline)
+                }
+            }
+        } else {
+            Button {
+                flow.toggleSelection(credential.id)
+            } label: {
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: flow.selectedConfigurationIds.contains(credential.id)
+                          ? "checkmark.circle.fill" : "circle")
+                        .foregroundStyle(flow.selectedConfigurationIds.contains(credential.id)
+                                         ? Color.accentColor : Color.secondary)
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(credential.name).font(.headline)
+                        ForEach(credential.claimNames.indices, id: \.self) { index in
+                            Text(credential.claimNames[index]).font(.subheadline).foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(([credential.name] + credential.claimNames).joined(separator: ", "))
+            .accessibilityValue(flow.selectedConfigurationIds.contains(credential.id)
+                                ? Text("Selected") : Text("Not selected"))
+            .accessibilityHint("Double tap to change selection")
+        }
+    }
+
     private func codeSection(_ requirement: TransactionCodeRequirement) -> some View {
         Section {
             TextField("Transaction code", text: $flow.transactionCode)
@@ -134,9 +188,13 @@ private struct CredentialOfferForm: View {
         } footer: {
             VStack(alignment: .leading, spacing: 4) {
                 if let length = requirement.length {
-                    Text(requirement.numeric ? "Enter the \(length)-digit code shown in the admin console." : "Enter the \(length)-character code shown in the admin console.")
+                    if requirement.numeric {
+                        Text("Enter the \(length)-digit code supplied with this offer.")
+                    } else {
+                        Text("Enter the \(length)-character code supplied with this offer.")
+                    }
                 } else {
-                    Text("Enter the code shown in the admin console.")
+                    Text("Enter the code supplied with this offer.")
                 }
                 // Text the issuer supplied; shown as given.
                 if let description = requirement.description, !description.isEmpty {
@@ -154,11 +212,19 @@ private extension Character {
 /// The sheet used when an offer is opened from a link.
 struct CredentialOfferSheet: View {
     @Environment(\.dismiss) private var dismiss
-    let offer: String
+    let flow: CredentialOfferFlow
+
+    init(flow: CredentialOfferFlow) {
+        self.flow = flow
+    }
+
+    init(offer: String) {
+        flow = CredentialOfferFlow(offer: offer)
+    }
 
     var body: some View {
         NavigationStack {
-            CredentialOfferView(offer: offer, showsCancel: true) { dismiss() }
+            CredentialOfferView(flow: flow, showsCancel: true) { dismiss() }
         }
     }
 }

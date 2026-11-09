@@ -12,6 +12,7 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>openid-credential-offer</string>
+				<string>haip-vci</string>
 			</array>
 		</dict>
 		<dict>

@@ -1,8 +1,8 @@
 import Foundation
 
 /// Runs the OpenID4VCI 1.0 pre-authorized code flow: offer, metadata, token, nonce, proof, credential,
-/// verification, storage. Secrets (access token, proof, `tx_code`) only go to endpoints on the credential
-/// issuer's origin (`WalletHTTP` enforces it per request). The access token is never logged or stored.
+/// verification, storage. Secrets go only to metadata-verified endpoints. The access token is never
+/// logged or stored.
 nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
     private let http: WalletHTTP
     private let store: any CredentialStore
@@ -11,6 +11,10 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
     private let deleteKey: @Sendable (String) -> Void
     private let now: @Sendable () -> Date
     private let languages: @Sendable () -> [String]
+    private let keyAttestationProvider: (any KeyAttestationProvider)?
+    private let keyAttestationTrustSource: (any KeyAttestationTrustSource)?
+    private let walletAttestationProvider: (any WalletAttestationProvider)?
+    private let issuerCertificateTrustSource: (any IssuerCertificateTrustSource)?
     private let sessions = OfferSessions()
 
     init(
@@ -24,7 +28,11 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
         },
         deleteKey: @escaping @Sendable (String) -> Void = { try? HolderKey.delete(tag: $0) },
         now: @escaping @Sendable () -> Date = { Date() },
-        languages: @escaping @Sendable () -> [String] = { Locale.preferredLanguages }
+        languages: @escaping @Sendable () -> [String] = { Locale.preferredLanguages },
+        keyAttestationProvider: (any KeyAttestationProvider)? = nil,
+        keyAttestationTrustSource: (any KeyAttestationTrustSource)? = nil,
+        walletAttestationProvider: (any WalletAttestationProvider)? = nil,
+        issuerCertificateTrustSource: (any IssuerCertificateTrustSource)? = nil
     ) {
         self.http = http
         self.store = store
@@ -33,13 +41,40 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
         self.deleteKey = deleteKey
         self.now = now
         self.languages = languages
+        self.keyAttestationProvider = keyAttestationProvider
+        self.keyAttestationTrustSource = keyAttestationTrustSource
+        self.walletAttestationProvider = walletAttestationProvider
+        self.issuerCertificateTrustSource = issuerCertificateTrustSource
     }
 
     // MARK: Preview
 
     func preview(offer: String) async throws -> CredentialOfferPreview {
         let parsed = try await CredentialOfferParser.resolve(offer, http: http)
-        let verified = try await IssuerMetadata.resolve(offer: parsed, http: http, preferredLanguages: languages())
+        let supportsKeyAttestation = URL(string: parsed.credentialIssuer).map {
+            keyAttestationProvider?.supports(issuer: $0) == true && keyAttestationTrustSource != nil
+        } == true
+        let supportsWalletAttestation = URL(string: parsed.credentialIssuer).map {
+            walletAttestationProvider?.supports(issuer: $0) == true
+        } == true
+        let verified = try await IssuerMetadata.resolve(
+            offer: parsed, http: http, preferredLanguages: languages(),
+            supportsKeyAttestation: supportsKeyAttestation,
+            canAuthenticateWithWalletAttestation: supportsWalletAttestation)
+        let isHAIPOffer = offer.trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased().hasPrefix("haip-vci:")
+        // A configured ecosystem certificate policy applies to its issuer and credential type
+        // regardless of the untrusted QR wrapper. HAIP links additionally require a policy for
+        // every supported configuration before the one-time code is redeemed.
+        let x509ConfigurationIDs = Set(verified.configurations.compactMap { configuration in
+            issuerCertificateTrustSource?.supports(issuer: verified.issuer, vct: configuration.vct) == true
+                ? configuration.id : nil
+        })
+        if isHAIPOffer {
+            guard x509ConfigurationIDs.count == verified.configurations.count else {
+                throw WalletError.unsupportedIssuerCertificateTrust
+            }
+        }
         let requirement = parsed.transactionCode.map { code in
             TransactionCodeRequirement(
                 length: code.length.flatMap { (1...64).contains($0) ? $0 : nil },
@@ -51,89 +86,227 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
         // With a hint, a failed read is an error: issuing with a new key instead would silently lose
         // the second factor the renewal is meant to keep.
         let hints = HolderKeyRenewal.hints(in: offer)
-        var renewal: StoredCredential?
+        var renewals: [String: StoredCredential] = [:]
         if !hints.isEmpty {
             let stored = try store.loadAllCountingSkipped()
-            renewal = HolderKeyRenewal.renewable(
-                from: stored.items, issuer: verified.issuer, vct: verified.configuration.vct, hints: hints)
-            // The credential to renew may be the one that could not be read.
-            if renewal == nil && stored.skipped > 0 {
-                throw WalletError.storage(String(localized: "A stored credential could not be read, so Keyring cannot tell whether to renew it."))
+            for configuration in verified.configurations {
+                if let renewal = HolderKeyRenewal.renewable(
+                    from: stored.items, issuer: verified.issuer, vct: configuration.vct, hints: hints)
+                {
+                    renewals[configuration.id] = renewal
+                } else if stored.skipped > 0 {
+                    // An unreadable item may be the renewal for this configuration. Never silently
+                    // issue it with a new key and lose the registered second factor.
+                    throw WalletError.storage(String(localized: "A stored credential could not be read, so Keyring cannot tell whether to renew it."))
+                }
             }
         }
         let preview = CredentialOfferPreview(
-            id: UUID(), issuer: verified.issuer, issuerDisplayName: verified.displayName,
-            credentialConfigurationId: verified.configuration.id, credentialName: verified.configuration.name,
-            claimNames: verified.configuration.claimNames, transactionCode: requirement,
-            renewsCredential: renewal != nil)
+            id: UUID(), issuer: verified.issuer, authorizationServer: verified.authorizationServer,
+            issuerDisplayName: verified.displayName,
+            credential: OfferedCredential(
+                id: verified.configuration.id, name: verified.configuration.name,
+                claimNames: verified.configuration.claimNames,
+                renewsCredential: renewals[verified.configuration.id] != nil),
+            additionalCredentials: verified.additionalConfigurations.map { configuration in
+                OfferedCredential(
+                    id: configuration.id, name: configuration.name,
+                    claimNames: configuration.claimNames, renewsCredential: renewals[configuration.id] != nil)
+            },
+            transactionCode: requirement)
         await sessions.put(
-            preview.id, PendingOffer(preAuthorizedCode: parsed.preAuthorizedCode, issuer: verified, renewal: renewal))
+            preview.id, PendingOffer(
+                preAuthorizedCode: parsed.preAuthorizedCode, issuer: verified,
+                x509ConfigurationIDs: x509ConfigurationIDs, renewals: renewals))
         return preview
     }
 
     // MARK: Issue
 
     func issue(_ preview: CredentialOfferPreview, transactionCode: String?) async throws -> StoredCredential {
+        let issued = try await issueAll(
+            preview, selectedConfigurationIds: [preview.credentialConfigurationId], transactionCode: transactionCode)
+        return issued[0]
+    }
+
+    func issueAll(
+        _ preview: CredentialOfferPreview, selectedConfigurationIds: [String], transactionCode: String?
+    ) async throws -> [StoredCredential] {
         guard let pending = await sessions.get(preview.id) else {
             throw WalletError.invalidIssuer("This offer is no longer available. Scan it again.")
         }
         let issuer = pending.issuer
+        let selected = Set(selectedConfigurationIds)
+        let offered = Set(preview.credentials.map(\.id))
+        guard !selected.isEmpty, selected.count == selectedConfigurationIds.count,
+              selected.isSubset(of: offered), preview.issuer == issuer.issuer,
+              selected.isSubset(of: Set(issuer.configurations.map(\.id)))
+        else { throw WalletError.invalidIssuer("The selected credentials are not in this offer.") }
+        let configurations = issuer.configurations.filter { selected.contains($0.id) }
         // From before the token request (which spends the offer) until this returns, deleting the
         // credential being renewed keeps its key: the renewal signs with it.
-        if let renewal = pending.renewal { HolderKeyReservations.shared.reserve(renewal.keyTag) }
-        defer { if let renewal = pending.renewal { HolderKeyReservations.shared.release(renewal.keyTag) } }
+        let reservedTags = Set(configurations.compactMap { pending.renewals[$0.id]?.keyTag })
+        for tag in reservedTags { HolderKeyReservations.shared.reserve(tag) }
+        defer { for tag in reservedTags { HolderKeyReservations.shared.release(tag) } }
         // With the key reserved, it is still there only if a credential still uses it: otherwise stop
         // before the token request spends the offer.
-        if let renewal = pending.renewal, try !store.loadAll().contains(where: { $0.keyTag == renewal.keyTag }) {
+        let currentTags = try Set(store.loadAll().map(\.keyTag))
+        if !reservedTags.isSubset(of: currentTags) {
             await sessions.remove(preview.id)
-            throw WalletError.storage(String(localized: "The credential to renew was removed. Create a new offer in the admin console."))
+            throw WalletError.storage(String(localized: "The credential to renew was removed. Ask the issuer or offer provider for a new offer."))
         }
-        let code = transactionCode?.trimmingCharacters(in: .whitespacesAndNewlines)
+        // A text transaction code may contain leading or trailing spaces. Only numeric input
+        // receives whitespace normalization, matching the UI's numeric input handling.
+        let code = preview.transactionCode?.numeric == true
+            ? transactionCode?.trimmingCharacters(in: .whitespacesAndNewlines) : transactionCode
         if preview.transactionCode != nil, code?.isEmpty != false { throw WalletError.transactionCodeRequired }
 
-        let accessToken: String
+        // Fetch a public issuer nonce and validate each required key attestation before the
+        // one-time code is exchanged. The same nonce goes into the later holder proof.
+        var prepared: [String: PreparedAttestedKey] = [:]
+        defer {
+            for key in prepared.values where !key.reused { deleteKey(key.tag) }
+        }
+        for configuration in configurations where configuration.keyAttestationRequirements != nil {
+            prepared[configuration.id] = try await prepareAttestedKey(
+                issuer: issuer, configuration: configuration, renewal: pending.renewals[configuration.id])
+        }
+
+        // Separate UI flows can hold the same preview; only one may send its single-use code.
+        guard await sessions.claim(preview.id) else {
+            throw WalletError.invalidIssuer("This offer is already being received. Wait for its result.")
+        }
+        let authorization: TokenAuthorization
         do {
-            accessToken = try await requestToken(pending, transactionCode: preview.transactionCode == nil ? nil : code)
+            authorization = try await requestToken(pending, transactionCode: preview.transactionCode == nil ? nil : code)
         } catch WalletError.outcomeUnknown(let detail) {
             // The code may already be spent on the issuer: never exchange it again.
             await sessions.remove(preview.id)
             throw WalletError.offerConsumed(detail)
+        } catch WalletError.offerRejected {
+            // An invalid grant means the code cannot be used again. Only a specifically
+            // identified incorrect transaction code remains in the session for correction.
+            await sessions.remove(preview.id)
+            throw WalletError.offerRejected
+        } catch {
+            // Incorrect transaction codes and definite pre-send failures can be retried.
+            await sessions.release(preview.id)
+            throw error
         }
         // From here the pre-authorized code is spent. Any failure is final for this offer: a retry would
         // only be refused (or burn another code), so the offer is dropped and the user needs a new one.
         do {
-            let credential = try await complete(issuer, accessToken: accessToken, renewal: pending.renewal)
-            await sessions.remove(preview.id)
-            return credential
+            // Check the whole selection before issuing any credential. A token that authorizes
+            // only some requested configurations must not cause an avoidable partial issuance.
+            for configuration in configurations {
+                _ = try authorization.identifiers(for: configuration.id)
+            }
         } catch {
             await sessions.remove(preview.id)
             throw WalletError.offerConsumed(Self.cause(of: error))
         }
+        var issued: [StoredCredential] = []
+        for configuration in configurations {
+            let identifiers = try authorization.identifiers(for: configuration.id)
+            for (index, identifier) in identifiers.enumerated() {
+                var additionalKey: PreparedAttestedKey?
+                do {
+                    // The token can authorize several datasets of one configuration. Give
+                    // each dataset its own holder key and nonce so they are not linkable.
+                    // Only the first key can be attested before token exchange because the
+                    // number of datasets is learned from the token response.
+                    if index > 0, configuration.keyAttestationRequirements != nil {
+                        additionalKey = try await prepareAttestedKey(
+                            issuer: issuer, configuration: configuration, renewal: nil)
+                    }
+                    let credential = try await complete(
+                        issuer, configuration: configuration, authorization: authorization,
+                        credentialIdentifier: identifier,
+                        renewal: index == 0 ? pending.renewals[configuration.id] : nil,
+                        prepared: index == 0 ? prepared[configuration.id] : additionalKey,
+                        requiresX509IssuerTrust: pending.x509ConfigurationIDs.contains(configuration.id))
+                    issued.append(credential)
+                    if index == 0 { prepared.removeValue(forKey: configuration.id) }
+                    additionalKey = nil
+                } catch {
+                    if let additionalKey, !additionalKey.reused { deleteKey(additionalKey.tag) }
+                    await sessions.remove(preview.id)
+                    if !issued.isEmpty {
+                        throw PartialIssuanceError(
+                            saved: issued, failedCredentialName: configuration.name, reason: Self.cause(of: error))
+                    }
+                    throw WalletError.offerConsumed(Self.cause(of: error))
+                }
+            }
+        }
+        await sessions.remove(preview.id)
+        return issued
     }
 
     /// Nonce, proof, credential, verification and storage, after the token step.
     private func complete(
-        _ issuer: VerifiedIssuer, accessToken: String, renewal: StoredCredential?
+        _ issuer: VerifiedIssuer, configuration: VerifiedConfiguration, authorization: TokenAuthorization,
+        credentialIdentifier: String?, renewal: StoredCredential?, prepared: PreparedAttestedKey?,
+        requiresX509IssuerTrust: Bool
     ) async throws -> StoredCredential {
-        let nonce = try await requestNonce(issuer)
+        let nonce: String?
+        if let prepared {
+            nonce = prepared.nonce
+        } else {
+            nonce = try await requestNonce(issuer, dpop: authorization.dpop)
+        }
 
         // A renewal signs with the key the earlier credential uses; it is never deleted here, as that
         // credential still needs it.
         let reused = renewal.flatMap { old in HolderKeyRenewal.holderKey(of: old).map { (old.keyTag, $0) } }
-        let tag = reused?.0 ?? HolderKey.makeTag()
+        let tag = prepared?.tag ?? reused?.0 ?? HolderKey.makeTag()
         let signed = try await createProof(
-            tag: tag, existing: reused?.1, audience: issuer.issuer.absoluteString, nonce: nonce)
+            tag: tag, existing: reused?.1, prepared: prepared,
+            audience: issuer.issuer.absoluteString, nonce: nonce)
         let signer = signed.signer
         do {
-            let sdJwt = try await requestCredential(issuer, accessToken: accessToken, proof: signed.proof)
-            let verified = try await verify(sdJwt, issuer: issuer, holderKey: signer.publicJWK)
+            let sdJwt: String
+            do {
+                sdJwt = try await requestCredential(
+                    issuer, configuration: configuration, credentialIdentifier: credentialIdentifier,
+                    authorization: authorization, proof: signed.proof)
+            } catch CredentialNonceError.rejected {
+                // A preflight nonce can expire during wallet attestation, token exchange or
+                // device authentication. Refresh the attestation and proof with the same key;
+                // the access token remains valid and the one-time code is never retried.
+                guard issuer.nonceEndpoint != nil else {
+                    throw WalletError.invalidCredential("The credential nonce was rejected.")
+                }
+                let freshNonce = try await requestNonce(issuer, dpop: authorization.dpop)
+                let freshAttestation: String?
+                if let prepared, let requirements = configuration.keyAttestationRequirements {
+                    freshAttestation = try await attest(
+                        signer: prepared.signer, nonce: freshNonce, issuer: issuer,
+                        requirements: requirements)
+                } else {
+                    freshAttestation = nil
+                }
+                let freshProof = try await signProof(
+                    signer: signer, audience: issuer.issuer.absoluteString,
+                    nonce: freshNonce, keyAttestation: freshAttestation)
+                do {
+                    sdJwt = try await requestCredential(
+                        issuer, configuration: configuration, credentialIdentifier: credentialIdentifier,
+                        authorization: authorization, proof: freshProof)
+                } catch CredentialNonceError.rejected {
+                    throw WalletError.invalidCredential("The credential nonce was rejected again.")
+                }
+            }
+            let verified = try await verify(
+                sdJwt, issuer: issuer, configuration: configuration, holderKey: signer.publicJWK,
+                requiresX509IssuerTrust: requiresX509IssuerTrust)
             if let renewal, reused != nil, !HolderKeyRenewal.isSameAdministrator(sdJwt, as: renewal) {
                 throw WalletError.invalidCredential(String(localized: "The renewed credential is for another administrator, so it was not saved."))
             }
             let credential = StoredCredential(
                 id: UUID(), issuer: issuer.issuer, issuerDisplayName: issuer.displayName,
-                credentialConfigurationId: issuer.configuration.id, vct: issuer.configuration.vct,
-                credentialName: issuer.configuration.name, claims: verified.claims,
+                credentialConfigurationId: configuration.id, vct: configuration.vct,
+                credentialName: configuration.name, claims: verified.claims,
                 issuedAt: verified.issuedAt ?? now(), expiresAt: verified.expiresAt, keyTag: tag,
                 confirmationCode: signer.publicJWK.confirmationCode, sdJwt: sdJwt,
                 // The same key is the same second factor, as recorded now (not when the offer was read).
@@ -160,17 +333,81 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
     /// Secure Enclave calls block while Face ID / the passcode prompt is up, and any key created before a
     /// failure is deleted here.
     @concurrent
-    private func createProof(tag: String, existing: PublicJWK?, audience: String, nonce: String?) async throws
+    private func createProof(
+        tag: String, existing: PublicJWK?, prepared: PreparedAttestedKey?,
+        audience: String, nonce: String?
+    ) async throws
         -> (signer: any HolderSigning, proof: String)
     {
-        let signer = try existing.map { existingKey(tag, $0) } ?? makeKey(tag)
+        let signer = try prepared?.signer ?? existing.map { existingKey(tag, $0) } ?? makeKey(tag)
         do {
             let proof = try ProofJWT.make(
-                audience: audience, nonce: nonce, issuedAt: now(), key: signer.publicJWK, sign: signer.sign)
+                audience: audience, nonce: nonce, issuedAt: now(), key: signer.publicJWK,
+                keyAttestation: prepared?.attestation, sign: signer.sign)
             return (signer, proof)
         } catch {
             if existing == nil { deleteKey(tag) }
             throw error
+        }
+    }
+
+    @concurrent
+    private func signProof(
+        signer: any HolderSigning, audience: String, nonce: String?, keyAttestation: String?
+    ) async throws -> String {
+        try ProofJWT.make(
+            audience: audience, nonce: nonce, issuedAt: now(), key: signer.publicJWK,
+            keyAttestation: keyAttestation, sign: signer.sign)
+    }
+
+    /// The provider attests a public holder key, while an independent trust source supplies the
+    /// accepted CA root. The holder proof is signed later with the same private key and nonce.
+    /// The public test provider does not validate platform key properties.
+    @concurrent
+    private func prepareAttestedKey(
+        issuer: VerifiedIssuer, configuration: VerifiedConfiguration, renewal: StoredCredential?
+    ) async throws -> PreparedAttestedKey {
+        guard let requirements = configuration.keyAttestationRequirements,
+              keyAttestationProvider?.supports(issuer: issuer.issuer) == true,
+              keyAttestationTrustSource != nil else {
+            throw WalletError.unsupportedKeyAttestation
+        }
+        let nonce = try await requestNonce(issuer, dpop: nil)
+        let reused = renewal.flatMap { old in
+            HolderKeyRenewal.holderKey(of: old).map { (old.keyTag, $0) }
+        }
+        let tag = reused?.0 ?? HolderKey.makeTag()
+        let signer = try reused.map { existingKey(tag, $0.1) } ?? makeKey(tag)
+        do {
+            let verified = try await attest(
+                signer: signer, nonce: nonce, issuer: issuer, requirements: requirements)
+            return PreparedAttestedKey(
+                tag: tag, signer: signer, attestation: verified, nonce: nonce, reused: reused != nil)
+        } catch {
+            if reused == nil { deleteKey(tag) }
+            throw error
+        }
+    }
+
+    @concurrent
+    private func attest(
+        signer: any HolderSigning, nonce: String?, issuer: VerifiedIssuer,
+        requirements: KeyAttestationRequirements
+    ) async throws -> String {
+        guard let provider = keyAttestationProvider, let trustSource = keyAttestationTrustSource,
+              provider.supports(issuer: issuer.issuer) else {
+            throw WalletError.unsupportedKeyAttestation
+        }
+        let attestation = try await provider.attestation(
+            for: signer.publicJWK, nonce: nonce, issuer: issuer.issuer)
+        let trustedRoots = try await trustSource.trustedRoots(
+            for: attestation, issuer: issuer.issuer)
+        do {
+            return try KeyAttestationVerifier.validate(
+                attestation, holderKey: signer.publicJWK, nonce: nonce,
+                requirements: requirements, trustedRootDER: trustedRoots, now: now())
+        } catch is KeyAttestationValidationError {
+            throw WalletError.invalidIssuer("The wallet provider key attestation could not be verified.")
         }
     }
 
@@ -188,52 +425,210 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
 
     // MARK: Protocol steps
 
-    private func requestToken(_ pending: PendingOffer, transactionCode: String?) async throws -> String {
+    private func requestToken(_ pending: PendingOffer, transactionCode: String?) async throws -> TokenAuthorization {
         var fields = [("grant_type", CredentialOfferParser.preAuthorizedGrant), ("pre-authorized_code", pending.preAuthorizedCode)]
         if let transactionCode { fields.append(("tx_code", transactionCode)) }
         let issuer = pending.issuer
-        let response = try await http.send(
-            issuer.tokenEndpoint, method: "POST",
-            headers: ["Content-Type": "application/x-www-form-urlencoded"],
-            body: WalletHTTP.formBody(fields), origin: issuer.issuer)
+        let dpopKey = try issuer.supportsDPoP ? WalletDPoPKey() : nil
+        let dpop = dpopKey.map(DPoPSession.init)
+        var walletAttestation: WalletClientAttestation?
+        if issuer.supportsWalletAttestation, let provider = walletAttestationProvider,
+           provider.supports(issuer: issuer.issuer) {
+            guard let dpopKey else {
+                throw WalletError.invalidIssuer("Wallet attestation requires an ES256 DPoP key.")
+            }
+            // The provider is called before sending the one-time code. Its verified `cnf.jwk`
+            // must be the same key used for the token DPoP proof and client-attestation PoP.
+            do {
+                walletAttestation = try await provider.attestation(
+                    for: dpopKey.publicJWK, issuer: issuer.issuer)
+            } catch WalletError.outcomeUnknown(let detail) {
+                // The provider request carried only a public key. No pre-authorized code has
+                // been sent, so an uncertain provider response cannot consume the offer.
+                throw WalletError.network(detail)
+            }
+        }
+        if let walletAttestation {
+            fields.append(("client_id", walletAttestation.clientID))
+        }
+        let body = WalletHTTP.formBody(fields)
+        var attestationChallenge: String?
+        func sendTokenRequest() async throws -> WalletHTTPResponse {
+            var headers = ["Content-Type": "application/x-www-form-urlencoded"]
+            if let dpop {
+                headers["DPoP"] = try await dpop.proof(
+                    method: "POST", url: issuer.tokenEndpoint, role: .authorizationServer, issuedAt: now())
+            }
+            if let walletAttestation, let dpopKey {
+                headers["OAuth-Client-Attestation"] = walletAttestation.jwt
+                headers["OAuth-Client-Attestation-PoP"] = try dpopKey.clientAttestationPoP(
+                    clientID: walletAttestation.clientID, audience: issuer.authorizationServer,
+                    challenge: attestationChallenge, issuedAt: now())
+            }
+            do {
+                return try await http.send(
+                    issuer.tokenEndpoint, method: "POST", headers: headers, body: body,
+                    origin: issuer.authorizationServer)
+            } catch WalletError.network(let detail)
+                where detail == "No HTTP response." || detail == "Redirects are not followed." {
+                // Both conditions are detected only after URLSession started the POST.
+                // The authorization server might already have spent the code.
+                throw WalletError.outcomeUnknown(detail)
+            } catch is CancellationError {
+                // The request may already have reached the server before the task was
+                // cancelled (for example, while the app was backgrounded).
+                throw WalletError.outcomeUnknown("The token request was cancelled before its result arrived.")
+            }
+        }
+        var response = try await sendTokenRequest()
+        // Only explicit OAuth challenges are retried: each mechanism gets at most one retry,
+        // using a fresh PoP/DPoP proof while retaining the same key and attestation.
+        var retriedDPoP = false
+        var retriedAttestation = false
+        for _ in 0..<2 where response.status == 400 {
+            if response.errorCode == "use_dpop_nonce", !retriedDPoP, let dpop,
+               await dpop.remember(response.dpopNonce, from: issuer.tokenEndpoint, role: .authorizationServer) {
+                retriedDPoP = true
+                response = try await sendTokenRequest()
+            } else if response.errorCode == "use_attestation_challenge", !retriedAttestation,
+                      walletAttestation != nil,
+                      let challenge = response.clientAttestationChallenge,
+                      !challenge.isEmpty, challenge.utf8.count <= 1_024,
+                      challenge.utf8.allSatisfy({ (0x21...0x7e).contains($0) }) {
+                retriedAttestation = true
+                attestationChallenge = challenge
+                response = try await sendTokenRequest()
+            } else {
+                break
+            }
+        }
+        if let dpop {
+            await dpop.remember(response.dpopNonce, from: issuer.tokenEndpoint, role: .authorizationServer)
+        }
         guard response.status == 200 else {
-            switch response.errorCode {
-            case "invalid_grant": throw WalletError.offerRejected
-            case "invalid_request": throw WalletError.transactionCodeRequired
-            default: throw WalletError.network("The token request failed (HTTP \(response.status)).")
+            // OAuth errors are authoritative only at token-error status codes. A 5xx
+            // body can name any error despite the grant having been consumed.
+            switch (response.status == 400 || response.status == 401) ? response.errorCode : nil {
+            case "invalid_grant":
+                let description = ((try? JSONSerialization.jsonObject(with: response.data)) as? [String: Any])?["error_description"] as? String
+                if transactionCode != nil, description?.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) == "invalid tx_code" {
+                    throw WalletError.incorrectTransactionCode
+                }
+                throw WalletError.offerRejected
+            case "invalid_request":
+                throw WalletError.invalidIssuer("The authorization server rejected the token request (invalid_request).")
+            case "invalid_client", "unsupported_grant_type":
+                throw WalletError.invalidIssuer("The authorization server rejected wallet authentication or the grant type.")
+            default:
+                // A non-standard error, including a server failure, does not prove the
+                // single-use code is still available. The server may have spent it first.
+                throw WalletError.outcomeUnknown("The token request outcome is unknown (HTTP \(response.status)).")
             }
         }
         guard let object = (try? JSONSerialization.jsonObject(with: response.data)) as? [String: Any],
               let token = object["access_token"] as? String, !token.isEmpty,
-              (object["token_type"] as? String)?.lowercased() == "bearer"
+              let rawType = object["token_type"] as? String
         else {
             // A 200 means the issuer accepted (and spent) the code, even if the body is unusable.
             throw WalletError.outcomeUnknown("The token response is not a bearer token.")
         }
-        return token
+        let tokenType: TokenAuthorization.TokenType
+        switch rawType.lowercased() {
+        case "bearer": tokenType = .bearer
+        case "dpop" where dpop != nil: tokenType = .dpop
+        default: throw WalletError.outcomeUnknown("The token response has an unsupported token type.")
+        }
+        let identifiers: [String: [String]]?
+        if let detailsValue = object["authorization_details"] {
+            guard let details = detailsValue as? [[String: Any]], !details.isEmpty else {
+                throw WalletError.outcomeUnknown("The token response has invalid authorization details.")
+            }
+            var found: [String: [String]] = [:]
+            for detail in details where (detail["type"] as? String) == "openid_credential" {
+                guard let configurationId = detail["credential_configuration_id"] as? String,
+                      !configurationId.isEmpty,
+                      let values = detail["credential_identifiers"] as? [String],
+                      (1...32).contains(values.count),
+                      values.allSatisfy({ !$0.isEmpty && $0.utf8.count <= 512 }),
+                      Set(values).count == values.count,
+                      found[configurationId] == nil
+                else {
+                    throw WalletError.outcomeUnknown("The token response has invalid credential identifiers.")
+                }
+                found[configurationId] = values
+            }
+            guard !found.isEmpty else {
+                throw WalletError.outcomeUnknown("The token response authorizes no credentials.")
+            }
+            let allIdentifiers = found.values.flatMap { $0 }
+            guard Set(allIdentifiers).count == allIdentifiers.count else {
+                throw WalletError.outcomeUnknown("The token response reuses a credential identifier.")
+            }
+            identifiers = found
+        } else {
+            identifiers = nil
+        }
+        return TokenAuthorization(
+            accessToken: token, tokenType: tokenType, dpop: dpop, credentialIdentifiers: identifiers)
     }
 
-    private func requestNonce(_ issuer: VerifiedIssuer) async throws -> String? {
+    private func requestNonce(_ issuer: VerifiedIssuer, dpop: DPoPSession?) async throws -> String? {
         guard let endpoint = issuer.nonceEndpoint else { return nil }
-        let response = try await http.send(endpoint, method: "POST", origin: issuer.issuer)
-        guard response.status == 200,
+        let response = try await http.send(endpoint, method: "POST", origin: endpoint)
+        guard response.isSuccess,
               let object = (try? JSONSerialization.jsonObject(with: response.data)) as? [String: Any],
               let nonce = object["c_nonce"] as? String, !nonce.isEmpty
         else { throw WalletError.network("The nonce request failed (HTTP \(response.status)).") }
+        if let dpop {
+            await dpop.remember(response.dpopNonce, from: endpoint, role: .resourceServer)
+        }
         return nonce
     }
 
-    private func requestCredential(_ issuer: VerifiedIssuer, accessToken: String, proof: String) async throws -> String {
-        let body: [String: Any] = [
-            "credential_configuration_id": issuer.configuration.id,
-            "proofs": ["jwt": [proof]],
-        ]
-        let response = try await http.send(
-            issuer.credentialEndpoint, method: "POST",
-            headers: ["Content-Type": "application/json", "Authorization": "Bearer \(accessToken)"],
-            body: try JSONSerialization.data(withJSONObject: body), maxBytes: WalletHTTP.credentialLimit,
-            origin: issuer.issuer)
+    private func requestCredential(
+        _ issuer: VerifiedIssuer, configuration: VerifiedConfiguration, credentialIdentifier: String?,
+        authorization: TokenAuthorization, proof: String
+    ) async throws -> String {
+        var body: [String: Any] = ["proofs": ["jwt": [proof]]]
+        if let credentialIdentifier {
+            body["credential_identifier"] = credentialIdentifier
+        } else {
+            body["credential_configuration_id"] = configuration.id
+        }
+        let requestBody = try JSONSerialization.data(withJSONObject: body)
+        func sendCredentialRequest() async throws -> WalletHTTPResponse {
+            var headers = [
+                "Content-Type": "application/json",
+                "Authorization": "\(authorization.tokenType.authorizationScheme) \(authorization.accessToken)",
+            ]
+            if case .dpop = authorization.tokenType {
+                guard let dpop = authorization.dpop else {
+                    throw WalletError.invalidIssuer("The DPoP token has no matching key.")
+                }
+                headers["DPoP"] = try await dpop.proof(
+                    method: "POST", url: issuer.credentialEndpoint, role: .resourceServer,
+                    accessToken: authorization.accessToken, issuedAt: now())
+            }
+            return try await http.send(
+                issuer.credentialEndpoint, method: "POST", headers: headers,
+                body: requestBody, maxBytes: WalletHTTP.credentialLimit,
+                origin: issuer.credentialEndpoint)
+        }
+        var response = try await sendCredentialRequest()
+        let challenge = response.wwwAuthenticate?.lowercased() ?? ""
+        if case .dpop = authorization.tokenType, response.status == 401,
+           challenge.contains("dpop"), challenge.contains("use_dpop_nonce"),
+           let dpop = authorization.dpop,
+           await dpop.remember(response.dpopNonce, from: issuer.credentialEndpoint, role: .resourceServer) {
+            response = try await sendCredentialRequest()
+        }
+        if let dpop = authorization.dpop {
+            await dpop.remember(response.dpopNonce, from: issuer.credentialEndpoint, role: .resourceServer)
+        }
         guard response.status == 200 else {
+            if response.status == 400, response.errorCode == "invalid_nonce" {
+                throw CredentialNonceError.rejected
+            }
             let reason = response.status == 401 ? "invalid_token" : (response.errorCode ?? "HTTP \(response.status)")
             throw WalletError.network("The credential request was rejected (\(reason)).")
         }
@@ -245,39 +640,126 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
     }
 
     /// Checks the credential against the issuer's published key and everything the wallet asked for.
-    private func verify(_ text: String, issuer: VerifiedIssuer, holderKey: PublicJWK) async throws -> VerifiedCredential {
+    private func verify(
+        _ text: String, issuer: VerifiedIssuer, configuration: VerifiedConfiguration, holderKey: PublicJWK,
+        requiresX509IssuerTrust: Bool
+    ) async throws -> VerifiedCredential {
         let parsed = try ParsedSDJWT(text)
-        let kid = try SDJWTVerifier.keyID(of: parsed)
-        guard let url = IssuerMetadata.wellKnownURL(for: issuer.issuer, suffix: "jwt-vc-issuer") else {
-            throw WalletError.invalidIssuer("The issuer key URL cannot be built.")
-        }
-        let metadata = try await http.getJSON(url, origin: issuer.issuer)
-        guard (metadata["issuer"] as? String) == issuer.issuer.absoluteString,
-              let keys = (metadata["jwks"] as? [String: Any])?["keys"] as? [[String: Any]]
-        else { throw WalletError.invalidIssuer("The issuer key set does not belong to this issuer.") }
-        let candidates = keys.compactMap { PublicJWK(from: $0) }.filter { $0.kid == kid }
-        guard candidates.count == 1, let key = candidates.first else {
-            throw WalletError.invalidCredential("The issuer publishes no single key for this credential.")
+        let key: PublicJWK
+        if requiresX509IssuerTrust {
+            guard let issuerCertificateTrustSource else {
+                throw WalletError.unsupportedIssuerCertificateTrust
+            }
+            key = try await IssuerX509Verifier.signingKey(
+                of: parsed, issuer: issuer.issuer, vct: configuration.vct,
+                trustSource: issuerCertificateTrustSource, now: now())
+        } else {
+            let kid = try SDJWTVerifier.keyID(of: parsed)
+            guard let url = IssuerMetadata.wellKnownURL(for: issuer.issuer, suffix: "jwt-vc-issuer") else {
+                throw WalletError.invalidIssuer("The issuer key URL cannot be built.")
+            }
+            let metadata = try await http.getJSON(url, origin: issuer.issuer)
+            guard (metadata["issuer"] as? String) == issuer.issuer.absoluteString,
+                  let keys = (metadata["jwks"] as? [String: Any])?["keys"] as? [[String: Any]]
+            else { throw WalletError.invalidIssuer("The issuer key set does not belong to this issuer.") }
+            let candidates = keys.compactMap { PublicJWK(from: $0) }.filter { $0.kid == kid }
+            guard candidates.count == 1, let candidate = candidates.first else {
+                throw WalletError.invalidCredential("The issuer publishes no single key for this credential.")
+            }
+            key = candidate
         }
         return try SDJWTVerifier.verify(
             parsed, issuerKey: key, expectedIssuer: issuer.issuer.absoluteString,
-            expectedVct: issuer.configuration.vct, holderKey: holderKey, now: now())
+            expectedVct: configuration.vct, holderKey: holderKey, now: now())
     }
 }
 
 // MARK: - Offers between preview and issue
 
+private struct PreparedAttestedKey: Sendable {
+    let tag: String
+    let signer: any HolderSigning
+    let attestation: String
+    let nonce: String?
+    let reused: Bool
+}
+
+private enum CredentialNonceError: Error {
+    case rejected
+}
+
 nonisolated struct PendingOffer: Sendable {
     let preAuthorizedCode: String
     let issuer: VerifiedIssuer
-    /// The stored credential whose holder key the new one is bound to, for a renewal.
-    var renewal: StoredCredential? = nil
+    let x509ConfigurationIDs: Set<String>
+    /// Stored credentials whose holder keys the new credentials must reuse, indexed by configuration.
+    var renewals: [String: StoredCredential] = [:]
+}
+
+private struct TokenAuthorization: Sendable {
+    let accessToken: String
+    let tokenType: TokenType
+    /// The key and server-scoped nonces used at the token endpoint stay in use at the Credential Endpoint.
+    let dpop: DPoPSession?
+    /// Present only if the token response returned authorization_details.
+    let credentialIdentifiers: [String: [String]]?
+
+    enum TokenType: Sendable {
+        case bearer
+        case dpop
+
+        var authorizationScheme: String {
+            switch self {
+            case .bearer: "Bearer"
+            case .dpop: "DPoP"
+            }
+        }
+    }
+
+    func identifiers(for configurationId: String) throws -> [String?] {
+        guard let credentialIdentifiers else { return [nil] }
+        guard let identifiers = credentialIdentifiers[configurationId] else {
+            throw WalletError.invalidIssuer("The token does not authorize the selected credential.")
+        }
+        return identifiers.map(Optional.some)
+    }
+}
+
+/// A nonce belongs to the server that issued it. In particular, the AS token nonce is never sent
+/// to the Credential Issuer, even when a single issuance session uses both hosts (RFC 9449 §9).
+private actor DPoPSession {
+    enum Role: String, Sendable { case authorizationServer, resourceServer }
+    private let key: WalletDPoPKey
+    private var nonces: [String: String] = [:]
+
+    init(key: WalletDPoPKey) { self.key = key }
+
+    func proof(method: String, url: URL, role: Role, accessToken: String? = nil, issuedAt: Date) throws -> String {
+        try key.proof(
+            method: method, url: url, accessToken: accessToken,
+            nonce: nonces[Self.key(for: url, role: role)], issuedAt: issuedAt)
+    }
+
+    /// Accept only a bounded RFC 6749 NQCHAR nonce. Returns false for absent or malformed headers.
+    @discardableResult
+    func remember(_ nonce: String?, from url: URL, role: Role) -> Bool {
+        guard let nonce, !nonce.isEmpty, nonce.utf8.count <= 1_024,
+              nonce.utf8.allSatisfy({ $0 == 0x21 || (0x23...0x5B).contains($0) || (0x5D...0x7E).contains($0) })
+        else { return false }
+        nonces[Self.key(for: url, role: role)] = nonce
+        return true
+    }
+
+    private static func key(for url: URL, role: Role) -> String {
+        "\(role.rawValue)|\(url.scheme?.lowercased() ?? "")://\(url.host?.lowercased() ?? ""):\(url.port ?? 443)"
+    }
 }
 
 /// The verified offers waiting for the user's decision. The pre-authorized code stays here, out of the preview.
 private actor OfferSessions {
     private var offers: [UUID: PendingOffer] = [:]
     private var order: [UUID] = []
+    private var claimed: Set<UUID> = []
     private let limit = 8
 
     func put(_ id: UUID, _ offer: PendingOffer) {
@@ -288,8 +770,16 @@ private actor OfferSessions {
 
     func get(_ id: UUID) -> PendingOffer? { offers[id] }
 
+    func claim(_ id: UUID) -> Bool {
+        guard offers[id] != nil else { return false }
+        return claimed.insert(id).inserted
+    }
+
+    func release(_ id: UUID) { claimed.remove(id) }
+
     func remove(_ id: UUID) {
         offers[id] = nil
         order.removeAll { $0 == id }
+        claimed.remove(id)
     }
 }

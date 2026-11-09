@@ -36,7 +36,15 @@ struct AuthrimKeyringApp: App {
     /// The one place the wallet screens get their real services.
     private static func makeWallet() -> WalletModel {
         let store = KeychainCredentialStore()
-        return WalletModel(issuance: OpenID4VCIClient(store: store), store: store)
+        let eudiTestProvider = EUDITestKeyAttestationProvider()
+        let eudiTestWalletProvider = EUDITestWalletAttestationProvider()
+        let eudiTestIssuerTrust = EUDITestIssuerCertificateTrustSource()
+        let issuance = OpenID4VCIClient(
+            store: store, keyAttestationProvider: eudiTestProvider,
+            keyAttestationTrustSource: eudiTestProvider,
+            walletAttestationProvider: eudiTestWalletProvider,
+            issuerCertificateTrustSource: eudiTestIssuerTrust)
+        return WalletModel(issuance: issuance, store: store)
     }
 
     /// Whether the cards are the screenshots' fictional ones, which must not

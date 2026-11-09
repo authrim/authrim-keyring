@@ -149,11 +149,13 @@ nonisolated enum ProofJWT {
 
     /// Anonymous (pre-authorized) proof: no `iss`. `nonce` is omitted when the issuer has no nonce endpoint.
     static func make(
-        audience: String, nonce: String?, issuedAt: Date, key: PublicJWK, sign: (Data) throws -> Data
+        audience: String, nonce: String?, issuedAt: Date, key: PublicJWK,
+        keyAttestation: String? = nil, sign: (Data) throws -> Data
     ) throws -> String {
         var payload: [String: Any] = ["aud": audience, "iat": Int(issuedAt.timeIntervalSince1970)]
         if let nonce { payload["nonce"] = nonce }
-        let header: [String: Any] = ["alg": "ES256", "typ": type, "jwk": key.proofMembers]
+        var header: [String: Any] = ["alg": "ES256", "typ": type, "jwk": key.proofMembers]
+        if let keyAttestation { header["key_attestation"] = keyAttestation }
         return try JWS.make(header: header, payload: payload, sign: sign)
     }
 }

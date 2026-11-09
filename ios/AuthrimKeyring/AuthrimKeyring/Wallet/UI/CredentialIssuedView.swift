@@ -1,13 +1,36 @@
 import SwiftUI
 
-/// Shown after the credential is stored: the code to compare with the admin console. Saying the codes
-/// match is what lets Keyring show the issuer as confirmed by the user.
+/// Shown after credentials are stored. For a single credential, the holder key code can be compared
+/// with the issuing service when it provides one; matching codes confirm the issuer to the user.
 struct CredentialIssuedView: View {
     @Environment(WalletModel.self) private var wallet
-    let credential: StoredCredential
+    let credentials: [StoredCredential]
+    let partialFailure: String?
     let onDone: () -> Void
 
+    init(credential: StoredCredential, onDone: @escaping () -> Void) {
+        self.init(credentials: [credential], partialFailure: nil, onDone: onDone)
+    }
+
+    init(credentials: [StoredCredential], partialFailure: String?, onDone: @escaping () -> Void) {
+        self.credentials = credentials
+        self.partialFailure = partialFailure
+        self.onDone = onDone
+    }
+
     var body: some View {
+        Group {
+            if credentials.count == 1 && partialFailure == nil {
+                singleReceipt
+            } else {
+                multipleReceipt
+            }
+        }
+    }
+
+    private var credential: StoredCredential { credentials[0] }
+
+    private var singleReceipt: some View {
         ScrollView {
             VStack(spacing: 20) {
                 Image(systemName: "checkmark.seal.fill")
@@ -30,11 +53,11 @@ struct CredentialIssuedView: View {
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
                     ConfirmationCodeText(code: credential.confirmationCode)
-                    Text("Check that the admin console shows the same code.")
+                    Text("Compare this code with the issuing service if it shows one.")
                         .font(.callout)
                         .multilineTextAlignment(.center)
-                    // The code only proves the console saw this key, so the console's own address matters too.
-                    Text("Use the console you signed in to yourself at \(credential.issuer.walletHost). If the codes match, Keyring shows this issuer as confirmed by you.")
+                    // The code only proves the issuer saw this key, so the service address matters too.
+                    Text("Only confirm a matching code shown by the service you opened yourself for \(credential.issuer.walletHost). Keyring will mark this issuer as confirmed by you.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -43,7 +66,7 @@ struct CredentialIssuedView: View {
                 .frame(maxWidth: .infinity)
                 .background(.fill.tertiary, in: .rect(cornerRadius: 16))
 
-                Text("If the code differs, or the console shows no credential, someone else may have used the offer. Revoke the credential in the admin console.")
+                Text("If the code differs, do not confirm it. Contact the issuer to check or revoke the credential.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -74,6 +97,59 @@ struct CredentialIssuedView: View {
         }
     }
 
+    private var multipleReceipt: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                HStack(spacing: 12) {
+                    Image(systemName: partialFailure == nil ? "checkmark.seal.fill" : "exclamationmark.triangle.fill")
+                        .font(.system(size: 40))
+                        .foregroundStyle(partialFailure == nil ? .green : .orange)
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 4) {
+                        if partialFailure == nil {
+                            Text("Credentials Received").font(.title2.bold())
+                        } else {
+                            Text("Some Credentials Received").font(.title2.bold())
+                        }
+                        Text("\(credentials.count) saved from \(credential.issuer.walletHost)")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                if let partialFailure {
+                    Text(partialFailure)
+                        .font(.callout)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding()
+                        .background(.orange.opacity(0.12), in: .rect(cornerRadius: 12))
+                }
+
+                ForEach(credentials) { stored in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(stored.credentialName).font(.headline)
+                        Text(stored.issuer.walletHost).font(.subheadline).foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
+                    .background(.fill.tertiary, in: .rect(cornerRadius: 12))
+                }
+
+                Text("You can review each credential and its key confirmation code in your wallet.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            .padding()
+        }
+        .safeAreaInset(edge: .bottom) {
+            Button("Done", action: onDone)
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(.bar)
+        }
+    }
+
     private var hasError: Binding<Bool> {
         Binding(get: { wallet.lastError != nil }, set: { if !$0 { wallet.lastError = nil } })
     }
@@ -95,10 +171,6 @@ struct CredentialFailureView: View {
         } description: {
             VStack(spacing: 8) {
                 Text(error.message)
-                if !error.canRetry {
-                    Text("A new offer is needed.")
-                        .fontWeight(.semibold)
-                }
                 if let detail = error.detail {
                     Text(detail)
                         .font(.caption)

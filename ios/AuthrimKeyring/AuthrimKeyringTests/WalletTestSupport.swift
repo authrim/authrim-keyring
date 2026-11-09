@@ -166,7 +166,8 @@ struct TestIssuer {
 
     static func serverMetadata(issuer: String = base + "/vci", tokenEndpoint: String = base + "/vci/token") -> [String: Any] {
         ["issuer": issuer, "token_endpoint": tokenEndpoint,
-         "grant_types_supported": [CredentialOfferParser.preAuthorizedGrant]]
+         "grant_types_supported": [CredentialOfferParser.preAuthorizedGrant],
+         "pre-authorized_grant_anonymous_access_supported": true]
     }
 
     func jwks(issuer: String = TestIssuer.base) -> [String: Any] { ["issuer": issuer, "jwks": ["keys": [issuerJWK]]] }

@@ -2,21 +2,60 @@ import Foundation
 
 /// What the wallet shows before the user agrees to receive a credential (OpenID4VCI 1.0 Final,
 /// pre-authorized code flow). Built only from verified issuer and authorization server metadata.
+struct OfferedCredential: Identifiable, Sendable {
+    let id: String
+    let name: String
+    let claimNames: [String]
+    let renewsCredential: Bool
+}
+
 struct CredentialOfferPreview: Identifiable, Sendable {
     let id: UUID
     /// The Credential Issuer identifier (an https URL), exactly as the offer and metadata agree.
     let issuer: URL
+    /// The metadata-verified authorization server that receives the transaction code.
+    let authorizationServer: URL
     /// Display name the issuer gives itself, if any. Never presented as verified by Authrim.
     let issuerDisplayName: String?
-    let credentialConfigurationId: String
-    let credentialName: String
-    /// Claim display names from the issuer metadata, in metadata order.
-    let claimNames: [String]
+    let credential: OfferedCredential
+    let additionalCredentials: [OfferedCredential]
+    /// Supported offered configurations, in the order given by the issuer's offer.
+    var credentials: [OfferedCredential] { [credential] + additionalCredentials }
+    var credentialConfigurationId: String { credential.id }
+    var credentialName: String { credential.name }
+    var claimNames: [String] { credential.claimNames }
     /// Present when the offer requires a transaction code (Authrim admin offers always do).
     let transactionCode: TransactionCodeRequirement?
     /// The new credential is bound to the key of a credential already on this device (the admin's
     /// registered second factor), instead of a new key.
-    var renewsCredential = false
+    var renewsCredential: Bool { credential.renewsCredential }
+
+    init(
+        id: UUID, issuer: URL, authorizationServer: URL, issuerDisplayName: String?, credential: OfferedCredential,
+        additionalCredentials: [OfferedCredential], transactionCode: TransactionCodeRequirement?
+    ) {
+        self.id = id
+        self.issuer = issuer
+        self.authorizationServer = authorizationServer
+        self.issuerDisplayName = issuerDisplayName
+        self.credential = credential
+        self.additionalCredentials = additionalCredentials
+        self.transactionCode = transactionCode
+    }
+
+    /// Keeps callers that construct a one-credential preview source-compatible.
+    init(
+        id: UUID, issuer: URL, issuerDisplayName: String?, credentialConfigurationId: String,
+        credentialName: String, claimNames: [String], transactionCode: TransactionCodeRequirement?,
+        renewsCredential: Bool = false, authorizationServer: URL? = nil
+    ) {
+        self.init(
+            id: id, issuer: issuer, authorizationServer: authorizationServer ?? issuer,
+            issuerDisplayName: issuerDisplayName,
+            credential: OfferedCredential(id: credentialConfigurationId, name: credentialName,
+                                         claimNames: claimNames, renewsCredential: renewsCredential),
+            additionalCredentials: [], transactionCode: transactionCode)
+    }
 }
 
 struct TransactionCodeRequirement: Sendable, Equatable {
@@ -56,12 +95,22 @@ struct StoredCredential: Codable, Identifiable, Sendable, Hashable {
 enum WalletError: Error, Equatable, Sendable {
     /// The scanned text is not an OpenID4VCI credential offer.
     case notAnOffer
+    /// The offer requires authorization code sign-in, which this wallet does not implement.
+    case unsupportedGrant
+    /// The issuer requires proof that the holder key meets a key-attestation policy.
+    case unsupportedKeyAttestation
+    /// The issuer requires credential request or response encryption this wallet cannot perform.
+    case unsupportedCredentialEncryption
+    /// A HAIP issuer's signing certificate cannot be checked against an independent trust source.
+    case unsupportedIssuerCertificateTrust
     /// A URL that is not https, redirects, a size limit, a timeout or a non-success status.
     case network(String)
     /// Metadata or responses that contradict each other or the specification.
     case invalidIssuer(String)
     case transactionCodeRequired
-    /// The issuer rejected the transaction code or the code expired (`invalid_grant`).
+    /// The issuer explicitly identified an incorrect transaction code; the same offer may be retried.
+    case incorrectTransactionCode
+    /// The code was rejected or expired, without evidence that correcting the transaction code can help.
     case offerRejected
     /// The issued credential failed verification; nothing was stored.
     case invalidCredential(String)
@@ -90,10 +139,34 @@ enum WalletError: Error, Equatable, Sendable {
 protocol CredentialIssuanceService: Sendable {
     /// Resolve and validate an offer (scanned text or opened URL) into a preview.
     func preview(offer: String) async throws -> CredentialOfferPreview
-    /// Create the holder key (asks for Face ID / passcode), run token → nonce → proof →
-    /// credential, verify the credential, store it and return it.
+    /// Prepare and attest a holder key when required, run token → nonce → proof → credential,
+    /// verify the credential, store it and return it.
     func issue(_ preview: CredentialOfferPreview, transactionCode: String?) async throws
         -> StoredCredential
+    /// Uses the offer's one-time code once and requests each selected configuration in order.
+    func issueAll(
+        _ preview: CredentialOfferPreview, selectedConfigurationIds: [String], transactionCode: String?
+    ) async throws -> [StoredCredential]
+}
+
+extension CredentialIssuanceService {
+    /// One-credential implementations remain valid for previews they produce.
+    func issueAll(
+        _ preview: CredentialOfferPreview, selectedConfigurationIds: [String], transactionCode: String?
+    ) async throws -> [StoredCredential] {
+        guard selectedConfigurationIds == [preview.credentialConfigurationId] else {
+            throw WalletError.invalidIssuer("This issuer cannot receive the selected credentials together.")
+        }
+        return [try await issue(preview, transactionCode: transactionCode)]
+    }
+}
+
+/// Some credentials were verified and saved before a later credential request failed. The offer's
+/// one-time code has been used, so the user needs a fresh offer for the remaining credentials.
+struct PartialIssuanceError: Error, Sendable {
+    let saved: [StoredCredential]
+    let failedCredentialName: String
+    let reason: String
 }
 
 /// Device-only storage of credentials. Deleting a credential also deletes its holder key, unless

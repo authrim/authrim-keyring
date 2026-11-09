@@ -27,6 +27,9 @@ Authrim Keyring is the iPhone companion to [Authrim](https://authrim.com/), an o
 
 ### Verifiable credentials
 - Receives credentials through the OpenID for Verifiable Credential Issuance 1.0 pre-authorized code flow, in the SD-JWT VC format
+- Accepts `openid-credential-offer://` and `haip-vci://` QR codes and links when their offers use the pre-authorized code flow. Authorization-code offers and the full HAIP profile are not yet supported.
+- A single pre-authorized offer can contain multiple credential configurations. Keyring lets the user choose the supported types and requests each selected type separately with one token. It accepts separate authorization and credential service hosts when their endpoints come from identity-checked HTTPS metadata. An issuer that requires unsupported credential request or response encryption is rejected before its one-time code is used.
+- In Debug, TestFlight, and Release builds, offers from `https://issuer.eudiw.dev` can use the public EUDI test Wallet Provider for Wallet Instance Attestation and Key Attestation. Keyring verifies their signatures, certificate chains, validity periods, and key binding before redeeming the one-time code, then uses DPoP for the token request and for credential requests made with a DPoP token. For EUDI credentials, it checks the issued credential's `x5c` signing certificate against the EUDI test trust validator and issuer identity regardless of the offer link scheme. The test provider's JWK endpoints do not verify the iPhone's Secure Enclave key properties; this path is restricted to the EUDI sandbox for interoperability testing and is not production assurance. Other HAIP issuers need an independently configured issuer-certificate trust policy and attestation provider.
 - Shows each issuer as verified, confirmed by you, or unverified, and shows a credential as a card you can hold up to someone
 
 ### AutoFill, import and export
@@ -38,7 +41,7 @@ Authrim Keyring is the iPhone companion to [Authrim](https://authrim.com/), an o
 ### Privacy and security
 - Secrets are stored in the iOS Keychain, and the app can be locked with Face ID, Touch ID, or the passcode
 - No sign-up, ads, analytics, or tracking
-- Codes are generated on the device and work offline. The app goes online only to reach a credential issuer when you accept a credential offer
+- Codes are generated on the device and work offline. Previewing a credential offer contacts issuer and authorization-server metadata; a referenced offer also contacts its offer URL. Receiving a credential contacts the authorization server and issuer. EUDI sandbox issuance additionally contacts its public test Wallet Provider and trust validator. Previewing a presentation request fetches the request and verifier DID document; presenting the credential contacts the verifier.
 - iCloud Keychain sync is off until you turn it on
 
 ## Requirements

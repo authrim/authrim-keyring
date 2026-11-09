@@ -93,7 +93,7 @@ struct HomeView: View {
         // Light or dark text to suit the wallpaper. Sheets and alerts are attached
         // after this, so they keep following the system appearance.
         .environment(\.colorScheme, wallpaper.colorScheme ?? colorScheme)
-        .sheet(isPresented: $isAdding) {
+        .sheet(isPresented: $isAdding, onDismiss: wallet.addAccountSheetDidDismiss) {
             // Made-up cards would hide what is added, and go with them.
             if isDemoModeOn { DemoModeAddNotice() } else { AddAccountView() }
         }

@@ -19,6 +19,12 @@ struct WalletSDJWTTests {
         #expect(throws: WalletError.self) { try verify(text, key: key, vct: vct) }
     }
 
+    private func disclosure(_ elements: [Any]) throws -> (encoded: String, digest: String) {
+        let encoded = Base64URL.encode(try JSONSerialization.data(withJSONObject: elements))
+        let digest = Base64URL.encode(Data(SHA256.hash(data: Data(encoded.utf8))))
+        return (encoded, digest)
+    }
+
     @Test func happyPath() throws {
         let result = try verify(try issuer.sdJwt(holder: holder.publicJWK))
         #expect(result.claims == ["email": "admin@example.com", "sub": "user-1"])
@@ -124,6 +130,41 @@ struct WalletSDJWTTests {
         var options = TestIssuer.Options()
         options.duplicateDigestInArray = true
         rejects(try issuer.sdJwt(holder: holder.publicJWK, options))
+    }
+
+    @Test func acceptsNestedObjectDisclosuresInAnyOrder() throws {
+        let inner = try disclosure(["salt-inner", "city", "Paris"])
+        let parent = try disclosure([
+            "salt-parent", "address", ["country": "FR", "_sd": [inner.digest]] as [String: Any],
+        ])
+        let base = try ParsedSDJWT(issuer.sdJwt(holder: holder.publicJWK))
+        let parts = try #require(JWS.parse(base.issuerJWT))
+        var payload = parts.payload
+        var digests = try #require(payload["_sd"] as? [String])
+        digests.append(parent.digest)
+        payload["_sd"] = digests
+        let jwt = try JWS.make(header: parts.header, payload: payload) {
+            try issuer.issuerKey.signature(for: $0).rawRepresentation
+        }
+        // Inner disclosure deliberately appears before the parent in the serialized SD-JWT.
+        let text = ([jwt] + base.disclosures + [inner.encoded, parent.encoded]).joined(separator: "~") + "~"
+        let result = try verify(text)
+        #expect(result.claims["address"] == #"{"city":"Paris","country":"FR"}"#)
+    }
+
+    @Test func acceptsDisclosedArrayElement() throws {
+        let element = try disclosure(["salt-item", ["city": "Paris"]])
+        var options = TestIssuer.Options()
+        options.extraPayload = ["addresses": [["...": element.digest]]]
+        let text = try issuer.sdJwt(holder: holder.publicJWK, options) + element.encoded + "~"
+        let result = try verify(text)
+        #expect(result.claims["addresses"] == #"[{"city":"Paris"}]"#)
+    }
+
+    @Test func rejectsDetachedNestedDisclosure() throws {
+        let detached = try disclosure(["salt-inner", "city", "Paris"])
+        let text = try issuer.sdJwt(holder: holder.publicJWK) + detached.encoded + "~"
+        rejects(text)
     }
 
     @Test func expired() throws {

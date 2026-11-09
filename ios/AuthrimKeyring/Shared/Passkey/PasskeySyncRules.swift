@@ -38,8 +38,8 @@ nonisolated enum PasskeySyncRules {
     }
 
     private static func isDeviceOnly(_ site: String, given deviceOnlySites: [String], _ syncedSites: [String]) -> Bool {
-        let closestDeviceOnly = deviceOnlySites.filter { Website.matches(host: site, site: $0) }.map(\.count).max() ?? 0
-        let closestSynced = syncedSites.filter { Website.matches(host: site, site: $0) }.map(\.count).max() ?? 0
+        let closestDeviceOnly = deviceOnlySites.filter { Website.isSameOrSubdomain(site, of: $0) }.map(\.count).max() ?? 0
+        let closestSynced = syncedSites.filter { Website.isSameOrSubdomain(site, of: $0) }.map(\.count).max() ?? 0
         return closestDeviceOnly > closestSynced
     }
 }

@@ -11,8 +11,6 @@ import Security
 ///
 /// Both directions are slow on purpose (key derivation), so call them off the main actor.
 nonisolated enum EncryptedBackup {
-    static let minimumPasswordLength = 8
-
     private static let format = "com.authrim.keyring.backup"
     /// Files are version 1 whenever versions 1.0 and 1.1 can restore every account
     /// in them, and 2 otherwise: those versions refuse a newer file outright,

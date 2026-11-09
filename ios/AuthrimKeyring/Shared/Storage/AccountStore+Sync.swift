@@ -16,10 +16,13 @@ extension AccountStore {
         guard enabled != isSyncEnabled else { return true }
         defer { load() }
         do {
-            if enabled {
-                try moveToICloud()
-            } else {
-                try moveToDevice(removeFromICloud: removeFromICloud)
+            // Locked, so the AutoFill extension cannot advance a counter in the copy being left behind.
+            try CounterLock.withLock {
+                if enabled {
+                    try moveToICloud()
+                } else {
+                    try moveToDevice(removeFromICloud: removeFromICloud)
+                }
             }
             return true
         } catch {

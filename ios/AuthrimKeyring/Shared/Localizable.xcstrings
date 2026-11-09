@@ -1,6 +1,46 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Suggest a Password" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "パスワードを提案"
+          }
+        }
+      }
+    },
+    "This card could not be updated right now. Try again in a moment." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このカードは今は更新できません。少し待ってからもう一度お試しください。"
+          }
+        }
+      }
+    },
+    "This password is easy to guess. Use a longer one, or a suggested password." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "推測されやすいパスワードです。もっと長いものか、提案されたパスワードを使ってください。"
+          }
+        }
+      }
+    },
+    "Write this password down, or save it in a password manager." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このパスワードを書き留めるか、パスワード管理アプリに保存してください。"
+          }
+        }
+      }
+    },
     "“%@” codes are not supported." : {
       "localizations" : {
         "ja" : {

@@ -1,0 +1,84 @@
+name: iOS tests
+
+on:
+  pull_request:
+    branches: [develop, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit-tests:
+    # The project needs Xcode 27.2 or later, which only the xcode-27 image (a public
+    # preview) has so far. Move to macos-latest once that includes it.
+    runs-on: xcode-27
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # Fails rather than report tests that never ran, if the image has no Xcode 27.2.
+      # Only plain version names count: Xcode_27.2.app, not Xcode_27.2_Release_Candidate.app.
+      - name: Select Xcode 27.2 or later
+        run: |
+          xcode=$(ls -d /Applications/Xcode_*.app 2>/dev/null | grep -E '/Xcode_[0-9]+(\.[0-9]+)*\.app$' | sort -V | tail -n 1)
+          version=$(basename "${xcode:-none}" .app | sed 's/^Xcode_//')
+          lowest=$(printf '%s\n' "27.2" "$version" | sort -V | head -n 1)
+          if [ -z "$xcode" ] || [ "$lowest" != "27.2" ]; then
+            echo "::error::Xcode 27.2 or later is required. Installed: $(ls -d /Applications/Xcode*.app | tr '\n' ' ')"
+            exit 1
+          fi
+          # For this job only, without sudo or a change to the machine's default.
+          echo "DEVELOPER_DIR=$xcode/Contents/Developer" >> "$GITHUB_ENV"
+          DEVELOPER_DIR="$xcode/Contents/Developer" xcodebuild -version
+
+      - name: Pick an iPhone simulator on iOS 26 or later
+        id: simulator
+        run: |
+          udid=$(xcrun simctl list devices available --json | python3 -c '
+          import json, re, sys
+          devices = json.load(sys.stdin)["devices"]
+          found = []
+          for runtime, items in devices.items():
+              # Keys look like "…SimRuntime.iOS-27-2", or "…iOS-27-2-iPhone19-4" for a
+              # runtime made for one device; only the leading numbers are the version.
+              match = re.search(r"\.iOS-(\d+(?:-\d+)*)", runtime)
+              if not match:
+                  continue
+              version = tuple(int(part) for part in match.group(1).split("-"))
+              if version >= (26,):
+                  found += [(version, d["udid"]) for d in items if d["name"].startswith("iPhone")]
+          print(max(found)[1] if found else "")
+          ')
+          if [ -z "$udid" ]; then
+            echo "::error::No iPhone simulator on iOS 26 or later."
+            exit 1
+          fi
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+
+      # Signed to run locally, with no team: the Keychain tests need the entitlements,
+      # which an unsigned build leaves out.
+      - name: Run the unit tests
+        working-directory: ios/AuthrimKeyring
+        env:
+          UDID: ${{ steps.simulator.outputs.udid }}
+        run: |
+          status=0
+          xcodebuild test \
+            -project AuthrimKeyring.xcodeproj \
+            -scheme AuthrimKeyring \
+            -destination "platform=iOS Simulator,id=$UDID" \
+            CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= \
+            > "$RUNNER_TEMP/xcodebuild.log" 2>&1 || status=$?
+          # The full log is long; show the results, and the end of it on failure.
+          grep -E "error:|✘|Test run with" "$RUNNER_TEMP/xcodebuild.log" || true
+          if [ "$status" -ne 0 ]; then
+            tail -n 80 "$RUNNER_TEMP/xcodebuild.log"
+            exit "$status"
+          fi

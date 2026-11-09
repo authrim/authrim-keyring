@@ -51,6 +51,7 @@ final class AccountStore {
     var location: KeychainStore.Location { isSyncEnabled ? .iCloud : .device }
 
     func load() {
+        refreshSyncSetting()
         // Fails closed: only a successful read below clears these.
         areDetailsUnavailable = true
         isMetaUnavailable = true
@@ -117,8 +118,12 @@ final class AccountStore {
         account.accountName = accountName
         account.cardColor = cardColor
         do {
-            account.kind = try latestKind(of: account)
-            try keychain.save(account, to: location)
+            // Locked, so a counter the AutoFill extension advances meanwhile is not moved back.
+            try CounterLock.withLock {
+                refreshSyncSetting()
+                account.kind = try latestKind(of: account)
+                try keychain.save(account, to: location)
+            }
             accounts[index] = account
         } catch {
             lastError = error.localizedDescription
@@ -126,14 +131,20 @@ final class AccountStore {
     }
 
     /// Hands out the next code of a counter-based account. The advanced counter is
-    /// saved first, so no code is ever shown twice; nil when that fails.
+    /// saved first, so no code is ever shown twice; nil when that fails. The app and
+    /// the AutoFill extension take turns, so they never both use the same counter.
     func nextCode(for id: UUID) -> String? {
         guard let index = accounts.firstIndex(where: { $0.id == id }) else { return nil }
         var account = accounts[index]
         do {
-            guard case .hotp(let counter) = try latestKind(of: account), counter < .max else { return nil }
-            account.kind = .hotp(counter: counter + 1)
-            try keychain.save(account, to: location)
+            let counter = try CounterLock.withLock { () throws -> UInt64? in
+                refreshSyncSetting()
+                guard case .hotp(let counter) = try latestKind(of: account), counter < .max else { return nil }
+                account.kind = .hotp(counter: counter + 1)
+                try keychain.save(account, to: location)
+                return counter
+            }
+            guard let counter else { return nil }
             accounts[index] = account
             return TOTPGenerator.hotp(secret: account.secret, counter: counter, algorithm: account.algorithm, digits: account.digits)
         } catch {
@@ -326,12 +337,14 @@ final class AccountStore {
             if let index = accounts.firstIndex(where: { $0.generatesSameCodes(as: account) }) {
                 account.id = accounts[index].id
                 // Codes the restored copy has used must not be handed out again.
-                let later = Self.later(accounts[index].kind, account.kind)
-                if later != accounts[index].kind {
+                if Self.later(accounts[index].kind, account.kind) != accounts[index].kind {
                     var advanced = accounts[index]
-                    advanced.kind = later
                     do {
-                        try keychain.save(advanced, to: location)
+                        try CounterLock.withLock {
+                            refreshSyncSetting()
+                            advanced.kind = Self.later(try latestKind(of: advanced), account.kind)
+                            try keychain.save(advanced, to: location)
+                        }
                     } catch {
                         return ImportResult(added: added, error: error.localizedDescription)
                     }
@@ -381,6 +394,12 @@ final class AccountStore {
                 try? saveDetails(extra)
             }
         }
+    }
+
+    /// Reads the setting again. The app may have moved the cards since this store,
+    /// perhaps one the AutoFill extension keeps between requests, last read it.
+    func refreshSyncSetting() {
+        isSyncEnabled = defaults.bool(forKey: Self.syncKey)
     }
 
     func saveSyncSetting(_ enabled: Bool) {

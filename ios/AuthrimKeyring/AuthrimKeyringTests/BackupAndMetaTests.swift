@@ -97,3 +97,35 @@ struct ItemMetaTests {
         #expect(!item.matches("bank", websites: ["mail.example"], tags: ["Work"]))
     }
 }
+
+struct BackupPasswordTests {
+    @Test(arguments: ["", "short", "elevenchars"])
+    func shortPasswordsAreRefused(password: String) {
+        #expect(BackupPassword.weakness(of: password) == .tooShort)
+    }
+
+    @Test(arguments: [
+        "aaaaaaaaaaaa", "abcabcabcabc", "123456789012", "zyxwvutsrqpo", "password1234", "Qwerty!!2026",
+        "passwordpassword", "123451234512", "abcdeabcdeab", "p@ssw0rd1234", "!!Sh4d0w!!2026",
+    ])
+    func easyPasswordsAreRefused(password: String) {
+        #expect(BackupPassword.weakness(of: password) == .easyToGuess)
+    }
+
+    @Test(arguments: [
+        "correct horse battery", "Tsuki-no-usagi-42", "harbor lantern 7 pines",
+        // Long enough to make up for only four different characters.
+        "acgtgcatacgtttgacagtcatgcgatacgtagctagcatcgatcgtagca",
+    ])
+    func reasonablePasswordsAreAccepted(password: String) {
+        #expect(BackupPassword.weakness(of: password) == nil)
+    }
+
+    @Test func suggestionsAreStrongAndDifferent() {
+        let first = BackupPassword.suggestion()
+        #expect(first.count == 23)
+        #expect(first.split(separator: "-").map(\.count) == [5, 5, 5, 5])
+        #expect(BackupPassword.weakness(of: first) == nil)
+        #expect(first != BackupPassword.suggestion())
+    }
+}

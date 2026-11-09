@@ -28,7 +28,8 @@ nonisolated enum CredentialIdentitySync {
     static func identities(accounts: [OTPAccount], details: [UUID: AccountDetails], passkeys: [Passkey]) -> Identities {
         Identities(
             codes: accounts.flatMap { account in
-                (details[account.id]?.websites ?? []).map { site in
+                // A shared suffix, perhaps saved by an older version, would be suggested on every site under it.
+                (details[account.id]?.websites ?? []).filter(Website.canSuggestAboveKeyboard).map { site in
                     OneTimeCode(accountID: account.id, site: site, label: account.autoFillLabel)
                 }
             },

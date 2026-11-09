@@ -38,6 +38,13 @@ private actor FlakyWalletAttestationProvider: WalletAttestationProvider {
     }
 }
 
+private actor TokenRequestCounter {
+    private var requests = 0
+
+    func record() { requests += 1 }
+    func count() -> Int { requests }
+}
+
 extension StubbedNetworkTests {
 @Suite(.serialized)
 struct WalletAttestationTokenTests {
@@ -49,25 +56,40 @@ struct WalletAttestationTokenTests {
         let encoded = try #require(String(decoding: JSONSerialization.data(withJSONObject: offer), as: UTF8.self)
             .addingPercentEncoding(withAllowedCharacters: .alphanumerics))
         let link = "openid-credential-offer://?credential_offer=\(encoded)"
-        StubURLProtocol.on("GET", base + "/.well-known/openid-credential-issuer", json: TestIssuer.issuerMetadata())
         var server = TestIssuer.serverMetadata()
         server["dpop_signing_alg_values_supported"] = ["ES256"]
         server["token_endpoint_auth_methods_supported"] = ["attest_jwt_client_auth"]
-        StubURLProtocol.on("GET", base + "/.well-known/oauth-authorization-server/vci", json: server)
-        StubURLProtocol.on("POST", base + "/vci/token", json: ["error": "invalid_grant"], status: 400)
+        func response(_ json: Any, status: Int = 200) throws -> WalletHTTPResponse {
+            WalletHTTPResponse(
+                status: status, data: try JSONSerialization.data(withJSONObject: json),
+                dpopNonce: nil, wwwAuthenticate: nil, clientAttestationChallenge: nil)
+        }
+        let tokenURL = base + "/vci/token"
+        let replies = [
+            "GET \(base)/.well-known/openid-credential-issuer": try response(TestIssuer.issuerMetadata()),
+            "GET \(base)/.well-known/oauth-authorization-server/vci": try response(server),
+            "POST \(tokenURL)": try response(["error": "invalid_grant"], status: 400),
+        ]
+        let tokenRequests = TokenRequestCounter()
+        let http = WalletHTTP(testResponse: { request in
+            let key = "\(request.httpMethod ?? "") \(request.url?.absoluteString ?? "")"
+            guard let reply = replies[key] else { throw WalletError.network("Unexpected test request: \(key)") }
+            if key == "POST \(tokenURL)" { await tokenRequests.record() }
+            return reply
+        })
         let client = OpenID4VCIClient(
-            http: WalletHTTP(protocolClasses: [StubURLProtocol.self]), store: MemoryStore(),
+            http: http, store: MemoryStore(),
             walletAttestationProvider: FlakyWalletAttestationProvider())
         let preview = try await client.preview(offer: link)
 
         await #expect(throws: WalletError.network("Temporary provider timeout.")) {
             try await client.issue(preview, transactionCode: nil)
         }
-        #expect(StubURLProtocol.requests(to: base + "/vci/token").isEmpty)
+        #expect(await tokenRequests.count() == 0)
         await #expect(throws: WalletError.offerRejected) {
             try await client.issue(preview, transactionCode: nil)
         }
-        #expect(StubURLProtocol.requests(to: base + "/vci/token").count == 1)
+        #expect(await tokenRequests.count() == 1)
     }
 
     @Test func clientAttestationAndDPoPProofsRefreshAcrossExplicitChallenges() async throws {

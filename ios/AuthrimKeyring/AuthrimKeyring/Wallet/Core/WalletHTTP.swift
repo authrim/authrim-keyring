@@ -35,9 +35,15 @@ nonisolated final class WalletHTTP: Sendable {
 
     private let injectedSession: URLSession?
     private let publicProxy: WalletPublicProxy?
+#if DEBUG
+    private let testResponse: (@Sendable (URLRequest) async throws -> WalletHTTPResponse)?
+#endif
 
     /// `protocolClasses` lets tests stub the network with a `URLProtocol`.
     init(protocolClasses: [AnyClass]? = nil, publicAddressResolver: WalletPublicProxy.Resolver? = nil) {
+#if DEBUG
+        testResponse = nil
+#endif
         if let protocolClasses {
             let configuration = Self.configuration()
             configuration.protocolClasses = protocolClasses
@@ -49,6 +55,15 @@ nonisolated final class WalletHTTP: Sendable {
             publicProxy = WalletPublicProxy(resolve: publicAddressResolver ?? { try WalletPublicProxy.systemAddresses($0) })
         }
     }
+
+#if DEBUG
+    /// Lets state-machine tests answer requests without depending on URLSession's test protocol.
+    init(testResponse: @escaping @Sendable (URLRequest) async throws -> WalletHTTPResponse) {
+        injectedSession = nil
+        publicProxy = nil
+        self.testResponse = testResponse
+    }
+#endif
 
     private static func configuration() -> URLSessionConfiguration {
         let configuration = URLSessionConfiguration.ephemeral
@@ -180,6 +195,10 @@ nonisolated final class WalletHTTP: Sendable {
         request.setValue("no-store", forHTTPHeaderField: "Cache-Control")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         for (name, value) in headers { request.setValue(value, forHTTPHeaderField: name) }
+
+#if DEBUG
+        if let testResponse { return try await testResponse(request) }
+#endif
 
         let session: URLSession
         let ownsSession: Bool

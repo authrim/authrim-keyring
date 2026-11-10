@@ -163,7 +163,7 @@ struct WalletIssuanceTests {
         }
     }
 
-    @Test func authorizationCodeOnlyHAIPOfferIsNotRedeemed() async throws {
+    @Test func parsesAuthorizationCodeOnlyHAIPOffer() throws {
         let offer: [String: Any] = [
             "credential_issuer": Self.base,
             "credential_configuration_ids": ["admin"],
@@ -172,7 +172,9 @@ struct WalletIssuanceTests {
         let json = try String(decoding: JSONSerialization.data(withJSONObject: offer), as: UTF8.self)
         let encoded = try #require(json.addingPercentEncoding(withAllowedCharacters: .alphanumerics))
         let link = "haip-vci://credential_offer?credential_offer=\(encoded)"
-        await #expect(throws: WalletError.unsupportedGrant) { try await client().preview(offer: link) }
+        let parsed = try CredentialOfferParser.parse(json: JSONSerialization.data(withJSONObject: offer))
+        #expect(parsed.grant == .authorizationCode(issuerState: "example-state", authorizationServer: nil))
+        #expect(try CredentialOfferParser.source(of: link) == .inline(Data(json.utf8)))
         #expect(StubURLProtocol.requests(to: Self.base + "/vci/token").isEmpty)
     }
 
@@ -425,7 +427,12 @@ struct WalletIssuanceTests {
         options.exp = options.iat.addingTimeInterval(3_600)
         options.signWith = scalar
         options.extraHeader = ["x5c": [IssuerX509VerifierTests.leaf]]
-        stubHappyPath(credential: { try issuer.sdJwt(holder: signer.publicJWK, options) })
+        var server = TestIssuer.serverMetadata()
+        server["dpop_signing_alg_values_supported"] = ["ES256"]
+        stubHappyPath(server: server, credential: { try issuer.sdJwt(holder: signer.publicJWK, options) })
+        StubURLProtocol.on("POST", Self.base + "/vci/token", json: [
+            "access_token": "AT", "token_type": "DPoP", "expires_in": 300,
+        ])
         let reference = try #require((Self.base + "/vci/offers/ref1").addingPercentEncoding(withAllowedCharacters: .alphanumerics))
         let link = "haip-vci://credential_offer?credential_offer_uri=\(reference)"
         let signer = signer
@@ -444,10 +451,23 @@ struct WalletIssuanceTests {
     }
 
     @Test func HAIPWithoutIssuerCertificatePolicyFailsBeforeToken() async throws {
-        stubHappyPath()
+        var server = TestIssuer.serverMetadata()
+        server["dpop_signing_alg_values_supported"] = ["ES256"]
+        stubHappyPath(server: server)
         let reference = try #require((Self.base + "/vci/offers/ref1")
             .addingPercentEncoding(withAllowedCharacters: .alphanumerics))
         await #expect(throws: WalletError.unsupportedIssuerCertificateTrust) {
+            try await client().preview(offer: "haip-vci://credential_offer?credential_offer_uri=\(reference)")
+        }
+        #expect(StubURLProtocol.requests(to: Self.base + "/vci/token").isEmpty)
+    }
+
+    @Test func HAIPWithoutDPoPMetadataFailsBeforeToken() async throws {
+        stubHappyPath()
+        let reference = try #require((Self.base + "/vci/offers/ref1")
+            .addingPercentEncoding(withAllowedCharacters: .alphanumerics))
+        await #expect(throws: WalletError.invalidIssuer(
+            "The HAIP authorization server does not support DPoP.")) {
             try await client().preview(offer: "haip-vci://credential_offer?credential_offer_uri=\(reference)")
         }
         #expect(StubURLProtocol.requests(to: Self.base + "/vci/token").isEmpty)
@@ -751,7 +771,7 @@ struct WalletIssuanceTests {
         StubURLProtocol.on("POST", Self.base + "/vci/token", json: ["error": "invalid_request"], status: 400)
         let client = client()
         let preview = try await client.preview(offer: Self.offerLink)
-        await #expect(throws: WalletError.invalidIssuer(
+        await #expect(throws: WalletError.offerConsumed(
             "The authorization server rejected the token request (invalid_request).")) {
             try await client.issue(preview, transactionCode: "123456")
         }

@@ -119,7 +119,14 @@ private struct CredentialOfferForm: View {
                 if isIssuing {
                     ProgressView().frame(maxWidth: .infinity, minHeight: 32)
                 } else {
-                    Text("Receive").frame(maxWidth: .infinity, minHeight: 32)
+                    Group {
+                        if preview.authorizationRequired {
+                            Text("Continue to Issuer")
+                        } else {
+                            Text("Receive")
+                        }
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 32)
                 }
             }
             .buttonStyle(.borderedProminent)

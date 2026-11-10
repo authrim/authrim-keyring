@@ -1,6 +1,6 @@
 import Foundation
 
-/// Runs the OpenID4VCI 1.0 pre-authorized code flow: offer, metadata, token, nonce, proof, credential,
+/// Runs OpenID4VCI 1.0 issuance: offer, metadata, authorization, token, nonce, proof, credential,
 /// verification, storage. Secrets go only to metadata-verified endpoints. The access token is never
 /// logged or stored.
 nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
@@ -15,6 +15,7 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
     private let keyAttestationTrustSource: (any KeyAttestationTrustSource)?
     private let walletAttestationProvider: (any WalletAttestationProvider)?
     private let issuerCertificateTrustSource: (any IssuerCertificateTrustSource)?
+    private let authorizationBrowser: (any AuthorizationBrowser)?
     private let sessions = OfferSessions()
 
     init(
@@ -32,7 +33,8 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
         keyAttestationProvider: (any KeyAttestationProvider)? = nil,
         keyAttestationTrustSource: (any KeyAttestationTrustSource)? = nil,
         walletAttestationProvider: (any WalletAttestationProvider)? = nil,
-        issuerCertificateTrustSource: (any IssuerCertificateTrustSource)? = nil
+        issuerCertificateTrustSource: (any IssuerCertificateTrustSource)? = nil,
+        authorizationBrowser: (any AuthorizationBrowser)? = nil
     ) {
         self.http = http
         self.store = store
@@ -45,11 +47,14 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
         self.keyAttestationTrustSource = keyAttestationTrustSource
         self.walletAttestationProvider = walletAttestationProvider
         self.issuerCertificateTrustSource = issuerCertificateTrustSource
+        self.authorizationBrowser = authorizationBrowser
     }
 
     // MARK: Preview
 
     func preview(offer: String) async throws -> CredentialOfferPreview {
+        let isHAIPOffer = offer.trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased().hasPrefix("haip-vci:")
         let parsed = try await CredentialOfferParser.resolve(offer, http: http)
         let supportsKeyAttestation = URL(string: parsed.credentialIssuer).map {
             keyAttestationProvider?.supports(issuer: $0) == true && keyAttestationTrustSource != nil
@@ -60,9 +65,8 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
         let verified = try await IssuerMetadata.resolve(
             offer: parsed, http: http, preferredLanguages: languages(),
             supportsKeyAttestation: supportsKeyAttestation,
-            canAuthenticateWithWalletAttestation: supportsWalletAttestation)
-        let isHAIPOffer = offer.trimmingCharacters(in: .whitespacesAndNewlines)
-            .lowercased().hasPrefix("haip-vci:")
+            canAuthenticateWithWalletAttestation: supportsWalletAttestation,
+            isHAIPOffer: isHAIPOffer)
         // A configured ecosystem certificate policy applies to its issuer and credential type
         // regardless of the untrusted QR wrapper. HAIP links additionally require a policy for
         // every supported configuration before the one-time code is redeemed.
@@ -113,11 +117,15 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
                     id: configuration.id, name: configuration.name,
                     claimNames: configuration.claimNames, renewsCredential: renewals[configuration.id] != nil)
             },
-            transactionCode: requirement)
+            transactionCode: requirement,
+            authorizationRequired: {
+                if case .authorizationCode = parsed.grant { true } else { false }
+            }())
         await sessions.put(
             preview.id, PendingOffer(
-                preAuthorizedCode: parsed.preAuthorizedCode, issuer: verified,
-                x509ConfigurationIDs: x509ConfigurationIDs, renewals: renewals))
+                grant: parsed.grant, issuer: verified,
+                x509ConfigurationIDs: x509ConfigurationIDs, isHAIPOffer: isHAIPOffer,
+                renewals: renewals))
         return preview
     }
 
@@ -178,7 +186,15 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
         }
         let authorization: TokenAuthorization
         do {
-            authorization = try await requestToken(pending, transactionCode: preview.transactionCode == nil ? nil : code)
+            let authorizationCode: AuthorizationCodeResult?
+            if case .authorizationCode = pending.grant {
+                authorizationCode = try await authorize(pending, configurations: configurations)
+            } else {
+                authorizationCode = nil
+            }
+            authorization = try await requestToken(
+                pending, transactionCode: preview.transactionCode == nil ? nil : code,
+                authorizationCode: authorizationCode)
         } catch WalletError.outcomeUnknown(let detail) {
             // The code may already be spent on the issuer: never exchange it again.
             await sessions.remove(preview.id)
@@ -425,10 +441,7 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
 
     // MARK: Protocol steps
 
-    private func requestToken(_ pending: PendingOffer, transactionCode: String?) async throws -> TokenAuthorization {
-        var fields = [("grant_type", CredentialOfferParser.preAuthorizedGrant), ("pre-authorized_code", pending.preAuthorizedCode)]
-        if let transactionCode { fields.append(("tx_code", transactionCode)) }
-        let issuer = pending.issuer
+    private func clientContext(for issuer: VerifiedIssuer) async throws -> OAuthClientContext {
         let dpopKey = try issuer.supportsDPoP ? WalletDPoPKey() : nil
         let dpop = dpopKey.map(DPoPSession.init)
         var walletAttestation: WalletClientAttestation?
@@ -437,17 +450,164 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
             guard let dpopKey else {
                 throw WalletError.invalidIssuer("Wallet attestation requires an ES256 DPoP key.")
             }
-            // The provider is called before sending the one-time code. Its verified `cnf.jwk`
-            // must be the same key used for the token DPoP proof and client-attestation PoP.
+            // The verified `cnf.jwk` must be the same key used for DPoP and attestation PoP.
             do {
                 walletAttestation = try await provider.attestation(
                     for: dpopKey.publicJWK, issuer: issuer.issuer)
             } catch WalletError.outcomeUnknown(let detail) {
-                // The provider request carried only a public key. No pre-authorized code has
-                // been sent, so an uncertain provider response cannot consume the offer.
+                // The provider request carried only a public key. No code has been sent.
                 throw WalletError.network(detail)
             }
         }
+        return OAuthClientContext(dpopKey: dpopKey, dpop: dpop, walletAttestation: walletAttestation)
+    }
+
+    private func authorize(
+        _ pending: PendingOffer, configurations: [VerifiedConfiguration]
+    ) async throws -> AuthorizationCodeResult {
+        guard case .authorizationCode(let issuerState, _) = pending.grant,
+              let endpoint = pending.issuer.authorizationEndpoint,
+              let parEndpoint = pending.issuer.pushedAuthorizationRequestEndpoint else {
+            throw WalletError.invalidIssuer("The authorization endpoints are unavailable.")
+        }
+        let issuer = pending.issuer
+        let context = try await clientContext(for: issuer)
+        guard let walletAttestation = context.walletAttestation, let dpopKey = context.dpopKey,
+              let dpop = context.dpop else {
+            throw WalletError.invalidIssuer("The authorization server requires wallet attestation and DPoP.")
+        }
+        let verifier = try AuthorizationCodeFlow.randomURLSafeValue()
+        let state = try AuthorizationCodeFlow.randomURLSafeValue()
+        let useAuthorizationDetails = configurations.contains { $0.scope == nil }
+        guard !useAuthorizationDetails || issuer.supportsAuthorizationDetails else {
+            throw WalletError.invalidIssuer("The selected credentials need OAuth authorization details support.")
+        }
+        var seenScopes: Set<String> = []
+        let scopes = configurations.compactMap(\.scope).filter { seenScopes.insert($0).inserted }
+        var fields: [(String, String)] = [
+            ("response_type", "code"),
+            ("client_id", walletAttestation.clientID),
+            ("redirect_uri", AuthorizationCodeFlow.redirectURI.absoluteString),
+            ("resource", issuer.issuer.absoluteString),
+            ("state", state),
+            ("code_challenge", AuthorizationCodeFlow.challenge(for: verifier)),
+            ("code_challenge_method", "S256"),
+        ]
+        if useAuthorizationDetails {
+            let details: [[String: Any]] = configurations.map { configuration in
+                var detail: [String: Any] = [
+                    "type": "openid_credential",
+                    "credential_configuration_id": configuration.id,
+                ]
+                if issuer.advertisesAuthorizationServers {
+                    detail["locations"] = [issuer.issuer.absoluteString]
+                }
+                return detail
+            }
+            let data = try JSONSerialization.data(withJSONObject: details, options: [.sortedKeys])
+            fields.append(("authorization_details", String(decoding: data, as: UTF8.self)))
+        } else {
+            fields.append(("scope", scopes.joined(separator: " ")))
+        }
+        if let issuerState { fields.append(("issuer_state", issuerState)) }
+        let body = WalletHTTP.formBody(fields)
+        var attestationChallenge: String?
+        func sendPAR() async throws -> WalletHTTPResponse {
+            var headers = [
+                "Content-Type": "application/x-www-form-urlencoded",
+                "OAuth-Client-Attestation": walletAttestation.jwt,
+                "OAuth-Client-Attestation-PoP": try dpopKey.clientAttestationPoP(
+                    clientID: walletAttestation.clientID, audience: issuer.authorizationServer,
+                    challenge: attestationChallenge, issuedAt: now()),
+            ]
+            headers["DPoP"] = try await dpop.proof(
+                method: "POST", url: parEndpoint, role: .authorizationServer, issuedAt: now())
+            do {
+                return try await http.send(
+                    parEndpoint, method: "POST", headers: headers, body: body,
+                    origin: issuer.authorizationServer)
+            } catch WalletError.outcomeUnknown(let detail) {
+                // PAR may have created a request URI, but no authorization code exists yet.
+                // A fresh PAR request is safe after a response was lost.
+                throw WalletError.network(detail)
+            } catch is CancellationError {
+                throw WalletError.authorizationDenied
+            }
+        }
+        var response = try await sendPAR()
+        var retriedDPoP = false
+        var retriedAttestation = false
+        for _ in 0..<2 where response.status == 400 || response.status == 401 {
+            if response.errorCode == "use_dpop_nonce", !retriedDPoP,
+               await dpop.remember(response.dpopNonce, from: parEndpoint, role: .authorizationServer) {
+                retriedDPoP = true
+                response = try await sendPAR()
+            } else if response.errorCode == "use_attestation_challenge", !retriedAttestation,
+                      let challenge = response.clientAttestationChallenge,
+                      !challenge.isEmpty, challenge.utf8.count <= 1_024,
+                      challenge.utf8.allSatisfy({ (0x21...0x7e).contains($0) }) {
+                retriedAttestation = true
+                attestationChallenge = challenge
+                response = try await sendPAR()
+            } else { break }
+        }
+        await dpop.remember(response.dpopNonce, from: parEndpoint, role: .authorizationServer)
+        guard response.status == 201,
+              let object = (try? JSONSerialization.jsonObject(with: response.data)) as? [String: Any],
+              let requestURI = object["request_uri"] as? String,
+              let lifetime = object["expires_in"] as? NSNumber,
+              CFGetTypeID(lifetime) != CFBooleanGetTypeID(),
+              lifetime.int64Value > 0,
+              lifetime.doubleValue == Double(lifetime.int64Value) else {
+            throw WalletError.network("The authorization server rejected the pushed authorization request (HTTP \(response.status)).")
+        }
+        let url = try AuthorizationCodeFlow.authorizationURL(
+            endpoint: endpoint, clientID: walletAttestation.clientID, requestURI: requestURI)
+        let browser: any AuthorizationBrowser
+        if let authorizationBrowser {
+            browser = authorizationBrowser
+        } else {
+            browser = await MainActor.run { SystemAuthorizationBrowser() }
+        }
+        let callback = try await browser.authorize(
+            url, callbackScheme: AuthorizationCodeFlow.redirectURI.scheme!)
+        let code = try AuthorizationCodeFlow.code(
+            from: callback, state: state, authorizationServer: issuer.authorizationServer)
+        return AuthorizationCodeResult(
+            code: code, verifier: verifier, context: context,
+            requestedScopes: useAuthorizationDetails ? nil : Set(scopes),
+            usedAuthorizationDetails: useAuthorizationDetails)
+    }
+
+    private func requestToken(
+        _ pending: PendingOffer, transactionCode: String?, authorizationCode: AuthorizationCodeResult?
+    ) async throws -> TokenAuthorization {
+        let issuer = pending.issuer
+        var fields: [(String, String)]
+        let context: OAuthClientContext
+        switch pending.grant {
+        case .preAuthorized(let code, _, _):
+            fields = [("grant_type", CredentialOfferParser.preAuthorizedGrant), ("pre-authorized_code", code)]
+            if let transactionCode { fields.append(("tx_code", transactionCode)) }
+            context = try await clientContext(for: issuer)
+        case .authorizationCode:
+            guard let authorizationCode else {
+                throw WalletError.invalidIssuer("The authorization code is unavailable.")
+            }
+            fields = [
+                ("grant_type", "authorization_code"),
+                ("code", authorizationCode.code),
+                ("code_verifier", authorizationCode.verifier),
+                ("redirect_uri", AuthorizationCodeFlow.redirectURI.absoluteString),
+            ]
+            if issuer.advertisesAuthorizationServers {
+                fields.append(("resource", issuer.issuer.absoluteString))
+            }
+            context = authorizationCode.context
+        }
+        let dpopKey = context.dpopKey
+        let dpop = context.dpop
+        let walletAttestation = context.walletAttestation
         if let walletAttestation {
             fields.append(("client_id", walletAttestation.clientID))
         }
@@ -485,7 +645,7 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
         // using a fresh PoP/DPoP proof while retaining the same key and attestation.
         var retriedDPoP = false
         var retriedAttestation = false
-        for _ in 0..<2 where response.status == 400 {
+        for _ in 0..<2 where response.status == 400 || response.status == 401 {
             if response.errorCode == "use_dpop_nonce", !retriedDPoP, let dpop,
                await dpop.remember(response.dpopNonce, from: issuer.tokenEndpoint, role: .authorizationServer) {
                 retriedDPoP = true
@@ -516,9 +676,9 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
                 }
                 throw WalletError.offerRejected
             case "invalid_request":
-                throw WalletError.invalidIssuer("The authorization server rejected the token request (invalid_request).")
+                throw WalletError.outcomeUnknown("The authorization server rejected the token request (invalid_request).")
             case "invalid_client", "unsupported_grant_type":
-                throw WalletError.invalidIssuer("The authorization server rejected wallet authentication or the grant type.")
+                throw WalletError.outcomeUnknown("The authorization server rejected wallet authentication or the grant type.")
             default:
                 // A non-standard error, including a server failure, does not prove the
                 // single-use code is still available. The server may have spent it first.
@@ -532,11 +692,25 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
             // A 200 means the issuer accepted (and spent) the code, even if the body is unusable.
             throw WalletError.outcomeUnknown("The token response is not a bearer token.")
         }
+        if object["authorization_details"] == nil,
+           let requestedScopes = authorizationCode?.requestedScopes,
+           let returnedScope = object["scope"] {
+            guard let scope = returnedScope as? String,
+                  requestedScopes.isSubset(of: Set(scope.split(separator: " ").map(String.init))) else {
+                throw WalletError.outcomeUnknown("The token response does not authorize every selected credential scope.")
+            }
+        }
+        if authorizationCode?.usedAuthorizationDetails == true, object["authorization_details"] == nil {
+            throw WalletError.outcomeUnknown("The token response omits the requested authorization details.")
+        }
         let tokenType: TokenAuthorization.TokenType
         switch rawType.lowercased() {
         case "bearer": tokenType = .bearer
         case "dpop" where dpop != nil: tokenType = .dpop
         default: throw WalletError.outcomeUnknown("The token response has an unsupported token type.")
+        }
+        if pending.isHAIPOffer, case .bearer = tokenType {
+            throw WalletError.outcomeUnknown("The HAIP authorization server returned an unbound access token.")
         }
         let identifiers: [String: [String]]?
         if let detailsValue = object["authorization_details"] {
@@ -689,11 +863,26 @@ private enum CredentialNonceError: Error {
 }
 
 nonisolated struct PendingOffer: Sendable {
-    let preAuthorizedCode: String
+    let grant: ParsedOffer.Grant
     let issuer: VerifiedIssuer
     let x509ConfigurationIDs: Set<String>
+    let isHAIPOffer: Bool
     /// Stored credentials whose holder keys the new credentials must reuse, indexed by configuration.
     var renewals: [String: StoredCredential] = [:]
+}
+
+private struct OAuthClientContext: Sendable {
+    let dpopKey: WalletDPoPKey?
+    let dpop: DPoPSession?
+    let walletAttestation: WalletClientAttestation?
+}
+
+private struct AuthorizationCodeResult: Sendable {
+    let code: String
+    let verifier: String
+    let context: OAuthClientContext
+    let requestedScopes: Set<String>?
+    let usedAuthorizationDetails: Bool
 }
 
 private struct TokenAuthorization: Sendable {
@@ -755,7 +944,7 @@ private actor DPoPSession {
     }
 }
 
-/// The verified offers waiting for the user's decision. The pre-authorized code stays here, out of the preview.
+/// Verified offers waiting for the user's decision. Grant secrets stay here, out of the preview.
 private actor OfferSessions {
     private var offers: [UUID: PendingOffer] = [:]
     private var order: [UUID] = []

@@ -1,7 +1,6 @@
 import Foundation
 
-/// What the wallet shows before the user agrees to receive a credential (OpenID4VCI 1.0 Final,
-/// pre-authorized code flow). Built only from verified issuer and authorization server metadata.
+/// What the wallet shows before the user agrees to receive a credential.
 struct OfferedCredential: Identifiable, Sendable {
     let id: String
     let name: String
@@ -13,7 +12,7 @@ struct CredentialOfferPreview: Identifiable, Sendable {
     let id: UUID
     /// The Credential Issuer identifier (an https URL), exactly as the offer and metadata agree.
     let issuer: URL
-    /// The metadata-verified authorization server that receives the transaction code.
+    /// The metadata-verified authorization server used for this offer's OAuth grant.
     let authorizationServer: URL
     /// Display name the issuer gives itself, if any. Never presented as verified by Authrim.
     let issuerDisplayName: String?
@@ -26,13 +25,16 @@ struct CredentialOfferPreview: Identifiable, Sendable {
     var claimNames: [String] { credential.claimNames }
     /// Present when the offer requires a transaction code (Authrim admin offers always do).
     let transactionCode: TransactionCodeRequirement?
+    /// The wallet must open the authorization server before requesting credentials.
+    let authorizationRequired: Bool
     /// The new credential is bound to the key of a credential already on this device (the admin's
     /// registered second factor), instead of a new key.
     var renewsCredential: Bool { credential.renewsCredential }
 
     init(
         id: UUID, issuer: URL, authorizationServer: URL, issuerDisplayName: String?, credential: OfferedCredential,
-        additionalCredentials: [OfferedCredential], transactionCode: TransactionCodeRequirement?
+        additionalCredentials: [OfferedCredential], transactionCode: TransactionCodeRequirement?,
+        authorizationRequired: Bool = false
     ) {
         self.id = id
         self.issuer = issuer
@@ -41,6 +43,7 @@ struct CredentialOfferPreview: Identifiable, Sendable {
         self.credential = credential
         self.additionalCredentials = additionalCredentials
         self.transactionCode = transactionCode
+        self.authorizationRequired = authorizationRequired
     }
 
     /// Keeps callers that construct a one-credential preview source-compatible.
@@ -95,8 +98,10 @@ struct StoredCredential: Codable, Identifiable, Sendable, Hashable {
 enum WalletError: Error, Equatable, Sendable {
     /// The scanned text is not an OpenID4VCI credential offer.
     case notAnOffer
-    /// The offer requires authorization code sign-in, which this wallet does not implement.
+    /// The offer contains no usable grant.
     case unsupportedGrant
+    /// The person declined or cancelled authorization at the issuer.
+    case authorizationDenied
     /// The issuer requires proof that the holder key meets a key-attestation policy.
     case unsupportedKeyAttestation
     /// The issuer requires credential request or response encryption this wallet cannot perform.
@@ -117,7 +122,7 @@ enum WalletError: Error, Equatable, Sendable {
     /// The user cancelled Face ID / passcode, or the Secure Enclave is unavailable.
     case keyUnavailable(String)
     case storage(String)
-    /// The token step already spent the pre-authorized code and a later step failed (the text says which).
+    /// The token step already spent the one-time code and a later step failed (the text says which).
     /// The offer cannot be tried again; a new one is needed.
     case offerConsumed(String)
     /// The request may have reached the issuer, but its result never arrived (timeout, connection
@@ -162,7 +167,7 @@ extension CredentialIssuanceService {
 }
 
 /// Some credentials were verified and saved before a later credential request failed. The offer's
-/// one-time code has been used, so the user needs a fresh offer for the remaining credentials.
+/// one-time grant has been used, so the user needs a fresh offer for the remaining credentials.
 struct PartialIssuanceError: Error, Sendable {
     let saved: [StoredCredential]
     let failedCredentialName: String

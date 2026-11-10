@@ -1,6 +1,24 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Ask the issuer or offer provider for a credential offer with a supported grant." : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "対応する認可方式の資格情報オファーを発行元または提供元に依頼してください。" } } }
+    },
+    "Authorization Was Not Completed" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "認可が完了しませんでした" } } }
+    },
+    "Continue to Issuer" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "発行元へ進む" } } }
+    },
+    "The issuer rejected or expired this offer. Ask the issuer or offer provider for a new offer, then scan it again." : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "発行元がこのオファーを拒否したか、有効期限が切れています。発行元または提供元に新しいオファーを依頼し、もう一度読み取ってください。" } } }
+    },
+    "This Offer Uses an Unsupported Grant" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "このオファーの認可方式には対応していません" } } }
+    },
+    "You can return to the issuer and try again." : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "発行元の認可画面に戻って、もう一度お試しください。" } } }
+    },
     "Check the Transaction Code" : {
       "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "トランザクションコードを確認してください" } } }
     },
@@ -98,26 +116,6 @@
     },
     "You can review each credential and its key confirmation code in your wallet." : {
       "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "資格情報と鍵の確認コードは、それぞれウォレットで確認できます。" } } }
-    },
-    "Authorization Code Offers Are Not Supported Yet" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "認可コード方式のオファーにはまだ対応していません"
-          }
-        }
-      }
-    },
-    "This offer uses authorization code sign-in. Keyring currently supports only pre-authorized code offers." : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "このオファーは認可コード方式を使用します。現在のKeyringは事前認可コード方式のオファーにのみ対応しています。"
-          }
-        }
-      }
     },
     "Suggest a Password" : {
       "localizations" : {
@@ -4052,16 +4050,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "このサイトが求める種類のパスキーは、Keyringでは作成できません。"
-          }
-        }
-      }
-    },
-    "The transaction code was wrong or the offer has expired. Ask the issuer or offer provider for a new offer, then scan it again." : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "トランザクションコードが誤っているか、オファーの有効期限が切れています。発行元またはオファーの提供元に新しいオファーを依頼し、もう一度読み取ってください。"
           }
         }
       }

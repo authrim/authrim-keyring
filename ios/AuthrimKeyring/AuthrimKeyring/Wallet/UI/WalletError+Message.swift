@@ -5,7 +5,8 @@ extension WalletError {
     var title: LocalizedStringKey {
         switch self {
         case .notAnOffer: "This Is Not a Credential Offer"
-        case .unsupportedGrant: "Authorization Code Offers Are Not Supported Yet"
+        case .unsupportedGrant: "This Offer Uses an Unsupported Grant"
+        case .authorizationDenied: "Authorization Was Not Completed"
         case .unsupportedKeyAttestation: "This Issuer Requires Key Attestation"
         case .unsupportedCredentialEncryption: "This Issuer Requires Credential Encryption"
         case .unsupportedIssuerCertificateTrust: "Issuer Certificate Trust Is Unavailable"
@@ -31,7 +32,9 @@ extension WalletError {
         case .notAnOffer:
             "The code or link does not contain a credential offer. Ask the offer provider for a new one."
         case .unsupportedGrant:
-            "This offer uses authorization code sign-in. Keyring currently supports only pre-authorized code offers."
+            "Ask the issuer or offer provider for a credential offer with a supported grant."
+        case .authorizationDenied:
+            "You can return to the issuer and try again."
         case .unsupportedKeyAttestation:
             "This issuer requires key attestation that Keyring cannot provide yet. The one-time code was not used."
         case .unsupportedCredentialEncryption:
@@ -47,7 +50,7 @@ extension WalletError {
         case .incorrectTransactionCode:
             "The transaction code was incorrect. Check it and try again with this offer."
         case .offerRejected:
-            "The transaction code was wrong or the offer has expired. Ask the issuer or offer provider for a new offer, then scan it again."
+            "The issuer rejected or expired this offer. Ask the issuer or offer provider for a new offer, then scan it again."
         case .invalidCredential:
             "The issued credential failed verification, so it was not saved. Ask the issuer or offer provider for a new offer, then scan it again."
         case .keyUnavailable:
@@ -86,7 +89,8 @@ extension WalletError {
     /// Whether trying the same offer again can work. Otherwise a new offer is needed.
     var canRetry: Bool {
         switch self {
-        case .network, .outcomeUnknown, .transactionCodeRequired, .incorrectTransactionCode, .keyUnavailable, .storage: true
+        case .network, .outcomeUnknown, .authorizationDenied, .transactionCodeRequired,
+             .incorrectTransactionCode, .keyUnavailable, .storage: true
         case .notAnOffer, .unsupportedGrant, .unsupportedKeyAttestation, .unsupportedCredentialEncryption,
              .unsupportedIssuerCertificateTrust, .invalidIssuer, .offerRejected, .invalidCredential, .offerConsumed,
              .notAPresentationRequest, .untrustedVerifier, .invalidRequest, .noMatchingCredential,

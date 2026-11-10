@@ -509,6 +509,44 @@ struct WalletIssuanceTests {
         #expect(StubURLProtocol.requests(to: Self.base + "/vci/token").isEmpty)
     }
 
+    @Test func EUDIHealthHAIPOfferReachesOneTimeCodeWithoutRedeemingIt() async throws {
+        let issuerURL = "https://issuer.eudiw.dev"
+        let types = [
+            ("eu.europa.ec.eudi.ehic_sd_jwt_vc", "urn:eudi:ehic:1"),
+            ("eu.europa.ec.eudi.hiid_sd_jwt_vc", "urn:eu.europa.ec.eudi:hiid:1"),
+        ]
+        var metadata = TestIssuer.issuerMetadata(
+            issuer: issuerURL, credentialEndpoint: issuerURL + "/vci/credential",
+            nonceEndpoint: issuerURL + "/vci/nonce", servers: [issuerURL + "/vci"])
+        let original = try #require((metadata["credential_configurations_supported"] as? [String: Any])?["admin"] as? [String: Any])
+        metadata["credential_configurations_supported"] = Dictionary(uniqueKeysWithValues: types.map { type in
+            let (id, vct) = type
+            var configuration = original
+            configuration["vct"] = vct
+            configuration["scope"] = id
+            return (id, configuration)
+        })
+        StubURLProtocol.on("GET", issuerURL + "/.well-known/openid-credential-issuer", json: metadata)
+        var server = TestIssuer.serverMetadata(
+            issuer: issuerURL + "/vci", tokenEndpoint: issuerURL + "/vci/token")
+        server["dpop_signing_alg_values_supported"] = ["ES256"]
+        StubURLProtocol.on("GET", issuerURL + "/.well-known/oauth-authorization-server/vci", json: server)
+
+        let offer = TestIssuer.offerJSON(issuer: issuerURL, ids: types.map { $0.0 })
+        let data = try JSONSerialization.data(withJSONObject: offer)
+        let encoded = try #require(String(decoding: data, as: UTF8.self)
+            .addingPercentEncoding(withAllowedCharacters: .alphanumerics))
+        let client = OpenID4VCIClient(
+            http: WalletHTTP(protocolClasses: [StubURLProtocol.self]), store: store,
+            issuerCertificateTrustSource: EUDITestIssuerCertificateTrustSource())
+
+        let preview = try await client.preview(
+            offer: "haip-vci://credential_offer?credential_offer=\(encoded)")
+        #expect(preview.credentials.map(\.id) == types.map { $0.0 })
+        #expect(preview.transactionCode?.numeric == true)
+        #expect(StubURLProtocol.requests(to: issuerURL + "/vci/token").isEmpty)
+    }
+
     @Test func HAIPWithoutDPoPMetadataFailsBeforeToken() async throws {
         stubHappyPath()
         let reference = try #require((Self.base + "/vci/offers/ref1")

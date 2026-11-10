@@ -46,6 +46,7 @@ struct WalletAttestedMultiIssuanceTests {
         for (index, id) in Self.ids.enumerated() {
             var configuration = original
             configuration["vct"] = Self.vcts[index]
+            configuration["scope"] = id
             configuration["credential_metadata"] = ["display": [["name": index == 0 ? "Diploma" : "Learning credential", "locale": "en"]]]
             var proofTypes = try #require(configuration["proof_types_supported"] as? [String: Any])
             var jwt = try #require(proofTypes["jwt"] as? [String: Any])

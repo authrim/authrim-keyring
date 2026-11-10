@@ -3,6 +3,7 @@ import Foundation
 /// A credential configuration the wallet can use: SD-JWT VC, ES256, `jwk` key binding.
 nonisolated struct VerifiedConfiguration: Sendable, Equatable {
     let id: String
+    let scope: String?
     let vct: String
     let name: String
     let claimNames: [String]
@@ -17,6 +18,10 @@ nonisolated struct VerifiedIssuer: Sendable {
     let credentialEndpoint: URL
     let nonceEndpoint: URL?
     let tokenEndpoint: URL
+    let authorizationEndpoint: URL?
+    let pushedAuthorizationRequestEndpoint: URL?
+    let supportsAuthorizationDetails: Bool
+    let advertisesAuthorizationServers: Bool
     /// AS metadata advertises an ES256 DPoP proof algorithm (RFC 9449).
     let supportsDPoP: Bool
     /// AS metadata offers attestation-based client authentication at the Token Endpoint.
@@ -65,7 +70,8 @@ nonisolated enum IssuerMetadata {
     static func resolve(
         offer: ParsedOffer, http: WalletHTTP, preferredLanguages: [String],
         supportsKeyAttestation: Bool = false,
-        canAuthenticateWithWalletAttestation: Bool = false
+        canAuthenticateWithWalletAttestation: Bool = false,
+        isHAIPOffer: Bool = false
     ) async throws -> VerifiedIssuer {
         let issuer = try issuerURL(offer.credentialIssuer)
         guard let metadataURL = wellKnownURL(for: issuer, suffix: "openid-credential-issuer") else {
@@ -78,8 +84,9 @@ nonisolated enum IssuerMetadata {
         }
         try requireSupportedEncryption(in: metadata)
 
-        // Exactly one authorization server; only an omitted field means the issuer is its own.
-        // A present but malformed value must not silently change where the one-time code goes.
+        // An offer may select one of several advertised authorization servers. Without a hint,
+        // only a single advertised server is unambiguous.
+        let advertisesAuthorizationServers = metadata["authorization_servers"] != nil
         let servers: [String]
         if let advertised = metadata["authorization_servers"] {
             guard let listed = advertised as? [String] else {
@@ -89,11 +96,17 @@ nonisolated enum IssuerMetadata {
         } else {
             servers = [offer.credentialIssuer]
         }
-        guard servers.count == 1, let serverIdentifier = servers.first else {
-            throw WalletError.invalidIssuer("Exactly one authorization server is supported.")
-        }
-        if let named = offer.authorizationServer, named != serverIdentifier {
-            throw WalletError.invalidIssuer("The offer names an authorization server the issuer does not list.")
+        let serverIdentifier: String
+        if let named = offer.authorizationServer {
+            guard servers.contains(named) else {
+                throw WalletError.invalidIssuer("The offer names an authorization server the issuer does not list.")
+            }
+            serverIdentifier = named
+        } else {
+            guard servers.count == 1, let only = servers.first else {
+                throw WalletError.invalidIssuer("The offer must select one of the issuer's authorization servers.")
+            }
+            serverIdentifier = only
         }
         let server = try issuerURL(serverIdentifier)
         guard let serverMetadataURL = wellKnownURL(for: server, suffix: "oauth-authorization-server") else {
@@ -103,8 +116,7 @@ nonisolated enum IssuerMetadata {
         guard (serverMetadata["issuer"] as? String) == serverIdentifier else {
             throw WalletError.invalidIssuer("The authorization server metadata names a different issuer.")
         }
-        // RFC 8414 defaults an omitted grant list to authorization_code and implicit,
-        // neither of which can redeem this offer. A malformed list is not an omission.
+        // RFC 8414 defaults an omitted grant list to authorization_code and implicit.
         let grants: [String]
         if let advertised = serverMetadata["grant_types_supported"] {
             guard let listed = advertised as? [String] else {
@@ -114,27 +126,58 @@ nonisolated enum IssuerMetadata {
         } else {
             grants = ["authorization_code", "implicit"]
         }
-        guard grants.contains(CredentialOfferParser.preAuthorizedGrant) else {
-            throw WalletError.invalidIssuer("The authorization server does not support the pre-authorized code grant.")
+        let isAuthorizationCode: Bool
+        switch offer.grant {
+        case .preAuthorized: isAuthorizationCode = false
+        case .authorizationCode: isAuthorizationCode = true
         }
-        // OID4VCI 12.3 defaults this flag to false. Without anonymous access, this
-        // wallet needs a usable WIA/DPoP path before it can send the one-time code.
-        let allowsAnonymousTokenRequest: Bool
-        if let advertised = serverMetadata["pre-authorized_grant_anonymous_access_supported"] {
-            guard let flag = advertised as? NSNumber,
-                  CFGetTypeID(flag) == CFBooleanGetTypeID() else {
-                throw WalletError.invalidIssuer("The anonymous pre-authorized grant policy is malformed.")
-            }
-            allowsAnonymousTokenRequest = flag.boolValue
-        } else {
-            allowsAnonymousTokenRequest = false
+        guard grants.contains(isAuthorizationCode ? "authorization_code" : CredentialOfferParser.preAuthorizedGrant) else {
+            throw WalletError.invalidIssuer(isAuthorizationCode
+                ? "The authorization server does not support the authorization code grant."
+                : "The authorization server does not support the pre-authorized code grant.")
         }
         let supportsDPoP = (serverMetadata["dpop_signing_alg_values_supported"] as? [String])?.contains("ES256") == true
+        if isHAIPOffer && !supportsDPoP {
+            throw WalletError.invalidIssuer("The HAIP authorization server does not support DPoP.")
+        }
         let supportsWalletAttestation = (serverMetadata["token_endpoint_auth_methods_supported"] as? [String])?
             .contains("attest_jwt_client_auth") == true
-        guard allowsAnonymousTokenRequest ||
-              (supportsWalletAttestation && supportsDPoP && canAuthenticateWithWalletAttestation) else {
-            throw WalletError.invalidIssuer("The authorization server requires client authentication this wallet cannot provide.")
+        let supportsAuthorizationDetails = (serverMetadata["authorization_details_types_supported"] as? [String])?
+            .contains("openid_credential") == true
+        var authorizationEndpoint: URL?
+        var pushedAuthorizationRequestEndpoint: URL?
+        if isAuthorizationCode {
+            let issuerResponseFlag = serverMetadata["authorization_response_iss_parameter_supported"] as? NSNumber
+            guard (serverMetadata["response_types_supported"] as? [String])?.contains("code") == true,
+                  (serverMetadata["code_challenge_methods_supported"] as? [String])?.contains("S256") == true,
+                  issuerResponseFlag.map({ CFGetTypeID($0) == CFBooleanGetTypeID() && $0.boolValue }) == true,
+                  supportsDPoP, supportsWalletAttestation, canAuthenticateWithWalletAttestation
+            else { throw WalletError.invalidIssuer("The authorization server lacks the required authorization code security features.") }
+            let authorization = try advertisedEndpoint(serverMetadata["authorization_endpoint"], "authorization_endpoint")
+            let pushed = try advertisedEndpoint(
+                serverMetadata["pushed_authorization_request_endpoint"], "pushed_authorization_request_endpoint")
+            guard WalletHTTP.sameOrigin(authorization, server), WalletHTTP.sameOrigin(pushed, server) else {
+                throw WalletError.invalidIssuer("The authorization endpoints are not on the authorization server's origin.")
+            }
+            authorizationEndpoint = authorization
+            pushedAuthorizationRequestEndpoint = pushed
+        } else {
+            // OID4VCI 12.3 defaults this flag to false. Without anonymous access, this
+            // wallet needs a usable WIA/DPoP path before it can send the one-time code.
+            let allowsAnonymousTokenRequest: Bool
+            if let advertised = serverMetadata["pre-authorized_grant_anonymous_access_supported"] {
+                guard let flag = advertised as? NSNumber,
+                      CFGetTypeID(flag) == CFBooleanGetTypeID() else {
+                    throw WalletError.invalidIssuer("The anonymous pre-authorized grant policy is malformed.")
+                }
+                allowsAnonymousTokenRequest = flag.boolValue
+            } else {
+                allowsAnonymousTokenRequest = false
+            }
+            guard allowsAnonymousTokenRequest ||
+                  (supportsWalletAttestation && supportsDPoP && canAuthenticateWithWalletAttestation) else {
+                throw WalletError.invalidIssuer("The authorization server requires client authentication this wallet cannot provide.")
+            }
         }
 
         // The issuer and its authorization server may delegate endpoints to other HTTPS hosts.
@@ -176,10 +219,23 @@ nonisolated enum IssuerMetadata {
         guard let configuration = supported.first else {
             throw WalletError.invalidIssuer("The offered credential is not one this wallet supports.")
         }
+        if isAuthorizationCode {
+            if isHAIPOffer {
+                guard supported.allSatisfy({ $0.scope != nil }) else {
+                    throw WalletError.invalidIssuer("Each HAIP credential needs an OAuth scope.")
+                }
+            } else if !supported.allSatisfy({ $0.scope != nil }) && !supportsAuthorizationDetails {
+                throw WalletError.invalidIssuer("The offered credentials need OAuth scopes or authorization details support.")
+            }
+        }
         return VerifiedIssuer(
             issuer: issuer, authorizationServer: server,
             displayName: localizedName(metadata["display"], languages: preferredLanguages),
             credentialEndpoint: credentialEndpoint, nonceEndpoint: nonceEndpoint, tokenEndpoint: tokenEndpoint,
+            authorizationEndpoint: authorizationEndpoint,
+            pushedAuthorizationRequestEndpoint: pushedAuthorizationRequestEndpoint,
+            supportsAuthorizationDetails: supportsAuthorizationDetails,
+            advertisesAuthorizationServers: advertisesAuthorizationServers,
             supportsDPoP: supportsDPoP, supportsWalletAttestation: supportsWalletAttestation,
             configuration: configuration, additionalConfigurations: Array(supported.dropFirst()))
     }
@@ -231,8 +287,16 @@ nonisolated enum IssuerMetadata {
             return path?.last.flatMap(sanitize)
         }
         return VerifiedConfiguration(
-            id: id, vct: vct, name: name, claimNames: claimNames,
+            id: id, scope: (raw["scope"] as? String).flatMap(validScope),
+            vct: vct, name: name, claimNames: claimNames,
             keyAttestationRequirements: keyAttestationRequirements)
+    }
+
+    private static func validScope(_ value: String) -> String? {
+        guard !value.isEmpty, value.utf8.count <= 256,
+              value.utf8.allSatisfy({ $0 == 0x21 || (0x23...0x5B).contains($0) || (0x5D...0x7E).contains($0) })
+        else { return nil }
+        return value
     }
 
     private static func parseKeyAttestationRequirements(_ value: Any) throws -> KeyAttestationRequirements {

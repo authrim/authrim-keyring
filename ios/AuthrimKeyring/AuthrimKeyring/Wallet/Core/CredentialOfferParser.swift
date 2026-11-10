@@ -1,6 +1,6 @@
 import Foundation
 
-/// A credential offer as received (OpenID4VCI 1.0 section 4.1), reduced to the pre-authorized code grant.
+/// A credential offer as received (OpenID4VCI 1.0 section 4.1).
 nonisolated struct ParsedOffer: Sendable, Equatable {
     struct TransactionCode: Sendable, Equatable {
         var inputMode: String?
@@ -8,11 +8,28 @@ nonisolated struct ParsedOffer: Sendable, Equatable {
         var description: String?
     }
 
+    enum Grant: Sendable, Equatable {
+        case preAuthorized(code: String, transactionCode: TransactionCode?, authorizationServer: String?)
+        case authorizationCode(issuerState: String?, authorizationServer: String?)
+
+        var authorizationServer: String? {
+            switch self {
+            case .preAuthorized(_, _, let server), .authorizationCode(_, let server): server
+            }
+        }
+    }
+
     let credentialIssuer: String
     let configurationIds: [String]
-    let preAuthorizedCode: String
-    let transactionCode: TransactionCode?
-    let authorizationServer: String?
+    let grant: Grant
+
+    var preAuthorizedCode: String? {
+        if case .preAuthorized(let code, _, _) = grant { code } else { nil }
+    }
+    var transactionCode: TransactionCode? {
+        if case .preAuthorized(_, let code, _) = grant { code } else { nil }
+    }
+    var authorizationServer: String? { grant.authorizationServer }
 }
 
 nonisolated enum CredentialOfferParser {
@@ -56,24 +73,38 @@ nonisolated enum CredentialOfferParser {
         else { throw WalletError.notAnOffer }
 
         guard let grants = object["grants"] as? [String: Any] else { throw WalletError.notAnOffer }
-        if grants[preAuthorizedGrant] == nil, grants["authorization_code"] != nil {
+        let selectedGrant: ParsedOffer.Grant
+        if let raw = grants[preAuthorizedGrant] {
+            guard let grant = raw as? [String: Any],
+                  let code = grant["pre-authorized_code"] as? String, !code.isEmpty,
+                  grant["authorization_server"] == nil || grant["authorization_server"] is String
+            else { throw WalletError.notAnOffer }
+            var transactionCode: ParsedOffer.TransactionCode?
+            if let raw = grant["tx_code"] {
+                guard let txObject = raw as? [String: Any] else { throw WalletError.notAnOffer }
+                transactionCode = .init(
+                    inputMode: txObject["input_mode"] as? String,
+                    length: txObject["length"] as? Int,
+                    description: txObject["description"] as? String)
+            }
+            selectedGrant = .preAuthorized(
+                code: code, transactionCode: transactionCode,
+                authorizationServer: grant["authorization_server"] as? String)
+        } else if let raw = grants["authorization_code"] {
+            guard let grant = raw as? [String: Any],
+                  grant["issuer_state"] == nil || grant["issuer_state"] is String,
+                  grant["authorization_server"] == nil || grant["authorization_server"] is String
+            else { throw WalletError.notAnOffer }
+            let state = grant["issuer_state"] as? String
+            guard state.map({ $0.utf8.count <= 8 * 1024 }) ?? true else {
+                throw WalletError.notAnOffer
+            }
+            selectedGrant = .authorizationCode(
+                issuerState: state, authorizationServer: grant["authorization_server"] as? String)
+        } else {
             throw WalletError.unsupportedGrant
         }
-        guard let grant = grants[preAuthorizedGrant] as? [String: Any],
-              let code = grant["pre-authorized_code"] as? String, !code.isEmpty
-        else { throw WalletError.invalidIssuer("The offer has no pre-authorized code grant.") }
-
-        var transactionCode: ParsedOffer.TransactionCode?
-        if let raw = grant["tx_code"] {
-            guard let txObject = raw as? [String: Any] else { throw WalletError.notAnOffer }
-            transactionCode = .init(
-                inputMode: txObject["input_mode"] as? String,
-                length: txObject["length"] as? Int,
-                description: txObject["description"] as? String)
-        }
-        return ParsedOffer(
-            credentialIssuer: issuer, configurationIds: ids, preAuthorizedCode: code,
-            transactionCode: transactionCode, authorizationServer: grant["authorization_server"] as? String)
+        return ParsedOffer(credentialIssuer: issuer, configurationIds: ids, grant: selectedGrant)
     }
 
     /// Resolves the scanned text into an offer, fetching `credential_offer_uri` when that is the form.

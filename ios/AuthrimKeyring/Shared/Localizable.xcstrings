@@ -4902,6 +4902,56 @@
           }
         }
       }
+    },
+    "EUDI Wallet (test)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EUDI Wallet（テスト）"
+          }
+        }
+      }
+    },
+    "PID" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PID（個人識別情報）"
+          }
+        }
+      }
+    },
+    "PubEAA (EHIC, Health ID)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PubEAA（EHIC・Health ID）"
+          }
+        }
+      }
+    },
+    "Other SD-JWT credentials" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "その他の SD-JWT 資格情報"
+          }
+        }
+      }
+    },
+    "Uses pinned certificates for the EUDI reference issuer only. The test trust policy does not verify the EUDI trusted list or certify the issuer. Certificate chains, signatures and expiry are still checked." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EUDI テスト用発行元に限定し、アプリに登録した証明書で検証します。EUDI の信頼リストや発行元の正式な認定を確認する機能ではありません。証明書チェーン、署名、有効期限は引き続き検証します。"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

@@ -38,7 +38,8 @@ struct AuthrimKeyringApp: App {
         let store = KeychainCredentialStore()
         let eudiTestProvider = EUDITestKeyAttestationProvider()
         let eudiTestWalletProvider = EUDITestWalletAttestationProvider()
-        let eudiTestIssuerTrust = EUDITestIssuerCertificateTrustSource()
+        let eudiTestIssuerTrust = EUDITestIssuerCertificateTrustSource(
+            staticTestPolicy: EUDITestStaticTrustPolicy())
         let issuance = OpenID4VCIClient(
             store: store, keyAttestationProvider: eudiTestProvider,
             keyAttestationTrustSource: eudiTestProvider,

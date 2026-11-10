@@ -114,12 +114,22 @@ final class MemoryStore: CredentialStore, @unchecked Sendable {
     func delete(_ credential: StoredCredential) throws { items.removeAll { $0.id == credential.id } }
 }
 
-final class Box<T>: @unchecked Sendable { var value: T; init(_ value: T) { self.value = value } }
+nonisolated final class Box<T>: @unchecked Sendable {
+    private let lock = NSLock()
+    private var stored: T
+
+    init(_ value: T) { stored = value }
+
+    var value: T {
+        get { lock.lock(); defer { lock.unlock() }; return stored }
+        set { lock.lock(); defer { lock.unlock() }; stored = newValue }
+    }
+}
 
 /// Builds the issuer side: metadata documents and SD-JWT VCs signed with a software key.
 struct TestIssuer {
-    static let base = "https://issuer.example.com"
-    static let vct = "https://issuer.example.com/vct/admin-credential"
+    nonisolated static let base = "https://issuer.example.com"
+    nonisolated static let vct = "https://issuer.example.com/vct/admin-credential"
     let issuerKey = P256.Signing.PrivateKey()
     let kid = "key-1"
 

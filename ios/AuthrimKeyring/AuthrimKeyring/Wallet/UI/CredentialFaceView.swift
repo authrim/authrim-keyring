@@ -4,30 +4,82 @@ import SwiftUI
 struct CredentialFaceView: View {
     let credential: StoredCredential
     let trust: IssuerTrust
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
 
     private let cornerRadius: CGFloat = 22
     private let appearance = CardAppearance(base: CardColor.presets[5])
 
+    private var foreground: Color {
+        CredentialArtworkColors.foreground(for: credential, fallback: appearance.foreground)
+    }
+
     var body: some View {
+        if let variant = credential.credentialDisplay?.selectedSVGVariant(
+            colorScheme: colorScheme == .dark ? "dark" : "light",
+            contrast: colorSchemeContrast == .increased ? "high" : "normal") {
+            templateFace(variant)
+        } else {
+            simpleFace
+        }
+    }
+
+    private func templateFace(_ variant: CredentialSVGVariant) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SVGArtworkView(data: variant.data, fit: .contain)
+                .aspectRatio(variant.orientation == "portrait" ? 0.70 : 1.5625, contentMode: .fit)
+                .background(Color.white)
+                .clipShape(.rect(cornerRadius: cornerRadius))
+                .overlay(RoundedRectangle(cornerRadius: cornerRadius).strokeBorder(.primary.opacity(0.15)))
+                .shadow(color: .black.opacity(0.18), radius: 12, y: 6)
+            HStack(spacing: 6) {
+                Image(systemName: trustSymbol)
+                VStack(alignment: .leading, spacing: 1) {
+                    trustLabel
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    if case .verified(let name, _) = trust {
+                        Text(name)
+                    }
+                    Text(credential.issuer.walletHost)
+                }
+                Spacer(minLength: 8)
+                expiry
+            }
+            .font(.footnote.weight(.medium))
+            .foregroundStyle(.primary)
+        }
+        .frame(maxWidth: 480)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("\(credential.credentialName), \(credential.issuer.walletHost), \(trustLabel)"))
+    }
+
+    private var simpleFace: some View {
         VStack(alignment: .leading, spacing: 16) {
             issuer
             VStack(alignment: .leading, spacing: 4) {
-                Text(credential.credentialName)
+                Text((credential.credentialDisplay?.nameDirection ?? .auto).isolate(credential.credentialName))
                     .font(.title2.weight(.bold))
+                if let description = credential.credentialDisplay?.description {
+                    Text((credential.credentialDisplay?.descriptionDirection ?? .auto).isolate(description))
+                        .font(.subheadline)
+                        .lineLimit(2)
+                        .opacity(0.85)
+                }
                 if let holder {
-                    Text(holder)
+                    Text(CredentialTextDirection.auto.isolate(holder))
                         .font(.title3.weight(.semibold))
                 }
             }
             Spacer(minLength: 0)
             if !otherClaims.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
-                    ForEach(otherClaims, id: \.name) { claim in
+                    ForEach(otherClaims) { claim in
                         VStack(alignment: .leading, spacing: 0) {
-                            Text(claim.name)
+                            Text(claim.direction.isolate(claim.label))
                                 .font(.caption)
                                 .opacity(0.75)
-                            Text(claim.value)
+                            Text(CredentialTextDirection.auto.isolate(claim.value))
                                 .font(.subheadline.weight(.medium))
                         }
                     }
@@ -38,11 +90,13 @@ struct CredentialFaceView: View {
         .padding(20)
         // About the shape of a card in a wallet; larger text makes it taller.
         .frame(maxWidth: .infinity, minHeight: 220, alignment: .topLeading)
-        .foregroundStyle(appearance.foreground)
+        .foregroundStyle(foreground)
         .background {
-            RoundedRectangle(cornerRadius: cornerRadius)
-                .fill(LinearGradient(colors: [appearance.top, appearance.bottom], startPoint: .topLeading, endPoint: .bottomTrailing))
-                .strokeBorder(appearance.foreground.opacity(0.15))
+            let shape = RoundedRectangle(cornerRadius: cornerRadius)
+            CredentialArtworkBackground(
+                credential: credential, fallbackTop: appearance.top, fallbackBottom: appearance.bottom)
+                .clipShape(shape)
+                .overlay(shape.strokeBorder(foreground.opacity(0.15)))
                 .shadow(color: .black.opacity(0.18), radius: 12, y: 6)
         }
         .frame(maxWidth: 480)
@@ -55,11 +109,15 @@ struct CredentialFaceView: View {
         HStack(spacing: 6) {
             Image(systemName: trustSymbol)
                 .accessibilityLabel(trustLabel)
-            if case .verified(let name, _) = trust {
-                Text(name)
-            } else {
+            VStack(alignment: .leading, spacing: 1) {
+                if case .verified(let name, _) = trust {
+                    Text(name)
+                }
                 Text(credential.issuer.walletHost)
+                    .font(.caption)
             }
+            Spacer(minLength: 8)
+            CredentialArtworkLogo(credential: credential, size: 52)
         }
         .font(.subheadline.weight(.semibold))
         .opacity(0.9)
@@ -91,8 +149,16 @@ struct CredentialFaceView: View {
     private var holder: String? { holderClaim?.value }
 
     /// The claims below the name; the full list is further down the screen.
-    private var otherClaims: [(name: String, value: String)] {
-        Array(credential.sortedClaims.filter { $0.name != holderClaim?.name }.prefix(3))
+    private var otherClaims: [CredentialDisplayClaim] {
+        let rows = credential.credentialDisplay?.claimDisplays ?? credential.sortedClaims.map {
+            CredentialDisplayClaim(id: "raw:" + $0.name, label: $0.name, value: $0.value,
+                                   description: nil, direction: .auto)
+        }
+        guard let holderName = holderClaim?.name else { return Array(rows.prefix(3)) }
+        let encoded = Base64URL.encode(Data(holderName.utf8))
+        return Array(rows.filter {
+            $0.id != "n" + encoded && $0.id != "raw:" + encoded && $0.id != "raw:" + holderName
+        }.prefix(3))
     }
 
     @ViewBuilder
@@ -101,7 +167,7 @@ struct CredentialFaceView: View {
             if credential.isExpired {
                 Label("Expired", systemImage: "exclamationmark.circle.fill")
                     .font(.footnote.weight(.semibold))
-                    .foregroundStyle(appearance.warning)
+                    .foregroundStyle(foreground)
             } else {
                 Text("Expires \(expiresAt, format: .dateTime.year().month().day())")
                     .font(.footnote)

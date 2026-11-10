@@ -6,6 +6,8 @@ struct OfferedCredential: Identifiable, Sendable {
     let name: String
     let claimNames: [String]
     let renewsCredential: Bool
+    var nameDirection: CredentialTextDirection? = nil
+    var claimNameDirections: [CredentialTextDirection] = []
 }
 
 struct CredentialOfferPreview: Identifiable, Sendable {
@@ -16,6 +18,7 @@ struct CredentialOfferPreview: Identifiable, Sendable {
     let authorizationServer: URL
     /// Display name the issuer gives itself, if any. Never presented as verified by Authrim.
     let issuerDisplayName: String?
+    let issuerDisplayDirection: CredentialTextDirection?
     let credential: OfferedCredential
     let additionalCredentials: [OfferedCredential]
     /// Supported offered configurations, in the order given by the issuer's offer.
@@ -32,7 +35,8 @@ struct CredentialOfferPreview: Identifiable, Sendable {
     var renewsCredential: Bool { credential.renewsCredential }
 
     init(
-        id: UUID, issuer: URL, authorizationServer: URL, issuerDisplayName: String?, credential: OfferedCredential,
+        id: UUID, issuer: URL, authorizationServer: URL, issuerDisplayName: String?,
+        issuerDisplayDirection: CredentialTextDirection? = nil, credential: OfferedCredential,
         additionalCredentials: [OfferedCredential], transactionCode: TransactionCodeRequirement?,
         authorizationRequired: Bool = false
     ) {
@@ -40,6 +44,7 @@ struct CredentialOfferPreview: Identifiable, Sendable {
         self.issuer = issuer
         self.authorizationServer = authorizationServer
         self.issuerDisplayName = issuerDisplayName
+        self.issuerDisplayDirection = issuerDisplayDirection
         self.credential = credential
         self.additionalCredentials = additionalCredentials
         self.transactionCode = transactionCode
@@ -73,6 +78,7 @@ struct StoredCredential: Codable, Identifiable, Sendable, Hashable {
     let id: UUID
     let issuer: URL
     let issuerDisplayName: String?
+    var issuerDisplayDirection: CredentialTextDirection? = nil
     let credentialConfigurationId: String
     let vct: String
     let credentialName: String
@@ -93,6 +99,8 @@ struct StoredCredential: Codable, Identifiable, Sendable, Hashable {
     /// When the admin console accepted this credential's key as a second factor (a registration or
     /// a recovery request answered from this device); nil when not known to be one.
     var secondFactorRegisteredAt: Date? = nil
+    /// Optional snapshot of the issuer's card design. Missing from credentials saved by older builds.
+    var credentialDisplay: CredentialDisplay? = nil
 }
 
 enum WalletError: Error, Equatable, Sendable {

@@ -19,18 +19,35 @@ struct CredentialDetailView: View {
                     .listRowBackground(Color.clear)
             }
             Section("Issuer") {
-                IssuerLabel(issuer: credential.issuer, displayName: credential.issuerDisplayName, trust: wallet.trust(for: credential.issuer))
+                IssuerLabel(issuer: credential.issuer, displayName: credential.issuerDisplayName,
+                            trust: wallet.trust(for: credential.issuer),
+                            displayDirection: credential.issuerDisplayDirection)
             }
             Section("Credential") {
-                LabeledContent("Name", value: credential.credentialName)
+                LabeledContent("Name", value: (credential.credentialDisplay?.nameDirection ?? .auto)
+                    .isolate(credential.credentialName))
                 LabeledContent("Type", value: credential.vct)
             }
             Section("Claims") {
                 if credential.claims.isEmpty {
                     Text("No claims").foregroundStyle(.secondary)
                 }
-                ForEach(credential.sortedClaims, id: \.name) { claim in
-                    LabeledContent(claim.name, value: claim.value)
+                if let rows = credential.credentialDisplay?.claimDisplays, !rows.isEmpty {
+                    ForEach(rows) { claim in
+                        VStack(alignment: .leading, spacing: 3) {
+                            LabeledContent(claim.direction.isolate(claim.label),
+                                           value: CredentialTextDirection.auto.isolate(claim.value))
+                            if let description = claim.description {
+                                Text(claim.direction.isolate(description))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                } else {
+                    ForEach(credential.sortedClaims, id: \.name) { claim in
+                        LabeledContent(claim.name, value: claim.value)
+                    }
                 }
             }
             Section("Validity") {

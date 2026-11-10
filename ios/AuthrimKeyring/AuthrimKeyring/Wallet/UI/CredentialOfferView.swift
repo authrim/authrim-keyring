@@ -65,7 +65,8 @@ private struct CredentialOfferForm: View {
         let trust = wallet.trust(for: preview.issuer)
         Form {
             Section("Issuer") {
-                IssuerLabel(issuer: preview.issuer, displayName: preview.issuerDisplayName, trust: trust)
+                IssuerLabel(issuer: preview.issuer, displayName: preview.issuerDisplayName,
+                            trust: trust, displayDirection: preview.issuerDisplayDirection)
                 if !WalletHTTP.sameOrigin(preview.authorizationServer, preview.issuer) {
                     LabeledContent("Authorization server", value: preview.authorizationServer.walletHost)
                 }
@@ -142,9 +143,12 @@ private struct CredentialOfferForm: View {
     private func credentialRow(_ credential: OfferedCredential) -> some View {
         if preview.credentials.count == 1 {
             VStack(alignment: .leading, spacing: 6) {
-                Text(credential.name).font(.headline)
+                Text((credential.nameDirection ?? .auto).isolate(credential.name)).font(.headline)
                 ForEach(credential.claimNames.indices, id: \.self) { index in
-                    Label(credential.claimNames[index], systemImage: "checkmark.circle")
+                    Label((index < credential.claimNameDirections.count
+                           ? credential.claimNameDirections[index] : .auto)
+                        .isolate(credential.claimNames[index]),
+                          systemImage: "checkmark.circle")
                         .font(.subheadline)
                 }
             }
@@ -159,9 +163,12 @@ private struct CredentialOfferForm: View {
                                          ? Color.accentColor : Color.secondary)
                         .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(credential.name).font(.headline)
+                        Text((credential.nameDirection ?? .auto).isolate(credential.name)).font(.headline)
                         ForEach(credential.claimNames.indices, id: \.self) { index in
-                            Text(credential.claimNames[index]).font(.subheadline).foregroundStyle(.secondary)
+                            Text((index < credential.claimNameDirections.count
+                                  ? credential.claimNameDirections[index] : .auto)
+                                .isolate(credential.claimNames[index]))
+                                .font(.subheadline).foregroundStyle(.secondary)
                         }
                     }
                 }

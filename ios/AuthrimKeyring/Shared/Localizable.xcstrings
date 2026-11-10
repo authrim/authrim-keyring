@@ -394,6 +394,7 @@
       }
     },
     "A new offer is needed." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -985,6 +986,7 @@
       }
     },
     "Check that the admin console shows the same code." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -1649,6 +1651,7 @@
       }
     },
     "Enter the %lld-character code shown in the admin console." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -1659,6 +1662,7 @@
       }
     },
     "Enter the %lld-digit code shown in the admin console." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -1669,6 +1673,7 @@
       }
     },
     "Enter the code shown in the admin console." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -1959,6 +1964,7 @@
       }
     },
     "If the code differs, or the console shows no credential, someone else may have used the offer. Revoke the credential in the admin console." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -2129,6 +2135,7 @@
       }
     },
     "Keyring creates a key for this credential in the Secure Enclave of this device. You will be asked for Face ID, Touch ID or your passcode." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -4535,6 +4542,7 @@
       }
     },
     "Use the console you signed in to yourself at %@. If the codes match, Keyring shows this issuer as confirmed by you." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -4845,6 +4853,7 @@
       }
     },
     "Keyring renews your current credential with the key it already has on this device, so your second factor keeps working. You will be asked for Face ID, Touch ID or your passcode." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {

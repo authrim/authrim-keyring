@@ -11,6 +11,7 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
     private let deleteKey: @Sendable (String) -> Void
     private let now: @Sendable () -> Date
     private let languages: @Sendable () -> [String]
+    private let typeMetadataRegistry: TypeMetadataRegistry
     private let keyAttestationProvider: (any KeyAttestationProvider)?
     private let keyAttestationTrustSource: (any KeyAttestationTrustSource)?
     private let walletAttestationProvider: (any WalletAttestationProvider)?
@@ -30,6 +31,7 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
         deleteKey: @escaping @Sendable (String) -> Void = { try? HolderKey.delete(tag: $0) },
         now: @escaping @Sendable () -> Date = { Date() },
         languages: @escaping @Sendable () -> [String] = { Locale.preferredLanguages },
+        typeMetadataRegistry: TypeMetadataRegistry = .eudiTest,
         keyAttestationProvider: (any KeyAttestationProvider)? = nil,
         keyAttestationTrustSource: (any KeyAttestationTrustSource)? = nil,
         walletAttestationProvider: (any WalletAttestationProvider)? = nil,
@@ -43,6 +45,7 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
         self.deleteKey = deleteKey
         self.now = now
         self.languages = languages
+        self.typeMetadataRegistry = typeMetadataRegistry
         self.keyAttestationProvider = keyAttestationProvider
         self.keyAttestationTrustSource = keyAttestationTrustSource
         self.walletAttestationProvider = walletAttestationProvider
@@ -107,15 +110,19 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
         }
         let preview = CredentialOfferPreview(
             id: UUID(), issuer: verified.issuer, authorizationServer: verified.authorizationServer,
-            issuerDisplayName: verified.displayName,
+            issuerDisplayName: verified.displayName, issuerDisplayDirection: verified.displayDirection,
             credential: OfferedCredential(
                 id: verified.configuration.id, name: verified.configuration.name,
                 claimNames: verified.configuration.claimNames,
-                renewsCredential: renewals[verified.configuration.id] != nil),
+                renewsCredential: renewals[verified.configuration.id] != nil,
+                nameDirection: verified.configuration.displaySource?.direction,
+                claimNameDirections: verified.configuration.claimNameDirections),
             additionalCredentials: verified.additionalConfigurations.map { configuration in
                 OfferedCredential(
                     id: configuration.id, name: configuration.name,
-                    claimNames: configuration.claimNames, renewsCredential: renewals[configuration.id] != nil)
+                    claimNames: configuration.claimNames, renewsCredential: renewals[configuration.id] != nil,
+                    nameDirection: configuration.displaySource?.direction,
+                    claimNameDirections: configuration.claimNameDirections)
             },
             transactionCode: requirement,
             authorizationRequired: {
@@ -319,17 +326,24 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
             if let renewal, reused != nil, !HolderKeyRenewal.isSameAdministrator(sdJwt, as: renewal) {
                 throw WalletError.invalidCredential(String(localized: "The renewed credential is for another administrator, so it was not saved."))
             }
-            let credential = StoredCredential(
+            let card = try await CredentialDisplayMetadata.resolve(
+                issuerSource: configuration.displaySource, sdJwt: sdJwt, vct: configuration.vct,
+                issuerLogo: issuer.issuerLogo, issuerClaimSources: configuration.claimDisplaySources,
+                issuer: issuer.issuer, registry: typeMetadataRegistry,
+                http: http, languages: languages(), verified: verified)
+            var credential = StoredCredential(
                 id: UUID(), issuer: issuer.issuer, issuerDisplayName: issuer.displayName,
                 credentialConfigurationId: configuration.id, vct: configuration.vct,
-                credentialName: configuration.name, claims: verified.claims,
+                credentialName: card.name ?? configuration.name, claims: verified.claims,
                 issuedAt: verified.issuedAt ?? now(), expiresAt: verified.expiresAt, keyTag: tag,
                 confirmationCode: signer.publicJWK.confirmationCode, sdJwt: sdJwt,
                 // The same key is the same second factor, as recorded now (not when the offer was read).
                 // A registration known when the offer was read is never dropped (the renewed
                 // credential may have been deleted meanwhile).
                 secondFactorRegisteredAt: reused == nil
-                    ? nil : [registeredAt(keyTag: tag), renewal?.secondFactorRegisteredAt].compactMap { $0 }.min())
+                    ? nil : [registeredAt(keyTag: tag), renewal?.secondFactorRegisteredAt].compactMap { $0 }.min(),
+                credentialDisplay: card.display)
+            credential.issuerDisplayDirection = issuer.displayDirection
             do { try store.save(credential) } catch let error as WalletError { throw error } catch {
                 throw WalletError.storage(error.localizedDescription)
             }

@@ -111,9 +111,57 @@ enum DemoMode {
 
     private static var credentials: [StoredCredential] {
         let day: TimeInterval = 24 * 3600
+        let demoLogo = Data("""
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+              <circle cx="32" cy="32" r="29" fill="#E9C977"/>
+              <path d="M19 43V21h26v5H25v4h17v5H25v3h20v5z" fill="#102752"/>
+            </svg>
+            """.utf8)
+        let demoFace = Data("""
+            <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="640" viewBox="0 0 1000 640">
+              <defs>
+                <linearGradient id="base" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#1A478A"/>
+                  <stop offset="1" stop-color="#0A1738"/>
+                </linearGradient>
+                <linearGradient id="ribbon" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0" stop-color="#E9C977"/>
+                  <stop offset="1" stop-color="#B58737"/>
+                </linearGradient>
+              </defs>
+              <rect width="1000" height="640" fill="url(#base)"/>
+              <circle cx="905" cy="75" r="350" fill="#3E73BF" opacity=".3"/>
+              <circle cx="905" cy="75" r="270" fill="none" stroke="#E9C977" stroke-width="3" opacity=".65"/>
+              <circle cx="905" cy="75" r="220" fill="none" stroke="#E9C977" stroke-width="2" opacity=".45"/>
+              <path d="M0 510C240 405 445 570 695 455S930 415 1000 390V640H0Z" fill="#102D62" opacity=".65"/>
+              <path d="M0 560C275 460 485 620 705 525S940 475 1000 460" fill="none" stroke="url(#ribbon)" stroke-width="9" opacity=".9"/>
+              <path d="M35 615H965" stroke="#E9C977" stroke-width="2" opacity=".5"/>
+            </svg>
+            """.utf8)
+        let demoTemplate = Data(String(decoding: demoFace, as: UTF8.self)
+            .replacingOccurrences(of: "</svg>", with: """
+              <text x="76" y="125" fill="#E9C977" font-size="33" font-weight="700">ADMINISTRATOR CREDENTIAL</text>
+              <text x="76" y="310" fill="#FFFFFF" font-size="64" font-weight="700">{{holder}}</text>
+              <text x="76" y="365" fill="#E1E8F5" font-size="28">{{role}}</text>
+              <text x="76" y="590" fill="#E9C977" font-size="25">EXAMPLE CORPORATION</text>
+            </svg>
+            """).utf8)
+        let renderedDemoFace = SVGImageValidator.renderTemplate(
+            demoTemplate, values: ["holder": "Alex Morgan", "role": "Tenant admin"])
+        func card(_ background: String, _ text: String, _ description: String? = nil,
+                  logo: Data? = nil, face: Data? = nil, template: Data? = nil) -> CredentialDisplay {
+            var result = CredentialDisplay(
+                description: description, backgroundColor: background, textColor: text,
+                logoAltText: logo == nil ? nil : "Example issuer logo", logoData: logo,
+                logoMediaType: logo == nil ? nil : "image/svg+xml",
+                backgroundImageData: face, backgroundImageMediaType: face == nil ? nil : "image/svg+xml")
+            result.faceSVGData = template
+            return result
+        }
         func credential(
             _ issuer: String, _ issuerName: String?, _ name: String, _ claims: [String: String],
-            issuedDaysAgo: Double, validDays: Double?, code: String, confirmed: Bool
+            issuedDaysAgo: Double, validDays: Double?, code: String, confirmed: Bool,
+            display: CredentialDisplay? = nil
         ) -> StoredCredential {
             let issued = Date.now.addingTimeInterval(-issuedDaysAgo * day)
             return StoredCredential(
@@ -129,16 +177,20 @@ enum DemoMode {
                 keyTag: "demo",
                 confirmationCode: code,
                 sdJwt: "demo~",
-                confirmedAt: confirmed ? issued : nil
+                confirmedAt: confirmed ? issued : nil,
+                credentialDisplay: display
             )
         }
         return [
             credential("https://id.example.com", "Example Corp", "Administrator Credential",
                        ["Name": "Alex Morgan", "Email": "alex@example.com", "Role": "Tenant admin"],
-                       issuedDaysAgo: 12, validDays: 365, code: "K7QM-2XPD", confirmed: true),
+                       issuedDaysAgo: 12, validDays: 365, code: "K7QM-2XPD", confirmed: true,
+                       display: card("#102752", "#FFFFFF", "Administrator access",
+                                     logo: demoLogo, face: demoFace, template: renderedDemoFace)),
             credential("https://idp.university.example", "Example University", "Student ID",
                        ["Name": "Alex Morgan", "Student Number": "2026-01234", "Faculty": "Engineering"],
-                       issuedDaysAgo: 40, validDays: 1460, code: "R4TN-8WVB", confirmed: true),
+                       issuedDaysAgo: 40, validDays: 1460, code: "R4TN-8WVB", confirmed: true,
+                       display: card("#F2E6C9", "#252016", "Student identification")),
             credential("https://hr.northwind.example", "Northwind Inc.", "Employee Badge",
                        ["Name": "Alex Morgan", "Department": "Design", "Employee Number": "NW-0420"],
                        issuedDaysAgo: 90, validDays: 730, code: "C9HZ-3FJE", confirmed: false),

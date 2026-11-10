@@ -9,6 +9,10 @@ struct SettingsView: View {
     @Environment(WallpaperStore.self) private var wallpaper
     @AppStorage("hasSeenTutorial") private var hasSeenTutorial = false
     @AppStorage(DemoMode.key) private var isDemoModeOn = false
+    @AppStorage(EUDITestMode.enabledKey) private var isEUDITestModeOn = false
+    @AppStorage(EUDITestMode.pidKey) private var isEUDITestPIDOn = true
+    @AppStorage(EUDITestMode.pubEAAKey) private var isEUDITestPubEAAOn = true
+    @AppStorage(EUDITestMode.otherKey) private var isEUDITestOtherOn = true
     @State private var isConfirmingDeleteAll = false
     @State private var isConfirmingSyncOff = false
     @State private var isExporting = false
@@ -133,6 +137,17 @@ struct SettingsView: View {
                     }
                 } footer: {
                     Text("Shows made-up passkeys, codes and credentials in place of yours, to show the app to someone. Your own are kept as they are. While it is on, adding, sync and backups are turned off.")
+                }
+
+                Section {
+                    Toggle("EUDI Wallet (test)", isOn: $isEUDITestModeOn)
+                    if isEUDITestModeOn {
+                        Toggle("PID", isOn: $isEUDITestPIDOn)
+                        Toggle("PubEAA (EHIC, Health ID)", isOn: $isEUDITestPubEAAOn)
+                        Toggle("Other SD-JWT credentials", isOn: $isEUDITestOtherOn)
+                    }
+                } footer: {
+                    Text("Uses pinned certificates for the EUDI reference issuer only. The test trust policy does not verify the EUDI trusted list or certify the issuer. Certificate chains, signatures and expiry are still checked.")
                 }
             }
             .navigationTitle("Settings")

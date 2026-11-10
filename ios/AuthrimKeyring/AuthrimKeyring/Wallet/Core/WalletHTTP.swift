@@ -178,9 +178,12 @@ nonisolated final class WalletHTTP: Sendable {
     /// Sends a request. Redirects are not followed: a 3xx answer is an error. Other statuses are
     /// returned to the caller, which maps protocol errors (`invalid_grant` ...).
     /// - Parameter origin: when set, the URL must be on this origin or nothing is sent.
+    /// - Parameter idempotentRead: a GET whose transport failure cannot consume a one-time offer;
+    ///   callers may safely retry or use a previously verified cache entry.
     func send(
         _ url: URL, method: String = "GET", headers: [String: String] = [:], body: Data? = nil,
-        maxBytes: Int = WalletHTTP.jsonLimit, origin: URL? = nil
+        maxBytes: Int = WalletHTTP.jsonLimit, origin: URL? = nil,
+        idempotentRead: Bool = false
     ) async throws -> WalletHTTPResponse {
         _ = try Self.requireHTTPS(url, "The request URL")
         if let origin, !Self.sameOrigin(url, origin) {
@@ -226,7 +229,9 @@ nonisolated final class WalletHTTP: Sendable {
         do {
             let (bytes, response) = try await session.bytes(for: request)
             guard let http = response as? HTTPURLResponse else { throw WalletError.network("No HTTP response.") }
-            if (300..<400).contains(http.statusCode) { throw WalletError.network("Redirects are not followed.") }
+            if (300..<400).contains(http.statusCode) {
+                throw WalletError.invalidIssuer("The server redirected a wallet request.")
+            }
             if response.expectedContentLength > Int64(maxBytes) { throw WalletError.outcomeUnknown("The response is too large.") }
             var data = Data()
             for try await byte in bytes {
@@ -245,7 +250,9 @@ nonisolated final class WalletHTTP: Sendable {
         } catch let error as URLError {
             // Only failures that certainly happened before the request left the device are plain
             // network errors; anything later leaves the outcome unknown (the server may have acted).
-            if Self.failedBeforeSending(error) { throw WalletError.network(error.localizedDescription) }
+            if (idempotentRead && method == "GET") || Self.failedBeforeSending(error) {
+                throw WalletError.network(error.localizedDescription)
+            }
             throw WalletError.outcomeUnknown(error.localizedDescription)
         }
     }

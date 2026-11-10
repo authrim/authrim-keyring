@@ -536,14 +536,90 @@ struct WalletIssuanceTests {
         let data = try JSONSerialization.data(withJSONObject: offer)
         let encoded = try #require(String(decoding: data, as: UTF8.self)
             .addingPercentEncoding(withAllowedCharacters: .alphanumerics))
+        let listJWT = try EUDITestLoTEFixture.jwt()
+        StubURLProtocol.on("GET", EUDITestLoTEVerifier.url.absoluteString) { _ in
+            .init(body: Data(listJWT.utf8))
+        }
+        let http = WalletHTTP(protocolClasses: [StubURLProtocol.self])
+        let trustTime = LoTETestBox(EUDITestLoTEFixture.now)
         let client = OpenID4VCIClient(
-            http: WalletHTTP(protocolClasses: [StubURLProtocol.self]), store: store,
-            issuerCertificateTrustSource: EUDITestIssuerCertificateTrustSource())
+            http: http, store: store,
+            issuerCertificateTrustSource: EUDITestIssuerCertificateTrustSource(
+                http: http, pins: try EUDITestLoTEFixture.pins(),
+                entitlementPolicy: EUDITestLoTEFixture.entitlements,
+                recordStore: MemoryEUDITestLoTERecordStore(), now: { trustTime.value }))
 
         let preview = try await client.preview(
             offer: "haip-vci://credential_offer?credential_offer=\(encoded)")
         #expect(preview.credentials.map(\.id) == types.map { $0.0 })
         #expect(preview.transactionCode?.numeric == true)
+        #expect(StubURLProtocol.requests(to: issuerURL + "/vci/token").isEmpty)
+        #expect(StubURLProtocol.requests(to: EUDITestLoTEVerifier.url.absoluteString).count == 1)
+
+        trustTime.value = EUDITestLoTEFixture.now.addingTimeInterval(5 * 86_400)
+        await #expect(throws: WalletError.self) {
+            try await client.issueAll(preview, selectedConfigurationIds: types.map { $0.0 },
+                                      transactionCode: "12345")
+        }
+        #expect(StubURLProtocol.requests(to: issuerURL + "/vci/token").isEmpty)
+    }
+
+    @Test func EUDITestSwitchScopesAllElevenSDJWTCredentialsBeforeCode() async throws {
+        let issuerURL = "https://issuer.eudiw.dev"
+        let types = [
+            ("eu.europa.ec.eudi.diploma_vc_sd_jwt", "urn:eu.europa.ec.eudi:diploma:1:1"),
+            ("eu.europa.ec.eudi.ehic_sd_jwt_vc", "urn:eudi:ehic:1"),
+            ("eu.europa.ec.eudi.hiid_sd_jwt_vc", "urn:eu.europa.ec.eudi:hiid:1"),
+            ("eu.europa.ec.eudi.iban_sd_jwt_vc", "urn:eu.europa.ec.eudi:iban:1"),
+            ("eu.europa.ec.eudi.learning_credential_vc_sd_jwt", "urn:eu.europa.ec.eudi:learning:credential:1"),
+            ("eu.europa.ec.eudi.msisdn_sd_jwt_vc", "urn:eu.europa.ec.eudi:msisdn:1"),
+            ("eu.europa.ec.eudi.pda1_sd_jwt_vc", "urn:eu.europa.ec.eudi:pda1:1"),
+            ("eu.europa.ec.eudi.pid_vc_sd_jwt", "urn:eudi:pid:1"),
+            ("eu.europa.ec.eudi.por_sd_jwt_vc", "urn:eu.europa.ec.eudi:por:1"),
+            ("eu.europa.ec.eudi.tax_residency_vc_sd_jwt", "urn:eu.europa.ec.eudi:tax:1:1"),
+            ("eu.europa.ec.eudi.tax_sd_jwt_vc", "urn:eu.europa.ec.eudi:tax:1"),
+        ]
+        var metadata = TestIssuer.issuerMetadata(
+            issuer: issuerURL, credentialEndpoint: issuerURL + "/vci/credential",
+            nonceEndpoint: issuerURL + "/vci/nonce", servers: [issuerURL + "/vci"])
+        let original = try #require((metadata["credential_configurations_supported"] as? [String: Any])?["admin"] as? [String: Any])
+        metadata["credential_configurations_supported"] = Dictionary(uniqueKeysWithValues: types.map { type in
+            let (id, vct) = type
+            var configuration = original
+            configuration["vct"] = vct
+            configuration["scope"] = id
+            return (id, configuration)
+        })
+        StubURLProtocol.on("GET", issuerURL + "/.well-known/openid-credential-issuer", json: metadata)
+        var server = TestIssuer.serverMetadata(
+            issuer: issuerURL + "/vci", tokenEndpoint: issuerURL + "/vci/token")
+        server["dpop_signing_alg_values_supported"] = ["ES256"]
+        StubURLProtocol.on("GET", issuerURL + "/.well-known/oauth-authorization-server/vci", json: server)
+        let offer = TestIssuer.offerJSON(issuer: issuerURL, ids: types.map { $0.0 })
+        let offerData = try JSONSerialization.data(withJSONObject: offer)
+        let encoded = try #require(String(decoding: offerData, as: UTF8.self)
+            .addingPercentEncoding(withAllowedCharacters: .alphanumerics))
+        let enabled = LoTETestBox<Set<EUDITestMode.Category>>([.pid, .pubEAA, .other])
+        let source = EUDITestIssuerCertificateTrustSource(
+            staticTestPolicy: EUDITestStaticTrustPolicy(isEnabled: { enabled.value.contains($0) }),
+            now: { EUDITestLoTEFixture.now })
+        let client = OpenID4VCIClient(
+            http: WalletHTTP(protocolClasses: [StubURLProtocol.self]), store: store,
+            issuerCertificateTrustSource: source)
+        let preview = try await client.preview(offer: "haip-vci://credential_offer?credential_offer=\(encoded)")
+        #expect(preview.credentials.map(\.id) == types.map { $0.0 })
+        #expect(StubURLProtocol.requests(to: issuerURL + "/vci/token").isEmpty)
+        #expect(StubURLProtocol.requests(to: EUDITestLoTEVerifier.url.absoluteString).isEmpty)
+
+        enabled.value = [.pid, .other]
+        await #expect(throws: WalletError.unsupportedIssuerCertificateTrust) {
+            try await client.issueAll(preview, selectedConfigurationIds: types.map { $0.0 },
+                                      transactionCode: "12345")
+        }
+        // The same issuer policy must apply if a QR uses the generic OID4VCI wrapper.
+        await #expect(throws: WalletError.unsupportedIssuerCertificateTrust) {
+            try await client.preview(offer: "openid-credential-offer://?credential_offer=\(encoded)")
+        }
         #expect(StubURLProtocol.requests(to: issuerURL + "/vci/token").isEmpty)
     }
 

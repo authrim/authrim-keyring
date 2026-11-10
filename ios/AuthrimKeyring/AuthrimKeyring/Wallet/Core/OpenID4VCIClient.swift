@@ -82,6 +82,13 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
                 throw WalletError.unsupportedIssuerCertificateTrust
             }
         }
+        // Check that a configured ecosystem list is independently trusted and still fresh before
+        // presenting a one-time-code offer. Recheck at issuance in case it expires meanwhile.
+        if let issuerCertificateTrustSource {
+            for configuration in verified.configurations where x509ConfigurationIDs.contains(configuration.id) {
+                try await issuerCertificateTrustSource.prepare(issuer: verified.issuer, vct: configuration.vct)
+            }
+        }
         let requirement = parsed.transactionCode.map { code in
             TransactionCodeRequirement(
                 length: code.length.flatMap { (1...64).contains($0) ? $0 : nil },
@@ -176,6 +183,15 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
             ? transactionCode?.trimmingCharacters(in: .whitespacesAndNewlines) : transactionCode
         if preview.transactionCode != nil, code?.isEmpty != false { throw WalletError.transactionCodeRequired }
 
+        // The user may leave the preview open past the list's NextUpdate or a trust-policy
+        // change. Recheck every selected type before spending its single-use authorization.
+        for configuration in configurations where pending.x509ConfigurationIDs.contains(configuration.id) {
+            guard let issuerCertificateTrustSource else {
+                throw WalletError.unsupportedIssuerCertificateTrust
+            }
+            try await issuerCertificateTrustSource.prepare(issuer: issuer.issuer, vct: configuration.vct)
+        }
+
         // Fetch a public issuer nonce and validate each required key attestation before the
         // one-time code is exchanged. The same nonce goes into the later holder proof.
         var prepared: [String: PreparedAttestedKey] = [:]
@@ -198,6 +214,14 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
                 authorizationCode = try await authorize(pending, configurations: configurations)
             } else {
                 authorizationCode = nil
+            }
+            // Browser authorization can outlast the trust-list update deadline. Do not
+            // exchange its code against a list that became invalid while the user signed in.
+            for configuration in configurations where pending.x509ConfigurationIDs.contains(configuration.id) {
+                guard let issuerCertificateTrustSource else {
+                    throw WalletError.unsupportedIssuerCertificateTrust
+                }
+                try await issuerCertificateTrustSource.prepare(issuer: issuer.issuer, vct: configuration.vct)
             }
             authorization = try await requestToken(
                 pending, transactionCode: preview.transactionCode == nil ? nil : code,

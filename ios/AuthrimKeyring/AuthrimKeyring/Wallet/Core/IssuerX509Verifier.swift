@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import Security
 
@@ -5,7 +6,12 @@ import Security
 /// An x5c header is evidence to check, never a source of trust anchors by itself.
 nonisolated protocol IssuerCertificateTrustSource: Sendable {
     func supports(issuer: URL, vct: String) -> Bool
+    func prepare(issuer: URL, vct: String) async throws
     func trustedRoots(for chainDER: [Data], issuer: URL, vct: String) async throws -> [Data]
+}
+
+extension IssuerCertificateTrustSource {
+    func prepare(issuer: URL, vct: String) async throws {}
 }
 
 /// Resolves an SD-JWT VC issuer signing key from its x5c certificate chain (HAIP 6.1.1).
@@ -221,64 +227,92 @@ private nonisolated enum IssuerCertificateNames {
     }
 }
 
-/// The public European Commission sandbox's validator is used only for the exact EUDI test issuer.
-/// Its verdict and CA anchor are checked locally against the credential's x5c chain. This is an
-/// interoperability policy, not a production trust framework for arbitrary issuers.
+/// An operator-supplied registration decision, independent of the LoTE and issuer metadata.
+/// The production app does not construct one until the issuer's VCT scope can be authenticated.
+nonisolated struct EUDITestIssuerEntitlementPolicy: Sendable {
+    let issuer: URL
+    /// Root fingerprints and VCT scopes must come from an independently authenticated
+    /// registration decision, not issuer metadata or the downloaded LoTE.
+    let authorizedRootSHA256ByVCT: [String: Set<Data>]
+
+    func authorizedRoots(issuer: URL, vct: String, listedRoots: [Data]) -> [Data] {
+        guard issuer == self.issuer,
+              let permitted = authorizedRootSHA256ByVCT[vct], !permitted.isEmpty else { return [] }
+        return listedRoots.filter { permitted.contains(Data(SHA256.hash(data: $0))) }
+    }
+}
+
+/// The exact EUDI test issuer/VCT classification is separate from the signed PubEAA LoTE.
+/// Both an independently trusted LoTE signer and an issuer registration decision are required;
+/// without either this source refuses issuance before a one-time code is redeemed.
 nonisolated struct EUDITestIssuerCertificateTrustSource: IssuerCertificateTrustSource {
     private static let issuerIdentifier = "https://issuer.eudiw.dev"
-    /// This is an issuer-scoped interoperability policy for the EUDI sandbox. These exact SD-JWT
-    /// types use its PubEAA trust context, followed by local chain, issuer and signature checks.
-    /// Keep the VCT allowlist independent of the certificate supplied in the credential.
-    private static let verificationContexts: [String: String] = [
-        "urn:eu.europa.ec.eudi:diploma:1:1": "PubEAA",
-        "urn:eu.europa.ec.eudi:learning:credential:1": "PubEAA",
-        "urn:eudi:ehic:1": "PubEAA",
-        "urn:eu.europa.ec.eudi:hiid:1": "PubEAA",
+    /// The test-only VCT allowlist is independent of both the credential's x5c and the LoTE.
+    private static let allowedVCTs: Set<String> = [
+        "urn:eudi:ehic:1",
+        "urn:eu.europa.ec.eudi:hiid:1",
     ]
-    private static let validatorOrigin = URL(string: "https://trust-validator.eudiw.dev")!
-    private static let trustEndpoint = URL(string: "https://trust-validator.eudiw.dev/trust")!
+    private let cache: EUDITestLoTECache
+    private let entitlementPolicy: EUDITestIssuerEntitlementPolicy?
+    private let staticTestPolicy: EUDITestStaticTrustPolicy?
+    private let now: @Sendable () -> Date
 
-    private let http: WalletHTTP
-
-    init(http: WalletHTTP = WalletHTTP()) { self.http = http }
+    init(
+        http: WalletHTTP = WalletHTTP(), pins: EUDITestLoTESignerPins? = nil,
+        entitlementPolicy: EUDITestIssuerEntitlementPolicy? = nil,
+        staticTestPolicy: EUDITestStaticTrustPolicy? = nil,
+        recordStore: any EUDITestLoTERecordStore = KeychainEUDITestLoTERecordStore(),
+        now: @escaping @Sendable () -> Date = { Date() }
+    ) {
+        cache = EUDITestLoTECache(http: http, pins: pins, recordStore: recordStore, now: now)
+        self.entitlementPolicy = entitlementPolicy
+        self.staticTestPolicy = staticTestPolicy
+        self.now = now
+    }
 
     func supports(issuer: URL, vct: String) -> Bool {
-        issuer.absoluteString == Self.issuerIdentifier && Self.verificationContexts[vct] != nil
+        issuer.absoluteString == Self.issuerIdentifier &&
+            (Self.allowedVCTs.contains(vct) || staticTestPolicy?.supports(issuer: issuer, vct: vct) == true)
+    }
+
+    func prepare(issuer: URL, vct: String) async throws {
+        guard supports(issuer: issuer, vct: vct) else {
+            throw WalletError.invalidIssuer("No EUDI test certificate trust policy applies to this credential.")
+        }
+        if let staticTestPolicy, staticTestPolicy.supports(issuer: issuer, vct: vct) {
+            _ = try staticTestPolicy.trustedRoots(issuer: issuer, vct: vct, now: now())
+            return
+        }
+        guard let entitlementPolicy,
+              entitlementPolicy.authorizedRootSHA256ByVCT[vct]?.isEmpty == false,
+              entitlementPolicy.issuer == issuer else {
+            throw WalletError.unsupportedIssuerCertificateTrust
+        }
+        let listedRoots = try await cache.snapshot().issuanceRootsDER
+        guard !entitlementPolicy.authorizedRoots(
+            issuer: issuer, vct: vct, listedRoots: listedRoots).isEmpty else {
+            throw WalletError.invalidIssuer("The EUDI test issuer is not registered for this credential and certificate.")
+        }
     }
 
     func trustedRoots(for chainDER: [Data], issuer: URL, vct: String) async throws -> [Data] {
-        guard supports(issuer: issuer, vct: vct),
-              let verificationContext = Self.verificationContexts[vct],
-              (1...8).contains(chainDER.count) else {
+        guard supports(issuer: issuer, vct: vct), (1...8).contains(chainDER.count) else {
             throw WalletError.invalidIssuer("No EUDI test certificate trust policy applies to this credential.")
         }
-        // Do not fall back to a broader context when the validator rejects the chain.
-        let body = try JSONSerialization.data(withJSONObject: [
-            "chain": chainDER.map { $0.base64EncodedString() },
-            "verificationContext": verificationContext,
-        ])
-        let response = try await http.send(
-            Self.trustEndpoint, method: "POST",
-            headers: ["Content-Type": "application/json"], body: body,
-            origin: Self.validatorOrigin)
-        guard response.status == 200,
-              let object = (try? JSONSerialization.jsonObject(with: response.data)) as? [String: Any],
-              object["trusted"] as? Bool == true,
-              let encodedAnchor = object["trustAnchor"] as? String,
-              let anchor = decodeAnchor(encodedAnchor),
-              !chainDER.contains(anchor),
-              SecCertificateCreateWithData(nil, anchor as CFData) != nil
-        else { throw WalletError.invalidCredential("The EUDI test issuer certificate is not trusted.") }
-        return [anchor]
-    }
-
-    private func decodeAnchor(_ encoded: String) -> Data? {
-        guard !encoded.isEmpty, encoded.utf8.count <= 16 * 1024 else { return nil }
-        let bare = encoded.prefix(while: { $0 != "=" })
-        let padding = encoded.dropFirst(bare.count)
-        let alphabet = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")
-        guard padding.count <= 2, padding.allSatisfy({ $0 == "=" }),
-              bare.unicodeScalars.allSatisfy(alphabet.contains), bare.count % 4 != 1 else { return nil }
-        return Data(base64Encoded: String(bare) + String(repeating: "=", count: (4 - bare.count % 4) % 4))
+        if let staticTestPolicy, staticTestPolicy.supports(issuer: issuer, vct: vct) {
+            return try staticTestPolicy.trustedRoots(issuer: issuer, vct: vct, now: now())
+        }
+        guard let entitlementPolicy,
+              entitlementPolicy.authorizedRootSHA256ByVCT[vct]?.isEmpty == false,
+              entitlementPolicy.issuer == issuer else {
+            throw WalletError.unsupportedIssuerCertificateTrust
+        }
+        let listedRoots = try await cache.snapshot().issuanceRootsDER
+        let approvedRoots = entitlementPolicy.authorizedRoots(
+            issuer: issuer, vct: vct, listedRoots: listedRoots)
+        guard !approvedRoots.isEmpty else {
+            throw WalletError.invalidIssuer("The EUDI test issuer is not registered for this credential and certificate.")
+        }
+        return approvedRoots
     }
 }

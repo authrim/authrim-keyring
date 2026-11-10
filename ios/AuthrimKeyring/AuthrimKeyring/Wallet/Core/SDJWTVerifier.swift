@@ -23,17 +23,27 @@ nonisolated struct VerifiedCredential: Sendable {
     let expiresAt: Date
     /// Plain and disclosed claims as display strings.
     let claims: [String: String]
+    /// The verified, disclosure-resolved JSON object. Kept separate from the short UI strings so
+    /// type-metadata paths can select nested and array claims without trusting unverified text.
+    let resolvedPayload: Data
+    let selectivelyDisclosedPaths: Set<[SDJWTClaimPathComponent]>
+    let hasUndisclosedClaims: Bool
+}
+
+nonisolated enum SDJWTClaimPathComponent: Hashable, Sendable {
+    case name(String)
+    case index(Int)
 }
 
 nonisolated enum SDJWTVerifier {
     /// Claims that are protocol plumbing, not shown to the user.
-    static let hiddenClaims: Set<String> = ["_sd", "_sd_alg", "cnf", "status", "iss", "vct", "iat", "exp"]
+    static let hiddenClaims: Set<String> = ["_sd", "_sd_alg", "cnf", "status", "iss", "vct", "vct#integrity", "iat", "exp"]
     static let maxIssuedAtSkew: TimeInterval = 300
     static let maxDisclosures = 64
     static let maxDisplayedClaims = 64
     static let maxClaimValueLength = 1_000
     /// Claims that must stay in the signed payload and never be selectively disclosed (SD-JWT VC 3.2.2.2).
-    static let neverDisclosed: Set<String> = ["iss", "nbf", "exp", "iat", "cnf", "vct", "status", "_sd", "_sd_alg", "..."]
+    static let neverDisclosed: Set<String> = ["iss", "nbf", "exp", "iat", "cnf", "vct", "vct#integrity", "status", "_sd", "_sd_alg", "..."]
 
     /// The `kid` the issuer JWT header names, to pick the key from the issuer's JWKS.
     static func keyID(of parsed: ParsedSDJWT) throws -> String {
@@ -83,7 +93,8 @@ nonisolated enum SDJWTVerifier {
         if let alg = payload["_sd_alg"] as? String, alg != "sha-256" { throw fail("Unsupported disclosure digest algorithm.") }
         if payload["_sd_alg"] != nil, !(payload["_sd_alg"] is String) { throw fail("Unsupported disclosure digest algorithm.") }
 
-        let resolved = try resolveDisclosures(parsed.disclosures, payload: payload)
+        let resolution = try resolveDisclosures(parsed.disclosures, payload: payload)
+        let resolved = resolution.payload
         // Names and values are shown on screen. A name must already be clean display text, so no name
         // can turn into another (a hidden one included) by cleaning; values lose control and format
         // characters (bidi overrides included) and are bounded, like issuer metadata text.
@@ -94,7 +105,13 @@ nonisolated enum SDJWTVerifier {
             guard claims.count < maxDisplayedClaims else { throw fail("The credential has too many claims.") }
             claims[name] = displayText(value)
         }
-        return VerifiedCredential(issuedAt: issuedAt, expiresAt: Date(timeIntervalSince1970: exp), claims: claims)
+        guard let resolvedPayload = try? JSONSerialization.data(withJSONObject: resolved) else {
+            throw fail("The credential has an invalid claim value.")
+        }
+        return VerifiedCredential(
+            issuedAt: issuedAt, expiresAt: Date(timeIntervalSince1970: exp), claims: claims,
+            resolvedPayload: resolvedPayload, selectivelyDisclosedPaths: resolution.disclosedPaths,
+            hasUndisclosedClaims: resolution.hasUndisclosedClaims)
     }
 
     // MARK: Disclosures
@@ -104,10 +121,16 @@ nonisolated enum SDJWTVerifier {
         case arrayElement(value: Any)
     }
 
+    private struct Resolution {
+        let payload: [String: Any]
+        let disclosedPaths: Set<[SDJWTClaimPathComponent]>
+        let hasUndisclosedClaims: Bool
+    }
+
     /// Resolve only disclosure digests reachable from the signed payload. An object member may
     /// contain another `_sd` list, and an array placeholder may disclose an object with its own
     /// digests (RFC 9901 section 6). The disclosure order does not have to be parent-first.
-    private static func resolveDisclosures(_ disclosures: [String], payload: [String: Any]) throws -> [String: Any] {
+    private static func resolveDisclosures(_ disclosures: [String], payload: [String: Any]) throws -> Resolution {
         guard disclosures.count <= maxDisclosures else { throw fail("The credential has too many disclosures.") }
         var byDigest: [String: Disclosure] = [:]
         for disclosure in disclosures {
@@ -130,6 +153,8 @@ nonisolated enum SDJWTVerifier {
 
         var referenced = Set<String>()
         var used = Set<String>()
+        var disclosedPaths = Set<[SDJWTClaimPathComponent]>()
+        var hasUndisclosedClaims = false
         func take(_ digest: String) throws -> Disclosure? {
             // A digest may occur only once, including references to undisclosed values.
             guard referenced.insert(digest).inserted else {
@@ -139,45 +164,55 @@ nonisolated enum SDJWTVerifier {
             return nil
         }
 
-        func resolve(_ value: Any, depth: Int) throws -> Any {
+        func resolve(_ value: Any, depth: Int, path: [SDJWTClaimPathComponent]) throws -> Any {
             guard depth <= 64 else { throw fail("The credential has too many nested claims.") }
             if let object = value as? [String: Any] {
                 var result: [String: Any] = [:]
                 for (name, child) in object where name != "_sd" {
-                    result[name] = try resolve(child, depth: depth + 1)
+                    result[name] = try resolve(child, depth: depth + 1, path: path + [.name(name)])
                 }
                 if let raw = object["_sd"] {
                     guard let digests = raw as? [String] else {
                         throw fail("The credential lists its disclosures incorrectly.")
                     }
                     for digest in digests {
-                        guard let disclosure = try take(digest) else { continue }
+                        guard let disclosure = try take(digest) else {
+                            hasUndisclosedClaims = true
+                            continue
+                        }
                         guard case .objectMember(let name, let child) = disclosure,
                               result[name] == nil,
                               name != "_sd", name != "_sd_alg", name != "...",
                               (depth > 0 || !neverDisclosed.contains(name)) else {
                             throw fail("A disclosure repeats a claim.")
                         }
-                        result[name] = try resolve(child, depth: depth + 1)
+                        let claimPath = path + [SDJWTClaimPathComponent.name(name)]
+                        disclosedPaths.insert(claimPath)
+                        result[name] = try resolve(child, depth: depth + 1, path: claimPath)
                     }
                 }
                 return result
             }
             if let array = value as? [Any] {
                 var result: [Any] = []
-                for element in array {
+                for (index, element) in array.enumerated() {
+                    let claimPath = path + [SDJWTClaimPathComponent.index(index)]
                     if let placeholder = element as? [String: Any], placeholder.count == 1,
                        let raw = placeholder["..."] {
                         guard let digest = raw as? String else {
                             throw fail("A disclosure placeholder is malformed.")
                         }
-                        guard let disclosure = try take(digest) else { continue }
+                        guard let disclosure = try take(digest) else {
+                            hasUndisclosedClaims = true
+                            continue
+                        }
                         guard case .arrayElement(let child) = disclosure else {
                             throw fail("A disclosure has the wrong shape.")
                         }
-                        result.append(try resolve(child, depth: depth + 1))
+                        disclosedPaths.insert(claimPath)
+                        result.append(try resolve(child, depth: depth + 1, path: claimPath))
                     } else {
-                        result.append(try resolve(element, depth: depth + 1))
+                        result.append(try resolve(element, depth: depth + 1, path: claimPath))
                     }
                 }
                 return result
@@ -185,11 +220,12 @@ nonisolated enum SDJWTVerifier {
             return value
         }
 
-        guard let resolved = try resolve(payload, depth: 0) as? [String: Any],
+        guard let resolved = try resolve(payload, depth: 0, path: []) as? [String: Any],
               used.count == byDigest.count else {
             throw fail("A disclosure does not match the signed credential.")
         }
-        return resolved
+        return Resolution(payload: resolved, disclosedPaths: disclosedPaths,
+                          hasUndisclosedClaims: hasUndisclosedClaims)
     }
 
     // MARK: Helpers
@@ -203,7 +239,9 @@ nonisolated enum SDJWTVerifier {
 
     /// `display` without control or format characters, bounded for the screen.
     static func displayText(_ value: Any) -> String {
-        let text = String(display(value).unicodeScalars.filter { !CharacterSet.controlCharacters.contains($0) })
+        let text = String(display(value).unicodeScalars.filter {
+            !CharacterSet.controlCharacters.contains($0) && $0.properties.generalCategory != .format
+        })
         return String(text.prefix(maxClaimValueLength))
     }
 

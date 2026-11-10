@@ -200,6 +200,53 @@ struct WalletIssuanceTests {
         #expect(preview.transactionCode == nil)
     }
 
+    @Test func issuedCredentialKeepsIssuerCardDesign() async throws {
+        var metadata = TestIssuer.issuerMetadata()
+        var configurations = metadata["credential_configurations_supported"] as! [String: Any]
+        var configuration = configurations["admin"] as! [String: Any]
+        var credentialMetadata = configuration["credential_metadata"] as! [String: Any]
+        credentialMetadata["display"] = [[
+            "name": "Admin credential", "locale": "en", "description": "A credential for administrators",
+            "background_color": "#123", "text_color": "#fff",
+        ]]
+        configuration["credential_metadata"] = credentialMetadata
+        configurations["admin"] = configuration
+        metadata["credential_configurations_supported"] = configurations
+        stubHappyPath(metadata: metadata)
+
+        let service = client()
+        let preview = try await service.preview(offer: Self.offerLink)
+        let credential = try await service.issue(preview, transactionCode: "123456")
+        #expect(credential.credentialDisplay?.backgroundColor == "#112233")
+        #expect(credential.credentialDisplay?.textColor == "#FFFFFF")
+        #expect(credential.credentialDisplay?.description == "A credential for administrators")
+        #expect(store.items.first?.credentialDisplay == credential.credentialDisplay)
+    }
+
+    @Test func issuedCredentialStoresRenderedSVGTemplate() async throws {
+        var options = TestIssuer.Options()
+        options.extraPayload = ["name": "Alex & Morgan"]
+        let issuer = issuer
+        let signer = signer
+        stubHappyPath(credential: { try issuer.sdJwt(holder: signer.publicJWK, options) })
+        let template = Data(#"<svg xmlns="http://www.w3.org/2000/svg"><text>{{holder}}</text></svg>"#.utf8)
+        StubURLProtocol.on("GET", TestIssuer.vct, json: [
+            "vct": TestIssuer.vct,
+            "claims": [["path": ["name"], "mandatory": true, "svg_id": "holder"]],
+            "display": [["locale": "en", "name": "Rendered card", "rendering": [
+                "svg_templates": [["uri": "data:image/svg+xml;base64,\(template.base64EncodedString())"]],
+            ]]],
+        ])
+
+        let service = client()
+        let preview = try await service.preview(offer: Self.offerLink)
+        let credential = try await service.issue(preview, transactionCode: "123456")
+        #expect(credential.credentialName == "Rendered card")
+        let face = try #require(credential.credentialDisplay?.selectedSVGVariant(colorScheme: "light", contrast: "normal")?.data)
+        #expect(String(data: face, encoding: .utf8)?.contains("Alex &amp; Morgan") == true)
+        #expect(store.items.first?.credentialDisplay?.selectedSVGVariant(colorScheme: "light", contrast: "normal")?.data == face)
+    }
+
     @Test func concurrentReceivesDoNotRedeemOneOfferTwice() async throws {
         stubHappyPath(offer: TestIssuer.offerJSON(txCode: false))
         let tokenURL = Self.base + "/vci/token"

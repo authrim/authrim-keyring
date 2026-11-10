@@ -6,6 +6,7 @@ struct IssuerLabel: View {
     let issuer: URL
     let displayName: String?
     let trust: IssuerTrust
+    var displayDirection: CredentialTextDirection? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -23,7 +24,7 @@ struct IssuerLabel: View {
                     .textSelection(.enabled)
                     .accessibilityLabel(Text("Issuer address \(issuer.walletHost)"))
                 if let displayName, !displayName.isEmpty {
-                    Text("Calls itself “\(displayName)”")
+                    Text("Calls itself “\((displayDirection ?? .auto).isolate(displayName))”")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }

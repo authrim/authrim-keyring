@@ -7,6 +7,9 @@ nonisolated struct VerifiedConfiguration: Sendable, Equatable {
     let vct: String
     let name: String
     let claimNames: [String]
+    let claimNameDirections: [CredentialTextDirection]
+    let claimDisplaySources: [CredentialClaimDisplaySource]
+    let displaySource: CredentialDisplaySource?
     let keyAttestationRequirements: KeyAttestationRequirements?
 }
 
@@ -15,6 +18,8 @@ nonisolated struct VerifiedIssuer: Sendable {
     let issuer: URL
     let authorizationServer: URL
     let displayName: String?
+    let displayDirection: CredentialTextDirection?
+    let issuerLogo: CredentialDisplaySource.ImageReference?
     let credentialEndpoint: URL
     let nonceEndpoint: URL?
     let tokenEndpoint: URL
@@ -228,9 +233,12 @@ nonisolated enum IssuerMetadata {
                 throw WalletError.invalidIssuer("The offered credentials need OAuth scopes or authorization details support.")
             }
         }
+        let issuerDisplay = CredentialDisplayMetadata.issuerSource(
+            metadata["display"], languages: preferredLanguages)
         return VerifiedIssuer(
             issuer: issuer, authorizationServer: server,
-            displayName: localizedName(metadata["display"], languages: preferredLanguages),
+            displayName: issuerDisplay?.name, displayDirection: issuerDisplay?.direction,
+            issuerLogo: issuerDisplay?.logo,
             credentialEndpoint: credentialEndpoint, nonceEndpoint: nonceEndpoint, tokenEndpoint: tokenEndpoint,
             authorizationEndpoint: authorizationEndpoint,
             pushedAuthorizationRequestEndpoint: pushedAuthorizationRequestEndpoint,
@@ -278,17 +286,27 @@ nonisolated enum IssuerMetadata {
         else { return nil }
 
         let credentialMetadata = raw["credential_metadata"] as? [String: Any]
+        let displaySource = CredentialDisplayMetadata.issuerSource(
+            credentialMetadata?["display"], languages: languages)
         let name = localizedName(credentialMetadata?["display"], languages: languages)
             ?? sanitize(id) ?? String(vct.prefix(120))
         let claims = (credentialMetadata?["claims"] as? [[String: Any]]) ?? []
-        let claimNames = claims.prefix(64).compactMap { claim -> String? in
-            if let shown = localizedName(claim["display"], languages: languages) { return shown }
+        let namedClaims = claims.prefix(64).compactMap { claim -> (String, CredentialTextDirection)? in
+            if let shown = localizedName(claim["display"], languages: languages) {
+                let direction = CredentialDisplayMetadata.claimSources([claim], languages: languages)
+                    .first?.direction ?? .auto
+                return (shown, direction)
+            }
             let path = (claim["path"] as? [Any])?.compactMap { $0 as? String }
-            return path?.last.flatMap(sanitize)
+            return path?.last.flatMap(sanitize).map { ($0, .auto) }
         }
         return VerifiedConfiguration(
             id: id, scope: (raw["scope"] as? String).flatMap(validScope),
-            vct: vct, name: name, claimNames: claimNames,
+            vct: vct, name: name, claimNames: namedClaims.map(\.0),
+            claimNameDirections: namedClaims.map(\.1),
+            claimDisplaySources: CredentialDisplayMetadata.claimSources(
+                credentialMetadata?["claims"], languages: languages),
+            displaySource: displaySource,
             keyAttestationRequirements: keyAttestationRequirements)
     }
 

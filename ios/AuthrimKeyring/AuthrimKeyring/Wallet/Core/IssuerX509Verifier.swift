@@ -226,8 +226,15 @@ private nonisolated enum IssuerCertificateNames {
 /// interoperability policy, not a production trust framework for arbitrary issuers.
 nonisolated struct EUDITestIssuerCertificateTrustSource: IssuerCertificateTrustSource {
     private static let issuerIdentifier = "https://issuer.eudiw.dev"
-    private static let diplomaVCT = "urn:eu.europa.ec.eudi:diploma:1:1"
-    private static let learningVCT = "urn:eu.europa.ec.eudi:learning:credential:1"
+    /// This is an issuer-scoped interoperability policy for the EUDI sandbox. These exact SD-JWT
+    /// types use its PubEAA trust context, followed by local chain, issuer and signature checks.
+    /// Keep the VCT allowlist independent of the certificate supplied in the credential.
+    private static let verificationContexts: [String: String] = [
+        "urn:eu.europa.ec.eudi:diploma:1:1": "PubEAA",
+        "urn:eu.europa.ec.eudi:learning:credential:1": "PubEAA",
+        "urn:eudi:ehic:1": "PubEAA",
+        "urn:eu.europa.ec.eudi:hiid:1": "PubEAA",
+    ]
     private static let validatorOrigin = URL(string: "https://trust-validator.eudiw.dev")!
     private static let trustEndpoint = URL(string: "https://trust-validator.eudiw.dev/trust")!
 
@@ -236,18 +243,19 @@ nonisolated struct EUDITestIssuerCertificateTrustSource: IssuerCertificateTrustS
     init(http: WalletHTTP = WalletHTTP()) { self.http = http }
 
     func supports(issuer: URL, vct: String) -> Bool {
-        issuer.absoluteString == Self.issuerIdentifier && [Self.diplomaVCT, Self.learningVCT].contains(vct)
+        issuer.absoluteString == Self.issuerIdentifier && Self.verificationContexts[vct] != nil
     }
 
     func trustedRoots(for chainDER: [Data], issuer: URL, vct: String) async throws -> [Data] {
-        guard supports(issuer: issuer, vct: vct), (1...8).contains(chainDER.count) else {
+        guard supports(issuer: issuer, vct: vct),
+              let verificationContext = Self.verificationContexts[vct],
+              (1...8).contains(chainDER.count) else {
             throw WalletError.invalidIssuer("No EUDI test certificate trust policy applies to this credential.")
         }
-        // The sandbox currently accepts its education signing certificates under PubEAA.
         // Do not fall back to a broader context when the validator rejects the chain.
         let body = try JSONSerialization.data(withJSONObject: [
             "chain": chainDER.map { $0.base64EncodedString() },
-            "verificationContext": "PubEAA",
+            "verificationContext": verificationContext,
         ])
         let response = try await http.send(
             Self.trustEndpoint, method: "POST",

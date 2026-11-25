@@ -17,6 +17,7 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
     private let walletAttestationProvider: (any WalletAttestationProvider)?
     private let issuerCertificateTrustSource: (any IssuerCertificateTrustSource)?
     private let authorizationBrowser: (any AuthorizationBrowser)?
+    private let redirectURI: URL
     private let sessions = OfferSessions()
 
     init(
@@ -36,8 +37,11 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
         keyAttestationTrustSource: (any KeyAttestationTrustSource)? = nil,
         walletAttestationProvider: (any WalletAttestationProvider)? = nil,
         issuerCertificateTrustSource: (any IssuerCertificateTrustSource)? = nil,
-        authorizationBrowser: (any AuthorizationBrowser)? = nil
+        authorizationBrowser: (any AuthorizationBrowser)? = nil,
+        redirectURI: URL = AuthorizationCodeFlow.redirectURI
     ) {
+        precondition(AuthorizationCodeFlow.isValidRedirect(redirectURI), "invalid wallet redirect URI")
+        self.redirectURI = redirectURI
         self.http = http
         self.store = store
         self.makeKey = makeKey
@@ -525,7 +529,7 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
         var fields: [(String, String)] = [
             ("response_type", "code"),
             ("client_id", walletAttestation.clientID),
-            ("redirect_uri", AuthorizationCodeFlow.redirectURI.absoluteString),
+            ("redirect_uri", redirectURI.absoluteString),
             ("resource", issuer.issuer.absoluteString),
             ("state", state),
             ("code_challenge", AuthorizationCodeFlow.challenge(for: verifier)),
@@ -607,10 +611,10 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
         } else {
             browser = await MainActor.run { SystemAuthorizationBrowser() }
         }
-        let callback = try await browser.authorize(
-            url, callbackScheme: AuthorizationCodeFlow.redirectURI.scheme!)
+        let callback = try await browser.authorize(url, redirectURI: redirectURI)
         let code = try AuthorizationCodeFlow.code(
-            from: callback, state: state, authorizationServer: issuer.authorizationServer)
+            from: callback, state: state, authorizationServer: issuer.authorizationServer,
+            redirectURI: redirectURI)
         return AuthorizationCodeResult(
             code: code, verifier: verifier, context: context,
             requestedScopes: useAuthorizationDetails ? nil : Set(scopes),
@@ -636,7 +640,7 @@ nonisolated final class OpenID4VCIClient: CredentialIssuanceService {
                 ("grant_type", "authorization_code"),
                 ("code", authorizationCode.code),
                 ("code_verifier", authorizationCode.verifier),
-                ("redirect_uri", AuthorizationCodeFlow.redirectURI.absoluteString),
+                ("redirect_uri", redirectURI.absoluteString),
             ]
             if issuer.advertisesAuthorizationServers {
                 fields.append(("resource", issuer.issuer.absoluteString))

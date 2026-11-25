@@ -40,12 +40,36 @@ struct AuthrimKeyringApp: App {
         let eudiTestWalletProvider = EUDITestWalletAttestationProvider()
         let eudiTestIssuerTrust = EUDITestIssuerCertificateTrustSource(
             staticTestPolicy: EUDITestStaticTrustPolicy())
-        let issuance = OpenID4VCIClient(
-            store: store, keyAttestationProvider: eudiTestProvider,
-            keyAttestationTrustSource: eudiTestProvider,
-            walletAttestationProvider: eudiTestWalletProvider,
-            issuerCertificateTrustSource: eudiTestIssuerTrust)
-        return WalletModel(issuance: issuance, store: store)
+        // HAIP issuance and sign-in need a deployment configuration (provider, pinned roots, app link);
+        // a build without one runs exactly as before, with no unattested fallback.
+        #if DEBUG
+        let isRelease = false
+        #else
+        let isRelease = true
+        #endif
+        let deployment = try? WalletDeploymentConfig.current()
+        let haip = deployment.flatMap { try? WalletProviderFactory.make(config: $0, isRelease: isRelease) }
+        let issuance: OpenID4VCIClient
+        var login: HAIPLoginClient?
+        if let deployment, let haip {
+            issuance = OpenID4VCIClient(
+                store: store,
+                keyAttestationProvider: CompositeKeyAttestation(
+                    providers: [eudiTestProvider, haip.keyAttestation], trust: [eudiTestProvider, haip.keyAttestationTrust]),
+                keyAttestationTrustSource: CompositeKeyAttestation(
+                    providers: [eudiTestProvider, haip.keyAttestation], trust: [eudiTestProvider, haip.keyAttestationTrust]),
+                walletAttestationProvider: CompositeWalletAttestationProvider(providers: [eudiTestWalletProvider, haip.walletAttestation]),
+                issuerCertificateTrustSource: CompositeIssuerTrust(sources: [eudiTestIssuerTrust, haip.issuerTrust]),
+                redirectURI: deployment.redirectURI)
+            login = HAIPLoginClient(roots: deployment.authrimRoots, consoleHosts: deployment.consoleHosts)
+        } else {
+            issuance = OpenID4VCIClient(
+                store: store, keyAttestationProvider: eudiTestProvider,
+                keyAttestationTrustSource: eudiTestProvider,
+                walletAttestationProvider: eudiTestWalletProvider,
+                issuerCertificateTrustSource: eudiTestIssuerTrust)
+        }
+        return WalletModel(issuance: issuance, store: store, login: login)
     }
 
     /// Whether the cards are the screenshots' fictional ones, which must not

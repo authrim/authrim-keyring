@@ -5,16 +5,26 @@ import SwiftUI
 struct PresentationView: View {
     @Environment(WalletModel.self) private var wallet
     @State private var flow: PresentationFlow
+    let link: String
     let showsCancel: Bool
     let onClose: () -> Void
 
     init(link: String, showsCancel: Bool = false, onClose: @escaping () -> Void) {
         _flow = State(initialValue: PresentationFlow(link: link))
+        self.link = link
         self.showsCancel = showsCancel
         self.onClose = onClose
     }
 
     var body: some View {
+        if HAIPLoginLink.isLoginLink(link) {
+            HAIPLoginView(link: link, showsCancel: showsCancel, onClose: onClose)
+        } else {
+            requestBody
+        }
+    }
+
+    private var requestBody: some View {
         content
             .navigationTitle("Admin Console Request")
             .navigationBarTitleDisplayMode(.inline)

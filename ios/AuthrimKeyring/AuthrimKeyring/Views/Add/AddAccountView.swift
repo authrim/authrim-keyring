@@ -229,7 +229,7 @@ struct AddAccountView: View {
             dismiss()
             return
         }
-        if PresentationLink.isRequest(payload) {
+        if PresentationLink.isRequest(payload) || HAIPLoginLink.isLoginLink(payload) {
             presentationRequest = IncomingOffer(text: payload)
             return
         }

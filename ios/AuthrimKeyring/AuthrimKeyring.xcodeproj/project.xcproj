@@ -69,7 +69,7 @@
         "INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]": "UIStatusBarStyleDefault",
         "INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad": "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight",
         "INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone": "UIInterfaceOrientationPortrait",
-        "IPHONEOS_DEPLOYMENT_TARGET": "17.0",
+        "IPHONEOS_DEPLOYMENT_TARGET": "17.4",
         "LD_RUNPATH_SEARCH_PATHS": "@executable_path/Frameworks",
         "MARKETING_VERSION": "1.2",
         "PRODUCT_BUNDLE_IDENTIFIER": "com.authrim.keyring",

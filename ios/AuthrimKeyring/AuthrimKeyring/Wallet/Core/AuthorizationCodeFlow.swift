@@ -6,7 +6,7 @@ import UIKit
 
 /// The authorization response is delivered only to the authentication session that opened the page.
 nonisolated protocol AuthorizationBrowser: Sendable {
-    @MainActor func authorize(_ url: URL, callbackScheme: String) async throws -> URL
+    @MainActor func authorize(_ url: URL, redirectURI: URL) async throws -> URL
 }
 
 @MainActor
@@ -15,7 +15,7 @@ final class SystemAuthorizationBrowser: NSObject, AuthorizationBrowser, ASWebAut
     private var continuation: CheckedContinuation<URL, Error>?
     private var anchor: ASPresentationAnchor?
 
-    func authorize(_ url: URL, callbackScheme: String) async throws -> URL {
+    func authorize(_ url: URL, redirectURI: URL) async throws -> URL {
         guard activeSession == nil else {
             throw WalletError.invalidIssuer("An authorization page is already open.")
         }
@@ -31,7 +31,7 @@ final class SystemAuthorizationBrowser: NSObject, AuthorizationBrowser, ASWebAut
                     continuation.resume(throwing: WalletError.authorizationDenied)
                     return
                 }
-                let session = ASWebAuthenticationSession(url: url, callbackURLScheme: callbackScheme) { [weak self] callback, error in
+                let handler: (URL?, Error?) -> Void = { [weak self] callback, error in
                     Task { @MainActor in
                         if let callback {
                             self?.finish(.success(callback))
@@ -44,6 +44,11 @@ final class SystemAuthorizationBrowser: NSObject, AuthorizationBrowser, ASWebAut
                                 error?.localizedDescription ?? "The authorization page was closed.")))
                         }
                     }
+                }
+                let session: ASWebAuthenticationSession
+                do { session = try Self.makeSession(url: url, redirectURI: redirectURI, handler: handler) } catch {
+                    continuation.resume(throwing: error)
+                    return
                 }
                 session.presentationContextProvider = self
                 self.continuation = continuation
@@ -61,6 +66,24 @@ final class SystemAuthorizationBrowser: NSObject, AuthorizationBrowser, ASWebAut
         }
     }
 
+    /// A custom-scheme redirect uses the scheme; an https redirect (an app link) needs the https
+    /// callback form, available from iOS 17.4.
+    private static func makeSession(
+        url: URL, redirectURI: URL, handler: @escaping (URL?, Error?) -> Void
+    ) throws -> ASWebAuthenticationSession {
+        if redirectURI.scheme?.lowercased() == "https" {
+            guard #available(iOS 17.4, *), let host = redirectURI.host else {
+                throw WalletError.invalidIssuer("An https redirect needs iOS 17.4 or later.")
+            }
+            return ASWebAuthenticationSession(
+                url: url, callback: .https(host: host, path: redirectURI.path), completionHandler: handler)
+        }
+        guard let scheme = redirectURI.scheme else {
+            throw WalletError.invalidIssuer("The redirect URI has no scheme.")
+        }
+        return ASWebAuthenticationSession(url: url, callbackURLScheme: scheme, completionHandler: handler)
+    }
+
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
         anchor ?? UIWindow()
     }
@@ -76,7 +99,20 @@ final class SystemAuthorizationBrowser: NSObject, AuthorizationBrowser, ASWebAut
 
 /// The registered redirect URI is deliberately different from the credential-offer schemes.
 nonisolated enum AuthorizationCodeFlow {
+    /// The built-in redirect (custom scheme). A HAIP deployment configures an https app link instead
+    /// (`WalletDeploymentConfig.redirectURI`); the OP accepts only https redirect URIs for wallets.
     static let redirectURI = URL(string: "com.authrim.keyring://oauth/callback")!
+
+    /// A redirect URI the wallet can receive: a custom scheme or https, with a host and path, no
+    /// credentials, port, query or fragment.
+    static func isValidRedirect(_ uri: URL) -> Bool {
+        guard let components = URLComponents(url: uri, resolvingAgainstBaseURL: false),
+              let scheme = components.scheme?.lowercased(), let host = components.host, !host.isEmpty,
+              components.user == nil, components.password == nil, components.port == nil,
+              components.query == nil, components.fragment == nil, components.path.count > 1
+        else { return false }
+        return scheme == "https" || scheme.contains(".")
+    }
 
     static func randomURLSafeValue() throws -> String {
         var bytes = [UInt8](repeating: 0, count: 32)
@@ -111,11 +147,14 @@ nonisolated enum AuthorizationCodeFlow {
         return url
     }
 
-    static func code(from callback: URL, state: String, authorizationServer: URL) throws -> String {
+    static func code(
+        from callback: URL, state: String, authorizationServer: URL, redirectURI: URL = redirectURI
+    ) throws -> String {
         guard let components = URLComponents(url: callback, resolvingAgainstBaseURL: false),
               components.scheme?.lowercased() == redirectURI.scheme,
               components.host?.lowercased() == redirectURI.host,
-              components.path == redirectURI.path,
+              components.percentEncodedPath == URLComponents(
+                  url: redirectURI, resolvingAgainstBaseURL: false)?.percentEncodedPath,
               components.user == nil, components.password == nil, components.port == nil,
               components.fragment == nil else {
             throw WalletError.invalidIssuer("The authorization callback does not match Keyring's redirect URI.")

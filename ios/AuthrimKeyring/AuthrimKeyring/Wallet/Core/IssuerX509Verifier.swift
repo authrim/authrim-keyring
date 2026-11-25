@@ -107,8 +107,8 @@ nonisolated enum IssuerX509Verifier {
 /// iOS does not expose SecCertificateCopyValues. Read only the bounded DER path to the
 /// SubjectAlternativeName extension; all other certificate checks are left to SecTrust.
 /// URI SANs bind the full issuer identifier. DNS SANs bind root-path issuers only.
-private nonisolated enum IssuerCertificateNames {
-    static func matches(issuer: URL, in certificateDER: Data) -> Bool {
+nonisolated enum IssuerCertificateNames {
+    static func matches(issuer: URL, in certificateDER: Data, dnsOnly: Bool = false) -> Bool {
         let bytes = Array(certificateDER)
         var document = DERReader(bytes)
         guard let certificate = document.read(tag: 0x30), document.isAtEnd else { return false }
@@ -144,7 +144,7 @@ private nonisolated enum IssuerCertificateNames {
             if ext.nextTag == 0x01 { guard ext.read(tag: 0x01) != nil else { return false } }
             guard let value = ext.read(tag: 0x04), ext.isAtEnd else { return false }
             if Array(bytes[oid]) == [0x55, 0x1D, 0x11] { // 2.5.29.17
-                guard !seenSAN, let hasIssuer = matches(issuer: issuer, namesDER: bytes, range: value) else { return false }
+                guard !seenSAN, let hasIssuer = matches(issuer: issuer, namesDER: bytes, range: value, dnsOnly: dnsOnly) else { return false }
                 seenSAN = true
                 matched = hasIssuer
             }
@@ -152,7 +152,7 @@ private nonisolated enum IssuerCertificateNames {
         return seenSAN && matched
     }
 
-    private static func matches(issuer: URL, namesDER bytes: [UInt8], range: Range<Int>) -> Bool? {
+    private static func matches(issuer: URL, namesDER bytes: [UInt8], range: Range<Int>, dnsOnly: Bool) -> Bool? {
         var encoded = DERReader(bytes, within: range)
         guard let names = encoded.read(tag: 0x30), encoded.isAtEnd else { return nil }
         var entries = DERReader(bytes, within: names)
@@ -176,6 +176,8 @@ private nonisolated enum IssuerCertificateNames {
             default: break
             }
         }
+        // A verifier is named by its dNSName only; the URI SANs of an issuer certificate play no part.
+        if dnsOnly { return matchedDNS }
         return matchedURI || (!sawURI && matchedDNS)
     }
 

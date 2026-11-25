@@ -14,7 +14,7 @@ private struct AuthorizationTestProvider: WalletAttestationProvider {
 private final class AuthorizationTestBrowser: AuthorizationBrowser {
     let callback: (URL) throws -> URL
     init(_ callback: @escaping (URL) throws -> URL) { self.callback = callback }
-    func authorize(_ url: URL, callbackScheme: String) async throws -> URL {
+    func authorize(_ url: URL, redirectURI: URL) async throws -> URL {
         try callback(url)
     }
 }

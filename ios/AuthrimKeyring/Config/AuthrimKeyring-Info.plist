@@ -23,6 +23,7 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>openid4vp</string>
+				<string>haip-vp</string>
 			</array>
 		</dict>
 		<dict>
@@ -35,6 +36,35 @@
 				<string>com.authrim.keyring</string>
 			</array>
 		</dict>
+	</array>
+	<key>WalletProviderKind</key>
+	<string>$(WALLET_PROVIDER_KIND)</string>
+	<key>WalletProviderOrigin</key>
+	<string>$(WALLET_PROVIDER_ORIGIN)</string>
+	<key>WalletProviderIssuer</key>
+	<string>$(WALLET_PROVIDER_ISSUER)</string>
+	<key>WalletProviderPinnedRoots</key>
+	<array>
+		<string>$(WALLET_PROVIDER_ROOT_1)</string>
+		<string>$(WALLET_PROVIDER_ROOT_2)</string>
+	</array>
+	<key>WalletProviderIssuers</key>
+	<array>
+		<string>$(WALLET_CREDENTIAL_ISSUER_1)</string>
+		<string>$(WALLET_CREDENTIAL_ISSUER_2)</string>
+	</array>
+	<key>WalletClientID</key>
+	<string>$(WALLET_CLIENT_ID)</string>
+	<key>WalletRedirectURI</key>
+	<string>$(WALLET_REDIRECT_URI)</string>
+	<key>AuthrimTrustedRoots</key>
+	<array>
+		<string>$(AUTHRIM_ROOT_1)</string>
+		<string>$(AUTHRIM_ROOT_2)</string>
+	</array>
+	<key>AuthrimConsoleHosts</key>
+	<array>
+		<string>$(AUTHRIM_CONSOLE_HOST_1)</string>
 	</array>
 	<key>NSUserActivityTypes</key>
 	<array>

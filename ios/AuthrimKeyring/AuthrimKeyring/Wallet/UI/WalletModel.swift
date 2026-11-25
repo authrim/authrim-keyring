@@ -13,6 +13,8 @@ struct IncomingOffer: Identifiable, Hashable {
 final class WalletModel {
     let issuance: any CredentialIssuanceService
     let presentation: any PresentationService
+    /// Answers the admin console's HAIP sign-in; nil when this build has no Authrim roots configured.
+    let login: HAIPLoginClient?
     private let store: any CredentialStore
     private let trustedIssuers: [TrustedIssuer]
 
@@ -39,10 +41,12 @@ final class WalletModel {
     init(
         issuance: any CredentialIssuanceService, store: any CredentialStore,
         presentation: any PresentationService = OpenID4VPClient(),
+        login: HAIPLoginClient? = nil,
         trustedIssuers: [TrustedIssuer] = TrustedIssuer.all
     ) {
         self.issuance = issuance
         self.presentation = presentation
+        self.login = login
         self.store = store
         self.trustedIssuers = trustedIssuers
     }
@@ -110,7 +114,7 @@ final class WalletModel {
 
     /// Takes an OpenID4VCI, HAIP VCI or OpenID4VP link opened from outside the app.
     func handle(url: URL) {
-        if PresentationLink.isRequest(url.absoluteString) {
+        if PresentationLink.isRequest(url.absoluteString) || HAIPLoginLink.isLoginLink(url.absoluteString) {
             incomingPresentation = IncomingOffer(text: url.absoluteString)
             return
         }

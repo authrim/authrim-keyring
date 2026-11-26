@@ -2,7 +2,13 @@ import Foundation
 
 /// Settings read by both the app and the AutoFill extension, kept in the App Group.
 nonisolated enum SharedDefaults {
-    static let suiteName = "group.com.authrim.keyring"
+    /// The App Group of this build (`KeyringAppGroup` in Info.plist, from the `KEYRING_APP_GROUP` build
+    /// setting) so a Staging build never shares settings with the production app.
+    static let suiteName: String = {
+        let value = Bundle.main.object(forInfoDictionaryKey: "KeyringAppGroup") as? String
+        guard let value, value.hasPrefix("group."), !value.contains("$(") else { return "group.com.authrim.keyring" }
+        return value
+    }()
 
     static let syncKey = "iCloudSyncEnabled"
     static let appLockKey = "appLockEnabled"

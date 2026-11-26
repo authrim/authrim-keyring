@@ -7,7 +7,8 @@ import Foundation
 @available(iOS 26, *)
 nonisolated enum CredentialExchange {
     /// The exporting extension; the app has only the one.
-    static let extensionBundleIdentifier = "com.authrim.keyring.autofill"
+    /// Derived from the app's own identifier so the Staging build names its own extension.
+    static let extensionBundleIdentifier = (Bundle.main.bundleIdentifier ?? "com.authrim.keyring") + ".autofill"
     /// Marks the note that carries a card's recovery codes, one per line. Not
     /// localized, so an export read on a device in another language is still recognized.
     static let recoveryCodesLabel = "Recovery Codes"
